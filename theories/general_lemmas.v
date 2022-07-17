@@ -169,8 +169,14 @@ Section SomeLemmas.
   Qed.
 
 
+  Lemma pick_set1E (T : finType) (x0 : T) : [pick x in [set x0]] = Some x0.
+  Proof.
+    case: pickP.
+    - by move=> x; rewrite inE; move/eqP=>->.
+    - by move/(_ x0); rewrite inE eqxx.
+  Qed.
 
-  
+
   Definition pick_nonemptyset {X : finType} (B : {set X}) (HB : B != set0) : X.
   case (pickP [pred x in B]) => [x _ | H0].
   - exact: x.

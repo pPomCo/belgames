@@ -51,6 +51,8 @@
   TBEU: xeu_box. (Equiprobability hypothesis)
 
  *)
+
+
 (******************************************************************************)
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
@@ -65,11 +67,7 @@ Import Num.Theory.
 
 Open Scope ring_scope.
 
-Require Import general_lemmas.
-
-
-
-
+Require Import general_lemmas fprod.
 
 Section BelPl.
 
@@ -146,9 +144,6 @@ Section BelPl.
     := let (w,_) := (eq_bigmax (fun=>0%N) (bpa_nonempty m)) in w.
 
 
-
-
-
   Lemma Pl_ge0 (m : bpa) :
     forall C, Pl m C >= 0.
   Proof.
@@ -201,7 +196,6 @@ Section BelPl.
   Qed.
 
 
-  
   Lemma focalset_nonempty (m : bpa) :
     (#|focalset m| > 0)%N.
   Proof.
@@ -296,9 +290,6 @@ Section BelPl.
   by rewrite -(add0r 1) PlE addrKA opprK add0r setCK.
   Qed.
 
-
-
-
   Section KAdditivity.
     (**
        k-additive m = (\max_(B in focalset m) #|B| == k)
@@ -330,10 +321,11 @@ Section BelPl.
       exact: (eqP (H A HA1)).
     Qed.
 
+    Notation proba_axiom p := (1%N.-additive p) (only parsing).
 
     Structure proba :=
       { proba_val :> bpa ;
-        proba_ax : 1%N.-additive proba_val }.
+        proba_ax : proba_axiom proba_val }.
 
     Definition proba_eq : rel proba := fun p1 p2 => proba_val p1 == proba_val p2.
 
@@ -347,7 +339,25 @@ Section BelPl.
     Definition proba_eqMixin := EqMixin proba_eqP.
     Canonical proba_eqType := EqType proba proba_eqMixin.
 
-
+    Lemma proba_set1_eq0 (p : proba) (s : {set W}) : #|s| != 1%N -> p s = 0.
+    Proof.
+      move=> Hneq1.
+      have H1 := proba_ax p.
+      rewrite k_additive1E in H1.
+      move/(_ s) in H1.
+      apply/eqP; rewrite -[_ == 0]negbK.
+      apply/negP=> K0.
+      have Hfocal : s \in focalset p.
+      { rewrite in_focalset_focalelement /focal_element.
+        case: p {H1} K0 => [b Hb] K0 /=.
+        case: b Hb K0 => [m Hm] /= Hb K0.
+        clear Hb.
+        rewrite /bpa_axiom in Hm.
+        have /and3P [_ _ /forallP Hpos] := Hm.
+        move/(_ s) in Hpos.
+        by rewrite lt0r Hpos K0. }
+      by rewrite (eqP (H1 Hfocal)) in Hneq1.
+    Qed.
 
     Definition dist (p : proba) : W -> R := fun w => p [set w].
 
@@ -1014,6 +1024,7 @@ Section BelPl.
 
 End BelPl.
 
+
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
 
 Section BelOnFFuns.
@@ -1040,7 +1051,34 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
+  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
+    (forall i : X, {ffun {set T i} -> R}).
+  Proof. move=> i; apply p. Defined.
 
+  Lemma proba_set1 (p : forall i : X, proba R (T i)) :
+    forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
+  Proof.
+    move=> i.
+    have x0 : T i.
+    { have P_i := p i.
+      have [b _] := P_i.
+      apply: bpa_nonemptyW b. }
+    set h' : set_of_finType (T i) -> T i :=
+      fun s =>
+        match [pick x | x \in s] with
+        | Some x => x
+        | None => x0
+        end.
+    rewrite
+      -(big_rmcond _ (I := set_of_finType (T i)) _ (P := fun s => #|s| == 1%N));
+      last by move=> s Hs; exact: proba_set1_eq0.
+    rewrite (reindex_onto (I := set_of_finType (T i)) (J := T i)
+                          (fun j => [set j]) h'
+                          (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
+    { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
+    under [in RHS]eq_bigl => j do rewrite /h' pick_set1E cards1 !eqxx andbT.
+    exact: eq_bigr.
+  Qed.
 
   Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tconfig -> R}
     := [ffun t : Tconfig => \prod_i dist (p i) (t i)].
@@ -1049,19 +1087,42 @@ Section BelOnFFuns.
   Proof.
   apply/andP ; split.
   - under eq_bigr do rewrite /mk_prod_proba ffunE.
-    admit.
+    set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
+    have L := (@big_fprod R X (fun i => T i) pp).
+    do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
+    do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
+    erewrite (reindex).
+    2: exists (@fprod_of_dffun X _).
+    2: move=> *; apply: dffun_of_fprodK.
+    2: move => *; apply: fprod_of_dffunK.
+    under (* Improve PG indentation *)
+      eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
+    rewrite L.
+    under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
+    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
+    rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
+    apply eq_bigr => i _ /=.
+    rewrite (big_tag pp).
+    have := fun i => @bpa_ax R (T i)  => H.
+    have Hi := H i (p i).
+    rewrite /bpa_axiom in Hi.
+    have/and3P [H1 H2 H3] := Hi.
+    rewrite /pp /= in H2; move/eqP in H2.
+    apply/eqP; rewrite -H2 /pp.
+    under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
+    apply/eqP.
+    exact: proba_set1.
   - apply/forallP => t.
     rewrite ffunE.
     apply big_ind => // [||i _] ; first by rewrite ler01.
     apply mulr_ge0.
     have [_ _ Hm3] := and3P (bpa_ax (p i)).
     exact: (forallP Hm3).
-  Admitted.
-  
+  Qed.
+
   Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tconfig
     := proba_of_dist (mk_prod_proba_dist p witnessX).
 
 End BelOnFFuns.
-
 
 Close Scope ring_scope.

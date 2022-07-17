@@ -1,6 +1,7 @@
 -R theories Uncertainty
 
 theories/general_lemmas.v
+theories/fprod.v
 theories/bel.v
 theories/games.v
 theories/HRtransform.v
