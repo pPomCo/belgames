@@ -1,4 +1,4 @@
--R theories Uncertainty
+-R theories BelGames
 
 theories/general_lemmas.v
 theories/fprod.v
