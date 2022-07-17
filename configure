@@ -1,0 +1,3 @@
+#!/bin/sh
+set -x
+coq_makefile -f _CoqProject -o Makefile
