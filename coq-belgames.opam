@@ -5,9 +5,9 @@ opam-version: "2.0"
 maintainer: "erik.martin-dorel@irit.fr"
 version: "dev"
 
-homepage: "https://github.com/pPomCo/belgames"
-dev-repo: "git+https://github.com/pPomCo/belgames.git"
-bug-reports: "https://github.com/pPomCo/belgames/issues"
+homepage: "https://github.com/pPomCo/coq-belgames-csl2023"
+dev-repo: "git+https://github.com/pPomCo/coq-belgames-csl2023.git"
+bug-reports: "https://github.com/pPomCo/coq-belgames-csl2023/issues"
 license: "MIT"
 
 synopsis: "BelGames: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant"

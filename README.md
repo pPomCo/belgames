@@ -6,8 +6,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 [![Docker CI][docker-action-shield]][docker-action-link]
 
-[docker-action-shield]: https://github.com/pPomCo/belgames/workflows/Docker%20CI/badge.svg?branch=master
-[docker-action-link]: https://github.com/pPomCo/belgames/actions?query=workflow:"Docker%20CI"
+[docker-action-shield]: https://github.com/pPomCo/coq-belgames-csl2023/workflows/Docker%20CI/badge.svg?branch=master
+[docker-action-link]: https://github.com/pPomCo/coq-belgames-csl2023/actions?query=workflow:"Docker%20CI"
 
 
 
@@ -46,8 +46,8 @@ opam install coq-belgames
 To instead build and install manually, do:
 
 ``` shell
-git clone https://github.com/pPomCo/belgames.git
-cd belgames
+git clone https://github.com/pPomCo/coq-belgames-csl2023.git
+cd coq-belgames-csl2023
 make   # or make -j <number-of-cores-on-your-machine> 
 make install
 ```
