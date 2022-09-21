@@ -3,6 +3,7 @@ fullname: A Formal Theory of Games of Incomplete Information Based on Belief Fun
 shortname: belgames
 organization: pPomCo
 community: false
+branch: main
 action: true
 nix: false
 coqdoc: false

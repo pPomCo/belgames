@@ -6,7 +6,7 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 [![Docker CI][docker-action-shield]][docker-action-link]
 
-[docker-action-shield]: https://github.com/pPomCo/coq-belgames-csl2023/workflows/Docker%20CI/badge.svg?branch=master
+[docker-action-shield]: https://github.com/pPomCo/coq-belgames-csl2023/workflows/Docker%20CI/badge.svg?branch=main
 [docker-action-link]: https://github.com/pPomCo/coq-belgames-csl2023/actions?query=workflow:"Docker%20CI"
 
 
