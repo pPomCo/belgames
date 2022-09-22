@@ -31,7 +31,8 @@ into games of complete information, i.e., without any uncertainty.
 - Additional dependencies:
   - [MathComp](https://math-comp.github.io) 1.13.0 or later (`algebra` suffices)
 - Coq namespace: `BelGames`
-- Related publication(s): none
+- Related publication(s):
+  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://ut3-toulouseinp.hal.science/hal-03782650) 
 
 ## Building and installation instructions
 

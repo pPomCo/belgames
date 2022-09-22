@@ -24,8 +24,8 @@ description: |-
   into games of complete information, i.e., without any uncertainty.
 
 publications:
-# - pub_url: https://hal.archives-ouvertes.fr/hal-TODO/document
-#   pub_title: TODO
+  - pub_url: "https://ut3-toulouseinp.hal.science/hal-03782650"
+    pub_title: "Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)"
 #   pub_doi: TODO
 
 authors:
