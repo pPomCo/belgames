@@ -64,17 +64,20 @@
 
    3. BelGames -- Incomplete games where the knowledge is captured by a belief function.
    belgame R T                == ((bpa R (cprofile T)) * (profile -> (cprofile T) -> i -> R))
-   proper_belgame G bb        == One can condition given (ti : T i) for all agent (i : X)
-                                 according to (bb : belbox (cprofile T))
-   belgame_utility G bb H p i == utility of p for i, according to the scoring function given in
-                                 (bb : belbox (cprofile T)), given that (H : proper_belgame G bb)
-   belgame_Nash_equilibrium G bb H p
-                              == true iff p is a Nash equilibrium according to (belgame_utility G bb H p)
+   proper_belgame G cond      == One can condition given (ti : T i) for all agent (i : X)
+                                 according to (cond : conditioning (cprofile T))
+   belgame_utility G cond xeu H p i == utility of p for i, according to the scoring function xeu,
+                                 given that (H : proper_belgame G cond)
+   BelG_Nash_equilibrium G cond xeu H p
+                              == true iff p is a Nash equilibrium according to (belgame_utility G cond xeu H p)
                                  i.e. there is no (i : X) such that there is no (ti : T i) such
-                                 that there is no (ai : A i) such that (belgame_utility G bb H p i)
-                                 < (belgame_utility G bb H (change_istrategy T A p i ti ai) i)
-  belgame_Nash_equilibrium_prop G bb H p
-  belgame_Nash_equilibriumP G bb H p
+                                 that there is no (ai : A i) such that (belgame_utility G cond xeu H p i)
+                                 < (belgame_utility G cond xeu H (change_istrategy T A p i ti ai) i)
+  BelG_Nash_equilibrium_prop G cond xeu H p
+  BelG_Nash_equilibriumP G cond xeu H p
+
+  4. Mixed strategy profiles
+  We show that they are descriptible by their mixed-extension
  *)
 (******************************************************************************)
 From Coq Require Import ssreflect.

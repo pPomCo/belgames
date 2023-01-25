@@ -25,13 +25,13 @@ Open Scope ring_scope.
 (** This file contains Howson-Rosenthal-like transform for BelGames
     i.e. cast of BelGames to complete (hypergraphical) games
 
-    We propose 2 transforms : "direct" and "conditionned" which patially rely
+    We propose 3 transforms : "direct", "conditionned" and "TBM" which patially rely
     on the same definitions.
 
      Parameter R : realFieldType.     (* nums *)
      Parameter X : finType.           (* agents *)
      Parameter A : agent -> finType.  (* actions *)
-     Parameter T : agent -> finType.  (* s types aka signals *)
+     Parameter T : agent -> finType.  (* types aka signals *)
      Parameter G : belgame R A T.     (* the belgame to cast *)
 
    COMMON DEFINITIONS:
@@ -56,6 +56,7 @@ Open Scope ring_scope.
        BelG_Nash_equilibrium proper_G p
        = Nash_equilibrium (HRcond_transform proper_G) [ffun i_ti => p (projT1 it) (projT2 it)].
 
+   TBM TRANSFORM:
  **)
 (******************************************************************************)
 

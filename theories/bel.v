@@ -16,7 +16,7 @@
    PlE m:  forall A, Pl m A = 1 - Bel m (~:A)
 
 
-   2. k-additivity describe the max-cardinality of focal elements.
+   2. k-additivity describes the max-cardinality of focal elements.
 
    If k=1, then Bel = Pl is a proba
    k.-additive m     == (\max_(A in focalset m) #|A| == k)
@@ -41,14 +41,22 @@
 
   4. XEU scoring functions, as weighted sums over focalsets
 
-  xeu f m           == \sum_(A in focalset m) m A * f A
-  xeu_box           == the structure for xeu computations, which coerce to
-                       (W -> R) -> {set W} -> R
+  xeu m f           == \sum_(A in focalset m) m A * f A
 
-  We then define:
-  CEU : xeu_box. (Min-value for each focal set)
-  JEU: xeu_box. (Linear combination of min-value and max-value)
-  TBEU: xeu_box. (Equiprobability hypothesis)
+  We then define several xeu-functions from utility-function
+  CEU u             == fun A -> \min_(w in A) u w
+  JEU alpha u       == fun A -> alpha * \min_(w in A) u w + (1-alpha) * \max_(w in A) u w
+  TBEU u            == fun A -> \sum_(w in A) u w / #|A|
+
+  Their value wrt a bpa m and an unitlity function u is given by:
+  [CEU of u over m]
+  [JEU alpha of u over m]
+  [TBEU of u over m]
+
+  For any 1-additive bpa p (i.e. p is a proba) and utility function u, we show that:
+  [CEU of u over p] = [EU of u over p]
+  [JEU alpha of u over p] = [EU of u over p]
+  [TBEU of u over p] = [EU of u over p]
 
  *)
 
