@@ -31,7 +31,7 @@ Open Scope ring_scope.
      Parameter R : realFieldType.     (* nums *)
      Parameter X : finType.           (* agents *)
      Parameter A : agent -> finType.  (* actions *)
-     Parameter T : agent -> finType.  (* agent's types aka signals *)
+     Parameter T : agent -> finType.  (* s types aka signals *)
      Parameter G : belgame R A T.     (* the belgame to cast *)
 
    COMMON DEFINITIONS:
@@ -50,10 +50,10 @@ Open Scope ring_scope.
    CONDITIONED TRANSFORM:
      Definition HRcond_transform dbox HG == cgame HowsonRosenthal.R HR_action.
      HRcond_transform_correct HG i ti p :
-       belgame_utility dbox HG p ti 
+       belgame_utility dbox HG p ti
        = HRcond_transform dbox HG (iprofile_flatten p) (existT _  i ti).
      HRcond_eqNash dbox HG p :
-       BelG_Nash_equilibrium proper_G p 
+       BelG_Nash_equilibrium proper_G p
        = Nash_equilibrium (HRcond_transform proper_G) [ffun i_ti => p (projT1 it) (projT2 it)].
 
  **)
@@ -143,7 +143,12 @@ Section HowsonRosenthal.
   End HRclassical.
 
 
-  Theorem HR_eqNash_prop (G : belgame R action agent_type) (G' : cgame R HR_action) (cond : conditioning R Tconfig) (xeu : xeu_box R _) (proper_G : proper_belgame G cond) :
+
+  Notation "'xeu_function' T" := ({ffun T -> R} -> {ffun {set T} -> R}) (at level 80).
+
+
+
+  Theorem HR_eqNash_prop (G : belgame R action agent_type) (G' : cgame R HR_action) (cond : conditioning R Tconfig) (xeu : xeu_function _) (proper_G : proper_belgame G cond) :
     (forall p i ti, belgame_utility xeu proper_G p ti = G' (iprofile_flatten p) (existT _ i ti))
     ->
     forall p,
@@ -227,19 +232,18 @@ Section HowsonRosenthal.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
-
     Definition HRdirect_localutility : forall lg : HRdirect_localgame, HRdirect_localprof lg -> HRdirect_localagent lg -> R
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
-         G.1 lg * CEU R _ (fun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i) (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
+         G.1 lg * CEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
 
 
     Definition HRdirect_transform : cgame R HR_action := hg_game HRdirect_localutility.
 
     Theorem HRdirect_transform_correct:
       forall i (ti : agent_type i) p,
-      belgame_utility (CEU R _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
+      belgame_utility (@CEU _ _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
     Proof.
     move => i ti p.
     set i_ti := existT _ i ti.
@@ -251,17 +255,18 @@ Section HowsonRosenthal.
     case (boolP (HRdirect_plays_in B i_ti)) => H.
     - have := H ; rewrite HRdirect_plays_in_event_ti => ->.
       apply: mulr_rr ; apply: mulr_ll.
-      apply ceu_ax => t Ht.
-      rewrite in_setI in Ht.
-      have [Ht1 Ht2] := andP Ht.
-      by rewrite HRdirect_mkprofileE.
+      apply eq_CEU => t Hdomain.
+      rewrite !ffunE.
+      rewrite HRdirect_mkprofileE //.
+      rewrite in_setI in Hdomain.
+      by have [Hdomain1 _] := andP Hdomain.
     - rewrite HRdirect_plays_in_event_ti in H.
       by rewrite (negbTE H) mul0r.
     Qed.
 
     Theorem HRdirect_eqNash :
       forall p,
-      BelG_Nash_equilibrium_prop (CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
+      BelG_Nash_equilibrium_prop (@CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
     Proof.
     apply HR_eqNash_prop => p i ti.
     by rewrite HRdirect_transform_correct.
@@ -282,7 +287,8 @@ Section HowsonRosenthal.
 
     Variable G : belgame R action agent_type.
     Variable cond : conditioning R Tconfig.
-    Variable xeu : xeu_box R Tconfig.
+    Variable xeu : xeu_function Tconfig.
+    Variable xeu_equality : eq_xeu xeu.
     Variable proper_G : proper_belgame G cond.
 
 
@@ -343,7 +349,7 @@ Section HowsonRosenthal.
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
          let kn := cond G.1 (event_ti ti) (is_revisable proper_G ti) in
-         kn lg * xeu (fun t => G.2 (HRcond_mkprofile Hi_ti p t) t i) lg.
+         kn lg * xeu [ffun t => G.2 (HRcond_mkprofile Hi_ti p t) t i] lg.
 
 
     Definition HRcond_transform : cgame R HR_action :=
@@ -369,7 +375,8 @@ Section HowsonRosenthal.
     case (boolP (HRcond_plays_in lg i_ti)) => H.
     - rewrite /HRcond_localutility /=.
       set kn := cond G.1 (event_ti ti) (is_revisable proper_G ti).
-      + apply: mulr_ll ; apply: xeu_ax => t Ht ; by rewrite HRcond_mkprofileE.
+      + apply: mulr_ll ; apply: xeu_equality => t Ht.
+        by rewrite !ffunE HRcond_mkprofileE.
     - have := negb_HRcond_plays_in H.
       rewrite notin_focalset => /eqP -> ; by rewrite mul0r.
     Qed.
@@ -383,6 +390,10 @@ Section HowsonRosenthal.
     Qed.
 
   End ConditionedTransform.
+
+  Definition HRcondCEU_eqNash G cond := @HRcond_eqNash G cond _ (@eq_CEU _ _).
+  Definition HRcondJEU_eqNash alpha G cond := @HRcond_eqNash G cond _ (eq_JEU alpha).
+  Definition HRcondTBEU_eqNash G cond := @HRcond_eqNash G cond _ (@eq_TBEU _ _).
 
 
   Section TBMTransform.
@@ -424,15 +435,15 @@ Section HowsonRosenthal.
 
     Theorem HRTBM_transform_correct :
       forall i (ti : agent_type i) p,
-      belgame_utility (TBEU _ _) proper_G p ti = HRTBM_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
+      belgame_utility (@TBEU _ _) proper_G p ti = HRTBM_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
     Proof.
     move => i ti p.
     set i_ti := existT _ i ti.
     rewrite /belgame_utility /HRTBM_transform/= hg_gameE [RHS]big_mkcond /=.
-    rewrite TBEU_E.
+    rewrite TBEU_EUBetP.
     apply eq_bigr => lg _.
     case (boolP (HRTBM_plays_in lg i_ti)) => H.
-    - by rewrite HRTBM_mkprofileE.
+    - by rewrite HRTBM_mkprofileE ffunE.
     - rewrite /HRTBM_plays_in in H.
       have H0 : dist (BetP (Dempster_cond (is_revisable proper_G ti))) lg = 0.
       rewrite proba_of_distE /BetP_fun.
@@ -462,13 +473,13 @@ Section HowsonRosenthal.
 
   Theorem HRTBM_eqNash :
     forall p,
-    BelG_Nash_equilibrium_prop (TBEU _ _) proper_G p <-> Nash_equilibrium_prop HRTBM_transform (iprofile_flatten p).
+    BelG_Nash_equilibrium_prop (@TBEU _ _) proper_G p <-> Nash_equilibrium_prop HRTBM_transform (iprofile_flatten p).
   Proof.
   apply HR_eqNash_prop => p i ti.
     by rewrite HRTBM_transform_correct.
   Qed.
 
-  End TBMTransform.    
+  End TBMTransform.
 
 End HowsonRosenthal.
 

@@ -71,7 +71,7 @@ Require Import general_lemmas fprod.
 
 Section BelPl.
 
-  Context (R : realFieldType).
+  Variable (R : realFieldType).
   Variable (W : finType).
 
 
@@ -432,7 +432,6 @@ Section BelPl.
     by under eq_bigl do rewrite in_setT.
     Qed.
 
-    (** For TBEU correctness -- to do LATER! *)
     Definition bpa_of_dist_fun (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : {ffun {set W} -> R}
       := [ffun A : {set W} => if #|A| == 1%N
                               then match boolP (A != set0) with
@@ -843,94 +842,76 @@ Section BelPl.
     by case (BigOp.bigop (@None R)).
     Qed.
 
+    Notation utility_function := {ffun W -> R}.
 
-    Definition EU (p : proba) (u : W -> R) : R
+    Definition EU (p : proba) (u : utility_function) : R
       := \sum_w dist p w * u w.
 
+    Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
 
-    Notation xeu_fun_type := ((W -> R) -> {set W} -> R).
+    Notation xeu_function := (utility_function -> {ffun {set W} -> R}).
 
-    Definition xeu_axiom (f_xeu : xeu_fun_type) :=
-      forall (u1 u2 : W -> R),
+    Definition eq_xeu (f_xeu : xeu_function) :=
+      forall (u1 u2 : utility_function),
       forall B : {set W}, {in B, u1 =1 u2} -> f_xeu u1 B = f_xeu u2 B.
 
-    Definition XEU (m : bpa) (f_xeu : {set W} -> R) : R
+    Definition XEU (m : bpa) (f_xeu : {ffun {set W} -> R}) : R
       := \sum_(B in focalset m) m B * f_xeu B.
 
-    Structure xeu_box :=
-      { xeu_val :> xeu_fun_type ;
-        xeu_ax : xeu_axiom xeu_val }.
 
-    (*
-    Structure belbox :=
-      { revise : conditioning ;
-        score : xeu_box }.
-     *)
 
-    Lemma f_xeu_equal (fu fv : {set W} -> R) m :
-      fu =1 fv ->
-      XEU m fu = XEU m fv.
-    Proof.
-    move => Huv ; apply eq_bigr => B HB ; by rewrite Huv.
-    Qed.
 
-    Definition ceu_fun (u : W -> R) : {set W} -> R
-      := fun B => match minS u B with
-                  | Some r => r
-                  | None => 0
-                  end.
+    Definition CEU : xeu_function
+      := fun u => [ffun B => match minS u B with
+                             | Some r => r
+                             | None => 0
+                             end].
 
-    Lemma ceu_ax : xeu_axiom ceu_fun.
+    Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
+
+    Lemma eq_CEU : eq_xeu CEU.
     Proof.
     move => u1 u2 B H.
-    by rewrite /ceu_fun (minSE H).
+    by rewrite !ffunE (minSE H).
     Qed.
 
-    Definition CEU : xeu_box :=
-      {| xeu_ax := ceu_ax |}.
-
-    Lemma ceuE (m : bpa) (u : W -> R) :
-      XEU m (ceu_fun u) = ChoquetIntg u m.
-    Proof. by []. Qed.
-
-    (*
-    Definition DempCEU : belbox
-      := {| revise := Dempster_conditioning ;
-            score := CEU |}.
-     *)
-
-    Definition jeu_fun (alpha : R -> R -> R) (u : W -> R) : {set W} -> R
-      := fun B => match minS u B, maxS u B with
-                  | Some rmin, Some rmax => let a := alpha rmin rmax in
-                                            a * rmin + (1-a) * rmax
-                  | _, _ => 0
-                  end.
-
-    Lemma jeu_ax alpha : xeu_axiom (jeu_fun alpha).
+    Lemma ceuE (m : bpa) (u : utility_function) :
+      [CEU of u over m] = ChoquetIntg u m.
     Proof.
-    move => u1 u2 B H.
-    by rewrite /jeu_fun (minSE H) (maxSE H).
+    apply eq_bigr => B HB ; by rewrite ffunE.
     Qed.
 
-    Definition JEU alpha : xeu_box :=
-      {| xeu_ax := jeu_ax alpha |}.
+    Definition JEU (alpha : R -> R -> R) : xeu_function
+      := fun u => [ffun B => match minS u B, maxS u B with
+                             | Some rmin, Some rmax => let a := alpha rmin rmax in
+                                                       a * rmin + (1-a) * rmax
+                             | _, _ => 0
+                             end].
+
+    Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
 
 
-    Definition tbeu_fun (u : W -> R) : {set W} -> R
-      := fun B => \sum_(w in B) u w / #|B|%:R.
-
-    Lemma tbeu_ax : xeu_axiom tbeu_fun.
+    Lemma eq_JEU alpha : eq_xeu (JEU alpha).
     Proof.
     move => u1 u2 B H.
-    rewrite /tbeu_fun.
+    by rewrite !ffunE (minSE H) (maxSE H).
+    Qed.
+
+
+    Definition TBEU : xeu_function
+      := fun u => [ffun B : {set W} => \sum_(w in B) u w / #|B|%:R].
+
+    Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
+
+    Lemma eq_TBEU : eq_xeu TBEU.
+    Proof.
+    move => u1 u2 B H.
+    rewrite !ffunE.
     by apply eq_bigr => w Hw ; rewrite H.
     Qed.
 
-    Definition TBEU : xeu_box :=
-      {| xeu_ax := tbeu_ax |}.
-
-    Lemma XEU_EU (p : proba) (xbox : xeu_box) (u : W -> R) (Hxeu : forall w, (xbox u) [set w] = u w) :
-      XEU p (xbox u) = EU p u.
+    Lemma XEU_EU (p : proba) (u : utility_function) (xeu : xeu_function) (Hxeu : forall w, (xeu u) [set w] = u w) :
+      XEU p (xeu u) = EU p u.
     Proof.
     destruct p as [m Hm].
     rewrite /XEU /EU /dist /=.
@@ -946,36 +927,36 @@ Section BelPl.
       by rewrite mul0r.
     Qed.
 
-    Lemma CEU_EU (p : proba) (u : W -> R) :
-      XEU p (CEU u) = EU p u.
+    Lemma CEU_EU (p : proba) (u : utility_function) :
+      [CEU of u over p] = [EU of u over p].
     Proof.
     apply: XEU_EU => w /=.
-    by rewrite /ceu_fun minS1.
+    by rewrite ffunE minS1.
     Qed.
 
-    Lemma JEU_EU alpha (p : proba) (u : W -> R) :
-      XEU p (JEU alpha u) = EU p u.
+    Lemma JEU_EU alpha (p : proba) (u : utility_function) :
+      [JEU alpha of u over p] = [EU of u over p].
     Proof.
     apply: XEU_EU => w /=.
-    by rewrite /jeu_fun minS1 maxS1 addrC mulrC mulrBr mulr1 mulrC -addrA (addrC (-_)) subrr addr0.
+    by rewrite ffunE minS1 maxS1 /= mulrDl addrC -addrA -mulrDl (addrC (-_)) subrr mul1r mul0r addr0.
     Qed.
 
-    Lemma TBEU_EU (p : proba) (u : W -> R) :
-      XEU p (TBEU u) = EU p u.
+    Lemma TBEU_EU (p : proba) (u : utility_function) :
+      [TBEU of u over p] = [EU of u over p].
     Proof.
     apply: XEU_EU => w /=.
-    rewrite /tbeu_fun (bigD1 w) /= ; last by rewrite in_set1.
+    rewrite ffunE (bigD1 w) /= ; last by rewrite in_set1.
     rewrite big1 => [|w'] ; first by rewrite addr0 cards1 divr1.
     rewrite in_set1 ; by case (w' == w).
     Qed.
 
-    (*
-    Lemma Hceu : forall u w, CEU u [set w] = u w.
-    Proof.
-    move => u w.
-    rewrite /CEU /= /ceu_fun.
-     *)
   End ScoringFunctions.
+
+  Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
+  Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
+  Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
+  Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
+
 
 
   (* It could be nice to prove TBEU correctness, but not now :-) *)
@@ -1006,10 +987,12 @@ Section BelPl.
     Definition BetP (m : bpa) : proba
       := proba_of_dist (is_dist_BetP m).
 
-    Lemma TBEU_E (m : bpa) u :
-      XEU m (TBEU u) = EU (BetP m) u.
+    Lemma TBEU_EUBetP (m : bpa) u :
+      [TBEU of u over m] = [EU of u over BetP m].
     Proof.
-    rewrite /XEU/TBEU/dist/tbeu_fun/EU/BetP sum_fun_focalset /=.
+    rewrite /TBEU/XEU.
+    under eq_bigr do rewrite ffunE.
+    rewrite sum_fun_focalset.
     under [RHS]eq_bigr do rewrite proba_of_distE /BetP_fun sum_fun_focalset_cond.
     have Hl B : m B * (\sum_(w in B) u w / #|B|%:R) = (\sum_(w in B) m B * u w / #|B|%:R).
     by rewrite big_distrr /= ; under eq_bigr do rewrite mulrA.
@@ -1024,8 +1007,11 @@ Section BelPl.
 
 End BelPl.
 
-
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
+Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
+Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
+Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
+Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
 
 Section BelOnFFuns.
 

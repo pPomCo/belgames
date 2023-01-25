@@ -301,6 +301,8 @@ Section Games.
 
     Notation Tconfig := (fun T => [finType of {dffun forall i : agent, T i}]).
 
+    Notation "'xeu_function' T" := ({ffun T -> R} -> {ffun {set T} -> R}) (at level 80).
+
     Definition belgame A T :=
       (bpa R (Tconfig T) * (cprofile A -> Tconfig T -> agent -> R))%type.
 
@@ -311,18 +313,18 @@ Section Games.
       revisable cond G.1 (event_ti ti)
       := (forallP ((forallP HG) i)) ti.
 
-    Definition belgame_utility A T (G : belgame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R (Tconfig T)) (HG : proper_belgame G cond) (p : iprofile T A) (i : agent) (ti : T i) : R
+    Definition belgame_utility A T (G : belgame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_function _) (HG : proper_belgame G cond) (p : iprofile T A) (i : agent) (ti : T i) : R
       :=
         let kn := cond G.1 (event_ti ti) (is_revisable HG ti) in
-        XEU kn (xeu (fun t => G.2 (proj_iprofile p t) t i)).
+        XEU kn (xeu [ffun t => G.2 (proj_iprofile p t) t i]).
 
-    Definition BelG_Nash_equilibrium fA T (G : belgame fA T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R _) (HG : proper_belgame G cond) (p : iprofile T fA) : bool :=
+    Definition BelG_Nash_equilibrium fA T (G : belgame fA T) (cond : conditioning R (Tconfig T)) (xeu : xeu_function _) (HG : proper_belgame G cond) (p : iprofile T fA) : bool :=
       [forall i : agent,
         [forall ti : T i,
           [forall ai : fA i,
             ~~ (belgame_utility xeu HG p ti < belgame_utility xeu HG (change_istrategy p ti ai) ti)]]].
 
-    Definition BelG_Nash_equilibrium_prop A T (G : belgame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R _) (HG : proper_belgame G cond) (p : iprofile T A) : Prop :=
+    Definition BelG_Nash_equilibrium_prop A T (G : belgame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_function _) (HG : proper_belgame G cond) (p : iprofile T A) : Prop :=
       forall i : agent,
       forall ti : T i,
       forall ai : A i, ~ (belgame_utility xeu HG p ti < belgame_utility xeu HG (change_istrategy p ti ai) ti).
