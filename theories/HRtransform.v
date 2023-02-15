@@ -134,7 +134,7 @@ Section HowsonRosenthal.
     rewrite /bgame_utility /HRclassical_transform/= hg_gameE [RHS]big_mkcond /=.
     apply eq_bigr => lg _.
     case (boolP (HRclassical_plays_in lg i_ti)) => H.
-    - by rewrite HRclassical_mkprofileE.
+    - by rewrite ffunE HRclassical_mkprofileE.
     - rewrite /HRclassical_plays_in in H.
       rewrite /Pr_conditioning proba_of_distE /Pr_conditioning_dist.
       have H2 : lg \notin event_ti ti. by rewrite inE.

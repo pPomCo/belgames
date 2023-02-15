@@ -379,8 +379,8 @@ Section Games.
 
     Definition bgame_utility A T (G : bgame A T) (HG : proper_bgame G) (p : iprofile T A) (i : agent) (ti : T i) : R
       :=
-        let kn := Pr_conditioning (is_Pr_revisable HG ti) in
-        \sum_t dist kn t * G.2 (proj_iprofile p t) t i.
+      let kn := Pr_conditioning (is_Pr_revisable HG ti) in
+      [EU of [ffun t => G.2 (proj_iprofile p t) t i] wrt kn].
 
   End BGame.
 End Games.
@@ -399,7 +399,7 @@ Section MixedStrategies.
 
   Definition ms_utility (G : cgame R A) (mp : mixed_cprofile) (i : X) : R
     := let pr := prod_proba mp witnessX in
-       \sum_(p : cprofile A) (dist pr p) * (G p i).
+       [EU of [ffun p => G p i] wrt pr].
 
   Definition ms_Nash_equilibrium (G : cgame R A) (mp : mixed_cprofile) : Prop
     := forall i : X,

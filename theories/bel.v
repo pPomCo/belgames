@@ -49,14 +49,14 @@
   TBEU u            == fun A -> \sum_(w in A) u w / #|A|
 
   Their value wrt a bpa m and an unitlity function u is given by:
-  [CEU of u over m]
-  [JEU alpha of u over m]
-  [TBEU of u over m]
+  [CEU of u wrt m]
+  [JEU alpha of u wrt m]
+  [TBEU of u wrt m]
 
   For any 1-additive bpa p (i.e. p is a proba) and utility function u, we show that:
-  [CEU of u over p] = [EU of u over p]
-  [JEU alpha of u over p] = [EU of u over p]
-  [TBEU of u over p] = [EU of u over p]
+  [CEU of u wrt p] = [EU of u wrt p]
+  [JEU alpha of u wrt p] = [EU of u wrt p]
+  [TBEU of u wrt p] = [EU of u wrt p]
 
  *)
 
@@ -264,7 +264,7 @@ Section BelPl.
     Pl m A = \sum_(B in focalset m | B :&: A != set0) m B.
   Proof. by rewrite sum_mass_focalset_cond. Qed.
 
-  Lemma Bel_set0 (m : bpa) :
+  Lemma Bel0 (m : bpa) :
     Bel m set0 = 0.
   Proof.
   rewrite Bel_focalsetE big_pred0 // => A.
@@ -273,11 +273,32 @@ Section BelPl.
   by rewrite (negbTE (focal_neq_set0 H)) andbF.
   Qed.
 
-  Lemma Pl_set0 (m : bpa) :
+  Lemma Pl0 (m : bpa) :
     Pl m set0 = 0.
   Proof.
   rewrite Pl_focalsetE big_pred0 // => A.
   by rewrite setI0 eqxx andbF.
+  Qed.
+
+  Lemma BelT (m : bpa) :
+    Bel m setT = 1.
+  Proof.
+  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
+  rewrite /Bel ; under eq_bigl do rewrite subsetT //.
+  exact: (eqP H2).
+  Qed.
+
+  Lemma PlT (m : bpa) :
+    Pl m setT = 1.
+  Proof.
+  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
+  rewrite /Pl.
+  Search (_ :&: setT).
+  under eq_bigl do rewrite setIT.
+  Check bigD1.
+  rewrite -(eqP H2).
+  rewrite [RHS](bigD1 set0) //=.
+  by rewrite (eqP H1) add0r.
   Qed.
 
   (** Ensure definitions **)
@@ -855,7 +876,7 @@ Section BelPl.
     Definition EU (p : proba) (u : utility_function) : R
       := \sum_w dist p w * u w.
 
-    Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
+    Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
 
     Notation xeu_function := (utility_function -> {ffun {set W} -> R}).
 
@@ -875,7 +896,7 @@ Section BelPl.
                              | None => 0
                              end].
 
-    Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
+    Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
 
     Lemma eq_CEU : eq_xeu CEU.
     Proof.
@@ -884,7 +905,7 @@ Section BelPl.
     Qed.
 
     Lemma ceuE (m : bpa) (u : utility_function) :
-      [CEU of u over m] = ChoquetIntg u m.
+      [CEU of u wrt m] = ChoquetIntg u m.
     Proof.
     apply eq_bigr => B HB ; by rewrite ffunE.
     Qed.
@@ -896,7 +917,7 @@ Section BelPl.
                              | _, _ => 0
                              end].
 
-    Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
+    Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
 
 
     Lemma eq_JEU alpha : eq_xeu (JEU alpha).
@@ -909,7 +930,7 @@ Section BelPl.
     Definition TBEU : xeu_function
       := fun u => [ffun B : {set W} => \sum_(w in B) u w / #|B|%:R].
 
-    Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
+    Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
 
     Lemma eq_TBEU : eq_xeu TBEU.
     Proof.
@@ -936,21 +957,21 @@ Section BelPl.
     Qed.
 
     Lemma CEU_EU (p : proba) (u : utility_function) :
-      [CEU of u over p] = [EU of u over p].
+      [CEU of u wrt p] = [EU of u wrt p].
     Proof.
     apply: XEU_EU => w /=.
     by rewrite ffunE minS1.
     Qed.
 
     Lemma JEU_EU alpha (p : proba) (u : utility_function) :
-      [JEU alpha of u over p] = [EU of u over p].
+      [JEU alpha of u wrt p] = [EU of u wrt p].
     Proof.
     apply: XEU_EU => w /=.
     by rewrite ffunE minS1 maxS1 /= mulrDl addrC -addrA -mulrDl (addrC (-_)) subrr mul1r mul0r addr0.
     Qed.
 
     Lemma TBEU_EU (p : proba) (u : utility_function) :
-      [TBEU of u over p] = [EU of u over p].
+      [TBEU of u wrt p] = [EU of u wrt p].
     Proof.
     apply: XEU_EU => w /=.
     rewrite ffunE (bigD1 w) /= ; last by rewrite in_set1.
@@ -960,10 +981,10 @@ Section BelPl.
 
   End ScoringFunctions.
 
-  Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
-  Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
-  Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
-  Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
+  Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
+  Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
+  Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
+  Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
 
 
 
@@ -996,7 +1017,7 @@ Section BelPl.
       := proba_of_dist (is_dist_BetP m).
 
     Lemma TBEU_EUBetP (m : bpa) u :
-      [TBEU of u over m] = [EU of u over BetP m].
+      [TBEU of u wrt m] = [EU of u wrt BetP m].
     Proof.
     rewrite /TBEU/XEU.
     under eq_bigr do rewrite ffunE.
@@ -1016,10 +1037,10 @@ Section BelPl.
 End BelPl.
 
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
-Notation "[ 'EU' 'of' u 'over' p ]" := (EU p u) (at level 80).
-Notation "[ 'CEU' 'of' u 'over' m ]" := (XEU m (CEU u)) (at level 80).
-Notation "[ 'JEU' alpha 'of' u 'over' m ]" := (XEU m (JEU alpha u)) (at level 80).
-Notation "[ 'TBEU' 'of' u 'over' m ]" := (XEU m (TBEU u)) (at level 80).
+Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
+Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
+Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
+Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
 
 Section BelOnFFuns.
 
