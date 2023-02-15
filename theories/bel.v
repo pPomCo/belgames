@@ -12,8 +12,13 @@
    focalset m        == Set of focal elements
 
    We then prove several lemmas, eg:
-   BelE m: forall A, Bel m A = 1 - Pl m (~:A)
-   PlE m:  forall A, Pl m A = 1 - Bel m (~:A)
+   BelE m: forall A, Bel m A = 1 - Pl m (~:A).
+   PlE m:  forall A, Pl m A = 1 - Bel m (~:A).
+   Bel0 m: Bel m set0 = 0.
+   Pl0 m : Pl m set0 = 0.
+   Bel1 m : Bel m setT = 1.
+   Pl1 m : Pl m setT = 1.
+   etc.
 
 
    2. k-additivity describes the max-cardinality of focal elements.
@@ -44,14 +49,14 @@
   xeu m f           == \sum_(A in focalset m) m A * f A
 
   We then define several xeu-functions from utility-function
-  CEU u             == fun A -> \min_(w in A) u w
-  JEU alpha u       == fun A -> alpha * \min_(w in A) u w + (1-alpha) * \max_(w in A) u w
-  TBEU u            == fun A -> \sum_(w in A) u w / #|A|
+  f_CEU u             == fun A -> \min_(w in A) u w
+  f_JEU alpha u       == fun A -> alpha * \min_(w in A) u w + (1-alpha) * \max_(w in A) u w
+  f_TBEU u            == fun A -> \sum_(w in A) u w / #|A|
 
   Their value wrt a bpa m and an unitlity function u is given by:
-  [CEU of u wrt m]
-  [JEU alpha of u wrt m]
-  [TBEU of u wrt m]
+  [CEU of u wrt m]       = CEU m u = XEU m (f_CEU u)
+  [JEU alpha of u wrt m] = JEU alpha m u = XEU m (f_JEU alpha u)
+  [TBEU of u wrt m]      = TBEU m u = XEU m (f_TBEU u)
 
   For any 1-additive bpa p (i.e. p is a proba) and utility function u, we show that:
   [CEU of u wrt p] = [EU of u wrt p]
@@ -280,7 +285,7 @@ Section BelPl.
   by rewrite setI0 eqxx andbF.
   Qed.
 
-  Lemma BelT (m : bpa) :
+  Lemma Bel1 (m : bpa) :
     Bel m setT = 1.
   Proof.
   have [H1 H2 /forallP H3] := and3P (bpa_ax m).
@@ -288,7 +293,7 @@ Section BelPl.
   exact: (eqP H2).
   Qed.
 
-  Lemma PlT (m : bpa) :
+  Lemma Pl1 (m : bpa) :
     Pl m setT = 1.
   Proof.
   have [H1 H2 /forallP H3] := and3P (bpa_ax m).
@@ -972,19 +977,30 @@ Section BelPl.
 
 
 
-    Definition CEU : xeu_function
+    Definition f_CEU : xeu_function
       := fun u => [ffun B => match minS u B with
                              | Some r => r
                              | None => 0
                              end].
 
-    Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
 
-    Lemma eq_CEU : eq_xeu CEU.
+    Definition CEU m u := XEU m (f_CEU u).
+    Notation "[ 'CEU' 'of' u 'wrt' m ]" := (CEU m u) (at level 80).
+
+
+    (** TODO -- XEU : définition plus claire (faisant apparaître les actions **)
+    (*
+    Definition XEU' (m : bpa) (f_xeu : xeu_function) A (u :  A -> {ffun W -> R}) : A -> R :=
+      fun a => \sum_(B in focalset m) m B * f_xeu (u a) B.
+    Definition CEU' m {A} (u : A -> {ffun W -> R}) := XEU' m f_CEU u.
+     *)
+
+    Lemma eq_CEU : eq_xeu f_CEU.
     Proof.
     move => u1 u2 B H.
     by rewrite !ffunE (minSE H).
     Qed.
+
 
     Lemma ceuE (m : bpa) (u : utility_function) :
       [CEU of u wrt m] = ChoquetIntg u m.
@@ -992,29 +1008,31 @@ Section BelPl.
     apply eq_bigr => B HB ; by rewrite ffunE.
     Qed.
 
-    Definition JEU (alpha : R -> R -> R) : xeu_function
+    Definition f_JEU (alpha : R -> R -> R) : xeu_function
       := fun u => [ffun B => match minS u B, maxS u B with
                              | Some rmin, Some rmax => let a := alpha rmin rmax in
                                                        a * rmin + (1-a) * rmax
                              | _, _ => 0
                              end].
 
-    Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
+    Definition JEU alpha m u := XEU m (f_JEU alpha u).
+    Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (JEU alpha m u) (at level 80).
 
 
-    Lemma eq_JEU alpha : eq_xeu (JEU alpha).
+    Lemma eq_JEU alpha : eq_xeu (f_JEU alpha).
     Proof.
     move => u1 u2 B H.
     by rewrite !ffunE (minSE H) (maxSE H).
     Qed.
 
 
-    Definition TBEU : xeu_function
+    Definition f_TBEU : xeu_function
       := fun u => [ffun B : {set W} => \sum_(w in B) u w / #|B|%:R].
 
-    Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
+    Definition TBEU m u := XEU m (f_TBEU u).
+    Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (TBEU m u) (at level 80).
 
-    Lemma eq_TBEU : eq_xeu TBEU.
+    Lemma eq_TBEU : eq_xeu f_TBEU.
     Proof.
     move => u1 u2 B H.
     rewrite !ffunE.
@@ -1064,11 +1082,9 @@ Section BelPl.
   End ScoringFunctions.
 
   Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
-  Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
-  Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
-  Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
-
-
+  Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (f_CEU u)) (at level 80).
+  Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (f_JEU alpha u)) (at level 80).
+  Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (f_TBEU u)) (at level 80).
 
   (* It could be nice to prove TBEU correctness, but not now :-) *)
   Section TBM.
@@ -1120,9 +1136,9 @@ End BelPl.
 
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
 Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
-Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (CEU u)) (at level 80).
-Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (JEU alpha u)) (at level 80).
-Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (TBEU u)) (at level 80).
+Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (f_CEU u)) (at level 80).
+Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (f_JEU alpha u)) (at level 80).
+Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (f_TBEU u)) (at level 80).
 
 Section BelOnFFuns.
 

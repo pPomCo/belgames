@@ -237,14 +237,14 @@ Section HowsonRosenthal.
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
-         G.1 lg * CEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
+         G.1 lg * f_CEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
 
 
     Definition HRdirect_transform : cgame R HR_action := hg_game HRdirect_localutility.
 
     Theorem HRdirect_transform_correct:
       forall i (ti : agent_type i) p,
-      belgame_utility (@CEU _ _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
+      belgame_utility (@f_CEU _ _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
     Proof.
     move => i ti p.
     set i_ti := existT _ i ti.
@@ -267,7 +267,7 @@ Section HowsonRosenthal.
 
     Theorem HRdirect_eqNash :
       forall p,
-      BelG_Nash_equilibrium_prop (@CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
+      BelG_Nash_equilibrium_prop (@f_CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
     Proof.
     apply HR_eqNash_prop => p i ti.
     by rewrite HRdirect_transform_correct.
@@ -436,7 +436,7 @@ Section HowsonRosenthal.
 
     Theorem HRTBM_transform_correct :
       forall i (ti : agent_type i) p,
-      belgame_utility (@TBEU _ _) proper_G p ti = HRTBM_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
+      belgame_utility (@f_TBEU _ _) proper_G p ti = HRTBM_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
     Proof.
     move => i ti p.
     set i_ti := existT _ i ti.
@@ -474,10 +474,10 @@ Section HowsonRosenthal.
 
   Theorem HRTBM_eqNash :
     forall p,
-    BelG_Nash_equilibrium_prop (@TBEU _ _) proper_G p <-> Nash_equilibrium_prop HRTBM_transform (iprofile_flatten p).
+    BelG_Nash_equilibrium_prop (@f_TBEU _ _) proper_G p <-> Nash_equilibrium_prop HRTBM_transform (iprofile_flatten p).
   Proof.
   apply HR_eqNash_prop => p i ti.
-    by rewrite HRTBM_transform_correct.
+  by rewrite HRTBM_transform_correct.
   Qed.
 
   End TBMTransform.
