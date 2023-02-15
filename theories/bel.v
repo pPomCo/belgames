@@ -734,8 +734,27 @@ Section BelPl.
 
       Definition Dempster_conditioning : conditioning
         := {| cond_val := Dempster_cond ;
-              cond_ax := Dempster_cond_axiom |}.
+             cond_ax := Dempster_cond_axiom |}.
 
+      Lemma Dempster_condE m C HC :
+        forall A, Pl (Dempster_conditioning m C HC) A = Pl m (A :&: C) / Pl m C.
+      Proof.
+      move => A /=.
+      rewrite /Dempster_cond {1}/Pl {1}/Pl /Dempster_cond_fun  big_distrl /=.
+      under eq_bigr do rewrite ffunE -if_neg sum_fun_focalset_cond.
+      rewrite -big_mkcondr /=.
+      rewrite (eq_bigl (fun X => X :&: A != set0)) ;
+        last by move => X ; case (boolP (X == set0)) => /eqP H ; try rewrite H set0I eqxx; try rewrite andbT.
+      set Q := [pred B : {set W} | B :&: A != set0].
+      have H (B : {set W}) : B :&: (A :&: C) != set0 -> Q (B :&: C) by rewrite [i in _ :&: (i)]setIC setIA.
+      have := partition_big (fun B => B :&: C) [pred B | B :&: A != set0] H => //= th.
+      rewrite th /=.
+      apply: eq_bigr => B HB.
+      apply: eq_big => // B0.
+      have Bneq0 : B != set0 by apply/negP => Hcontra ; rewrite (eqP Hcontra) set0I eqxx in HB.
+      case (boolP (B0 :&: C == B)) => HB0; last by rewrite (negbTE HB0) andbF.
+      by rewrite HB0 setIC -setIA [i in _ :&: i]setIC (eqP HB0) setIC HB.
+      Qed.
     End DempsterConditioning.
 
 
@@ -776,6 +795,22 @@ Section BelPl.
         := {| cond_val := Strong_cond ;
               cond_ax := Strong_cond_axiom |}.
 
+      Lemma Strong_condE m C HC :
+        forall A, Bel (Strong_conditioning m C HC) A = Bel m (A :&: C) / Bel m C.
+      Proof.
+      move => A /=.
+      rewrite /Strong_cond /Bel big_distrl /=.
+      under eq_bigr do rewrite ffunE.
+      rewrite -big_mkcondr /=.
+      rewrite [RHS](bigD1 set0) /= ; last exact: sub0set.
+      have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
+      rewrite Hm1 mul0r add0r.
+      apply eq_big => [B| //].
+      case (boolP (B \subset A :&: C)).
+      - by rewrite subsetI => /andP [-> ->] ; rewrite !andTb andbT.
+      - by rewrite subsetI negb_and => /orP ; case => H ; rewrite (negbTE H) !andFb // !andbF.
+      Qed.
+
     End StrongConditioning.
 
 
@@ -811,6 +846,7 @@ Section BelPl.
       Definition Weak_conditioning : conditioning
         := {| cond_val := Weak_cond ;
               cond_ax := Weak_cond_axiom |}.
+
 
     End WeakConditioning.
 
