@@ -295,7 +295,6 @@ Section BelPl.
   rewrite /Pl.
   Search (_ :&: setT).
   under eq_bigl do rewrite setIT.
-  Check bigD1.
   rewrite -(eqP H2).
   rewrite [RHS](bigD1 set0) //=.
   by rewrite (eqP H1) add0r.
@@ -319,6 +318,89 @@ Section BelPl.
   by rewrite -(add0r 1) PlE addrKA opprK add0r setCK.
   Qed.
 
+  Definition superadditive (f : {set W} -> R) :=
+    forall A B : {set W}, [disjoint A & B] -> f (A :|: B) >= f A + f B.
+
+  Definition subadditive (f : {set W} -> R) :=
+    forall A B : {set W}, [disjoint A & B] -> f (A :|: B) <= f A + f B.
+
+  Lemma Bel_superadditive m : superadditive (Bel m).
+  Proof.
+  move => A B HAB.
+  have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
+  rewrite /Bel.
+  rewrite (bigD1 set0 (sub0set A : (fun _ : {set W} => _) set0)) /=.
+  rewrite (bigD1 set0 (sub0set B : (fun _ : {set W} => _) set0)) /=.
+  rewrite (bigD1 set0 (sub0set (A :|: B) : (fun _ : {set W} => _) set0)) /=.
+  rewrite !(eqP Hm1) !add0r.
+  rewrite [s in _ <= s](bigID (fun X : {set W} => X \subset A)) => /=.
+  rewrite [s in _ <= _ + s](bigID (fun X : {set W} => X \subset B)) => /=.
+  - have H1 (X : {set W}) : (X \subset A) && (X != set0) = (X \subset A :|: B) && (X != set0) && (X \subset A).
+    case (X != set0) ; last by rewrite !andbF andFb.
+    case (boolP (X \subset A)) => H ; last by rewrite andbF.
+    symmetry ; rewrite !andbT ; apply subsetU.
+    by rewrite H orTb.
+  - have H2 (X : {set W}) : (X \subset B) && (X != set0) = (X \subset A :|: B) && (X != set0) && ~~(X \subset A) && (X \subset B).
+    case (boolP (X != set0)) => H0 ; last by rewrite !andbF andFb.
+    case (boolP (X \subset B)) => H ; last by rewrite andbF.
+    symmetry ; rewrite !andbT.
+    apply/andP ; split.
+    + apply: subsetU ; by rewrite H orbT.
+    + rewrite disjoint_sym in HAB ; by apply: (subset_disjoint HAB).
+  - rewrite -(eq_bigl _ _ H1)  -(eq_bigl _ _ H2).
+    rewrite addrA ler_addl sum_ge0 => // X _.
+    exact: forallP Hm3 X.
+  Qed.
+
+  Lemma Pl_subadditive m : subadditive (Pl m).
+  Proof.
+  move => A B HAB.
+  have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
+  rewrite /Pl.
+  set PA0 : pred {set W} := fun X => X :&: A == set0.
+  set PB0 : pred {set W} := fun X => X :&: B == set0.
+  rewrite [s in _ <= _ + s](bigID PA0) /=.
+  rewrite [s in _ <= s + _](bigID PB0) /=.
+  rewrite (bigID PA0) /=.
+  rewrite [s in _ + s <= _](bigID PB0) /= !addrA.
+  rewrite (bigID PB0) /=.
+  rewrite big_pred0 ; first rewrite add0r.
+  rewrite (eq_bigl [predD PA0 & PB0]).
+  rewrite [s in _ + s + _ <= _](eq_bigl [predD PB0 & PA0]).
+  rewrite [s in _ + _ + s <= _](eq_bigl [predI [predC PA0] & [predC PB0]]).
+  rewrite [s in _ <= s + _ + _ + _](eq_bigl [predD PB0 & PA0]) => //.
+  rewrite [s in _ <= _ + s + _ + _](eq_bigl [predI [predC PA0] & [predC PB0]]) => //.
+  rewrite [s in _ <= _ + _ + s + _](eq_bigl [predD PA0 &  PB0]) => //.
+  rewrite [s in _ <= _ + _ + _ + s](eq_bigl [predI [predC PB0] & [predC PA0]]) => //.
+  rewrite [s in s + _ <= _]addrC.
+  rewrite -addrA [s in _ + (s) <= _]addrC addrA.
+  rewrite ler_addl sum_ge0 => // X _.
+  exact: forallP Hm3 X.
+  - move => X /= ; rewrite !inE setIUr !/(_ \in _) !/mem /=.
+    case (boolP (PA0 X)) => [/eqP ->|HA0] ; first by rewrite andbF.
+    case (boolP (PB0 X)) => [/eqP ->|/set0Pn HB0] ; first by rewrite andbF.
+    rewrite !andbT /=.
+    destruct HB0 as [x Hx].
+    apply/set0Pn.
+    exists x.
+    by rewrite in_setU Hx orbT.
+  - move => X /= ; rewrite setIUr !/(_ \in _) !/mem /=.
+    case (boolP (PA0 X)) => [/eqP ->|HA0] ; first by rewrite andbF.
+    case (boolP (PB0 X)) => [/eqP -> |HB0] ; first by rewrite setU0 HA0.
+    by rewrite andbF.
+  - move => X /= ; rewrite setIUr !/(_ \in _) !/mem /=.
+    case (boolP (PA0 X)) => [/eqP ->|HA0].
+    rewrite set0U andbT.
+    by case (boolP (PB0 X)) => [/eqP -> |HB0] ; try rewrite eqxx ; try rewrite andbT.
+    by case (boolP (PB0 X)) => [/eqP -> |HB0] ; rewrite !andbF.
+  - move => X.
+    case (boolP (PA0 X)) => /eqP HA ; last by rewrite andbF.
+    case (boolP (PB0 X)) => /eqP HB ; last by rewrite andbF.
+    by rewrite setIUr !andbT HA HB set0U eqxx.
+  Qed.
+
+
+  
   Section KAdditivity.
     (**
        k-additive m = (\max_(B in focalset m) #|B| == k)

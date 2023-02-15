@@ -409,11 +409,7 @@ Section SomeLemmas.
     op (\big[op/idx]_(i <- r | P i && Q i) f i)
        (\big[op/idx]_(i <- r | P i && ~~ Q i) f i).
   Proof.
-  rewrite !big_mkcondr -big_split.
-  apply eq_bigr => t _.
-  case (Q t) => /=.
-  - by rewrite Monoid.Theory.mulm1.
-  - by rewrite Monoid.Theory.mul1m.
+  exact: bigID.
   Qed.
 
 End SomeLemmas.
