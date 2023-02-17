@@ -236,29 +236,20 @@ Section BelPl.
   Lemma sum_fun_focalset (m : bpa) (f : {set W} -> R) :
     \sum_(B in focalset m) m B * f B = \sum_(B : {set W}) m B * f B.
   Proof.
-  rewrite big_mkcond [in RHS]big_mkcond.
-  apply eq_bigr => B _.
-  case (boolP (B \in focalset m)) => [_//|].
-  rewrite notin_focalset => /eqP -> ; by rewrite mul0r.
+  have := sum_fun_focalset_cond predT m f ; by under eq_bigl do rewrite andbT.
   Qed.
 
   Lemma sum_mass_focalset_cond (P : pred {set W}) (m : bpa) :
     \sum_(B in focalset m | P B) m B = \sum_(B : {set W} | P B) m B.
   Proof.
-  rewrite big_mkcond [in RHS]big_mkcond.
-  apply eq_bigr => B _.
-  case (boolP (B \in focalset m)) => [_|].
-  - by rewrite andTb.
-  - rewrite andFb notin_focalset => /eqP -> ; by case (P B).
+  have := sum_fun_focalset_cond P m (fun=>1).
+  by under eq_bigr do rewrite mulr1 ; under [RHS]eq_bigr do rewrite mulr1.
   Qed.
 
   Lemma sum_mass_focalset (m : bpa) :
     \sum_(B in focalset m) m B = \sum_(B : {set W}) m B.
   Proof.
-  rewrite big_mkcond [in RHS]big_mkcond.
-  apply eq_bigr => B _.
-  case (boolP (B \in focalset m)) => [_//|].
-  by rewrite notin_focalset => /eqP ->.
+  have := sum_mass_focalset_cond predT m ; by under eq_bigl do rewrite andbT.
   Qed.
 
   Lemma Bel_focalsetE (m : bpa) A :
