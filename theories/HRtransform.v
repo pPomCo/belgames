@@ -453,7 +453,7 @@ Section HowsonRosenthal.
       rewrite proba_of_distE /BetP_fun.
       have HA (A : {set Tconfig}) : lg \in A -> A \notin focalset (Dempster_cond (is_revisable proper_G ti)).
       move => HA.
-      rewrite inE /Dempster_cond /Dempster_cond_fun /focal_element ffunE => /=.
+      rewrite inE /Dempster_cond /Dempster_fun /focal_element ffunE => /=.
       have Hneset0 : A != set0. by apply/set0Pn ; exists lg.
       rewrite (negbTE Hneset0).
       rewrite big_pred0.
