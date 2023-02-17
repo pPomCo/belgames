@@ -171,6 +171,9 @@ Section HowsonRosenthal.
     Variable G : belgame R action agent_type.
     Variable proper_G : proper_belgame G (Dempster_conditioning R Tconfig).
 
+    Variable fXEU : xeu_function Tconfig.
+    Variable proper_fXEU : eq_xeu fXEU.
+
     Definition HRdirect_localgame : finType
       := [finType of {set Tconfig}].
 
@@ -237,14 +240,14 @@ Section HowsonRosenthal.
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
-         G.1 lg * f_CEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
+         G.1 lg * fXEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
 
 
     Definition HRdirect_transform : cgame R HR_action := hg_game HRdirect_localutility.
 
     Theorem HRdirect_transform_correct:
       forall i (ti : agent_type i) p,
-      belgame_utility (@f_CEU _ _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
+      belgame_utility fXEU proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
     Proof.
     move => i ti p.
     set i_ti := existT _ i ti.
@@ -256,7 +259,7 @@ Section HowsonRosenthal.
     case (boolP (HRdirect_plays_in B i_ti)) => H.
     - have := H ; rewrite HRdirect_plays_in_event_ti => ->.
       apply: mulr_rr ; apply: mulr_ll.
-      apply eq_CEU => t Hdomain.
+      apply proper_fXEU => t Hdomain.
       rewrite !ffunE.
       rewrite HRdirect_mkprofileE //.
       rewrite in_setI in Hdomain.
@@ -267,7 +270,7 @@ Section HowsonRosenthal.
 
     Theorem HRdirect_eqNash :
       forall p,
-      BelG_Nash_equilibrium_prop (@f_CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
+      BelG_Nash_equilibrium_prop fXEU proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
     Proof.
     apply HR_eqNash_prop => p i ti.
     by rewrite HRdirect_transform_correct.
