@@ -847,13 +847,22 @@ Section BelPl.
         := {| cond_val := Weak_cond ;
               cond_ax := Weak_cond_axiom |}.
 
+      Lemma Weak_condE m C HC :
+        forall A, Bel (Weak_conditioning m C HC) A = (Bel m A - Bel m (A :\: C)) / Pl m C.
+      Proof.
+        move=> A /=.
+        rewrite /Weak_cond /Pr /Bel /=.
+        under eq_bigr => B do rewrite ffunE.
+        under [X in _ = (_ - X) / _]eq_bigl => B do rewrite subsetD.
+        rewrite big_mkcondr -GRing.sumrB big_distrl.
+        apply: eq_bigr => B Hsub /=.
+        rewrite -setI_eq0 if_neg.
+        case: ifP => _.
+        - by rewrite subrr mul0r.
+        - by rewrite subr0.
+      Qed.
 
     End WeakConditioning.
-
-
-
-
-
 
 
     Section ProbaConditioning.
