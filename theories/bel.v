@@ -668,14 +668,15 @@ Section BelPl.
 
     Section DempsterConditioning.
 
-      Definition Dempster_cond_revisable m C := Pl m C != 0.
+      Definition Dempster_revisable m C := Pl m C != 0.
 
-      Definition Dempster_cond_fun (m : bpa) (C : {set W}) :=
-       [ffun A : {set W} => if A == set0 then 0
-                            else \sum_(B : {set W} | (B \in focalset m) && (B :&: C == A)) m B / Pl m C].
+      Definition Dempster_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
+        if A == set0 then 0
+        else \sum_(B : {set W} | (B \in focalset m) && (B :&: C == A)) m B / Pl m C].
 
-      Lemma Dempster_cond_bpa_ax (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) :
-        bpa_axiom (Dempster_cond_fun m C).
+      Program Definition Dempster_cond m C (HC : Dempster_revisable m C) : bpa :=
+        {| bpa_val := Dempster_fun m C ; bpa_ax := _ |}.
+      Next Obligation.
       Proof.
       apply/and3P ; split.
       - by rewrite ffunE eqxx.
@@ -697,10 +698,7 @@ Section BelPl.
             exact: Pl_ge0.
       Qed.
 
-      Definition Dempster_cond (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) : bpa
-        := {| bpa_val := Dempster_cond_fun m C ; bpa_ax := Dempster_cond_bpa_ax HC |}.
-
-      Lemma Dempster_cond_sumE m C (HC : Dempster_cond_revisable m C) f :
+      Lemma Dempster_cond_sumE m C (HC : Dempster_revisable m C) f :
         \sum_(B in focalset (Dempster_cond HC))
          Dempster_cond HC B * f B
         =
@@ -717,11 +715,12 @@ Section BelPl.
       rewrite big_distrl /=.
       under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
       apply eq_big => // B HB.
-      Transparent Dempster_cond.
       by rewrite ffunE (negbTE HB) sum_fun_focalset_cond.
       Qed.
 
-      Lemma Dempster_cond_axiom : @conditioning_axiom Dempster_cond_revisable Dempster_cond.
+      Program Definition Dempster_conditioning : conditioning :=
+        {| cond_val := Dempster_cond ; cond_ax := _ |}.
+      Next Obligation.
       Proof.
       apply conditioning_axiomE2 => m C HC B HB.
       rewrite notin_focalset ffunE => //=.
@@ -732,15 +731,11 @@ Section BelPl.
       contradiction (subsetF (subsetIr A C) HB Hw).
       Qed.
 
-      Definition Dempster_conditioning : conditioning
-        := {| cond_val := Dempster_cond ;
-             cond_ax := Dempster_cond_axiom |}.
-
       Lemma Dempster_condE m C HC :
         forall A, Pl (Dempster_conditioning m C HC) A = Pl m (A :&: C) / Pl m C.
       Proof.
       move => A /=.
-      rewrite /Dempster_cond {1}/Pl {1}/Pl /Dempster_cond_fun  big_distrl /=.
+      rewrite {1}/Pl {1}/Pl /Dempster_fun  big_distrl /=.
       under eq_bigr do rewrite ffunE -if_neg sum_fun_focalset_cond.
       rewrite -big_mkcondr /=.
       rewrite (eq_bigl (fun X => X :&: A != set0)) ;
@@ -758,16 +753,18 @@ Section BelPl.
     End DempsterConditioning.
 
 
-
     Section StrongConditioning.
 
 
-      Definition Strong_cond_revisable (m : bpa) := fun C : {set W} => Bel m C != 0.
+      Definition Strong_revisable (m : bpa) := fun C : {set W} => Bel m C != 0.
 
-      Definition Strong_cond (m : bpa) (C : {set W}) (HC : Strong_cond_revisable m C) : bpa.
-      exists [ffun A : {set W} => if (A != set0) && (A \subset C)
-                                  then m A / Bel m C
-                                  else 0].
+      Definition Strong_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
+        if (A != set0) && (A \subset C) then m A / Bel m C else 0].
+
+      Program Definition Strong_cond m C (HC : Strong_revisable m C) : bpa :=
+        {| bpa_val := Strong_fun m C ; bpa_ax := _ |}.
+      Next Obligation.
+      Proof.
       have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
       apply/and3P ; split.
       - by rewrite ffunE eqxx.
@@ -780,9 +777,11 @@ Section BelPl.
           case (boolP ((B != set0) && (B \subset C))) => [->|H].
           + exact: divr_ge0 (Hm3 B) (Bel_ge0 m C).
           + by rewrite (negbTE H) le0r eqxx.
-      Defined.
+      Qed.
 
-      Lemma Strong_cond_axiom : @conditioning_axiom Strong_cond_revisable Strong_cond.
+      Program Definition Strong_conditioning : conditioning :=
+        {| cond_val := Strong_cond ; cond_ax := _ |}.
+      Next Obligation.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
       rewrite notin_focalset ffunE => //=.
@@ -790,10 +789,6 @@ Section BelPl.
       case (boolP (B \subset C)) => //= HB.
       contradiction (subsetF HB H Hw).
       Qed.
-
-      Definition Strong_conditioning : conditioning
-        := {| cond_val := Strong_cond ;
-              cond_ax := Strong_cond_axiom |}.
 
       Lemma Strong_condE m C HC :
         forall A, Bel (Strong_conditioning m C HC) A = Bel m (A :&: C) / Bel m C.
@@ -816,12 +811,15 @@ Section BelPl.
 
     Section WeakConditioning.
 
-      Definition Weak_cond_revisable (m : bpa) := fun C : {set W} => Pl m C != 0.
+      Definition Weak_revisable (m : bpa) := fun C : {set W} => Pl m C != 0.
 
-      Definition Weak_cond (m : bpa) (C : {set W}) (HC : Weak_cond_revisable m C) : bpa.
-      exists [ffun A : {set W} => if A :&: C != set0
-                                  then m A / Pl m C
-                                  else 0].
+      Definition Weak_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
+        if A :&: C != set0 then m A / Pl m C else 0].
+
+      Program Definition Weak_cond m C (HC : Weak_revisable m C) : bpa :=
+        {| bpa_val := Weak_fun m C ; bpa_ax := _ |}.
+      Next Obligation.
+      Proof.
       have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
       apply/and3P ; split.
       - by rewrite ffunE set0I eqxx.
@@ -830,9 +828,11 @@ Section BelPl.
       - apply/forallP => B ; rewrite ffunE.
         case (boolP (B :&: C == set0)) => //= H.
         by rewrite divr_ge0 // Pl_ge0.
-      Defined.
+      Qed.
 
-      Lemma Weak_cond_axiom : @conditioning_axiom Weak_cond_revisable Weak_cond.
+      Program Definition Weak_conditioning : conditioning :=
+        {| cond_val := Weak_cond ; cond_ax := _ |}.
+      Next Obligation.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
       rewrite notin_focalset ffunE => //=.
@@ -841,11 +841,7 @@ Section BelPl.
       move: H ; rewrite subsetE => /pred0P H.
       have := H w => /= ; rewrite Hw1 andbT => /negP/negP.
       by rewrite in_setC Hw2.
-      Defined.
-
-      Definition Weak_conditioning : conditioning
-        := {| cond_val := Weak_cond ;
-              cond_ax := Weak_cond_axiom |}.
+      Qed.
 
       Lemma Weak_condE m C HC :
         forall A, Bel (Weak_conditioning m C HC) A = (Bel m A - Bel m (A :\: C)) / Pl m C.
@@ -873,7 +869,7 @@ Section BelPl.
       Definition Pr_conditioning_dist (p : proba) C (HC : Pr_revisable p C) :=
         fun w => (if w \in C then dist p w else 0) / Pr p C.
 
-      Lemma Pr_conditinoing_dist_is_dist p C (HC : Pr_revisable p C) :
+      Lemma Pr_conditioning_dist_is_dist p C (HC : Pr_revisable p C) :
         is_dist (Pr_conditioning_dist HC).
       Proof.
       apply/andP ; split.
@@ -889,9 +885,9 @@ Section BelPl.
       Qed.
 
       Definition Pr_conditioning (p : proba) C (HC : Pr_revisable p C) : proba
-        := proba_of_dist (Pr_conditinoing_dist_is_dist HC).
+        := proba_of_dist (Pr_conditioning_dist_is_dist HC).
 
-      Lemma Pr_revisable_of_Dempster_revisable (p : proba) C (HC : Dempster_cond_revisable p C) :
+      Lemma Pr_revisable_of_Dempster_revisable (p : proba) C (HC : Dempster_revisable p C) :
         Pr_revisable p C.
       Proof. by rewrite /Pr_revisable Pr_PlE. Qed.
 
@@ -899,10 +895,7 @@ Section BelPl.
   End Conditioning.
 
 
-
-
   Section ScoringFunctions.
-
 
     Import Order Order.TotalTheory.
 
