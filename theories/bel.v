@@ -314,6 +314,29 @@ Section BelPl.
   by rewrite -(add0r 1) PlE addrKA opprK add0r setCK.
   Qed.
 
+  Lemma Bel_monotone m A B : Bel m (A :|: B) >= Bel m A.
+  Proof.
+  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
+  rewrite [s in _ <= s](bigID [pred X : {set W} | X \subset A]) => /=.
+  rewrite [s in s + _](eq_bigl [pred X : {set W} | X \subset A]) => /=.
+  - rewrite ler_addl.
+    apply: sumr_ge0 => X _.
+    exact: Hm3 X.
+  - move => X /=.
+    case (boolP (X \subset A)) => H ; last by rewrite andbF.
+    rewrite subsetU // H orTb //.
+  Qed.
+
+  Lemma Bel_le1 (m : bpa) :
+    forall C, Bel m C <= 1.
+  Proof.
+  move => C.
+  have [_ _ /forallP Hm] := and3P (bpa_ax m).
+  rewrite -(Bel1 m).
+  rewrite -(setUCr C).
+  exact: Bel_monotone.
+  Qed.
+
   Definition superadditive (f : {set W} -> R) :=
     forall A B : {set W}, [disjoint A & B] -> f (A :|: B) >= f A + f B.
 
