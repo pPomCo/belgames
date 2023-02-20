@@ -331,10 +331,34 @@ Section BelPl.
     forall C, Bel m C <= 1.
   Proof.
   move => C.
-  have [_ _ /forallP Hm] := and3P (bpa_ax m).
   rewrite -(Bel1 m).
   rewrite -(setUCr C).
   exact: Bel_monotone.
+  Qed.
+
+  Lemma Pl_monotone m A B : Pl m (A :|: B) >= Pl m A.
+  Proof.
+  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
+  rewrite /Pl.
+  rewrite [s in _ <= s](bigID [pred X : {set W} | X :&: A != set0]) => /=.
+  rewrite [s in s + _](eq_bigl [pred X : {set W} | X :&: A != set0]) => /=.
+  - rewrite ler_addl.
+    apply: sumr_ge0 => X _.
+    exact: Hm3 X.
+  - move => X /=.
+    case (boolP (X :&: A != set0)) => [/set0Pn [x Hx]|_] ; last by rewrite andbF.
+    rewrite setIUr andbT.
+    apply/set0Pn ; exists x.
+    by rewrite in_setU Hx orTb.
+  Qed.
+
+  Lemma Pl_le1 (m : bpa) :
+    forall C, Pl m C <= 1.
+  Proof.
+  move => C.
+  rewrite -(Pl1 m).
+  rewrite -(setUCr C).
+  exact: Pl_monotone.
   Qed.
 
   Definition superadditive (f : {set W} -> R) :=
