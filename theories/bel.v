@@ -14,8 +14,8 @@
    We then prove several lemmas, eg:
    BelE m: forall A, Bel m A = 1 - Pl m (~:A).
    PlE m:  forall A, Pl m A = 1 - Bel m (~:A).
-   Bel_superadditive m A B : [disjoint A & B] -> Bel m (A :|: B) >= Bel m A + Bel m B.
-   Pl_subadditive m A B : [disjoint A & B] -> Pl m (A :|: B) <= Pl m A + Pl m B.
+   Bel_super m A B : [disjoint A & B] -> Bel m (A :|: B) >= Bel m A + Bel m B.
+   Pl_sub m A B : [disjoint A & B] -> Pl m (A :|: B) <= Pl m A + Pl m B.
    Bel_monotone m A B : Bel m (A :|: B) >= Bel m A.
    Pl_monotone m A B : Pl m (A :|: B) >= Pl m A.
    Bel0 m: Bel m set0 = 0.
@@ -86,14 +86,14 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Open Scope ring_scope.
+Local Open Scope ring_scope.
 
 Require Import general_lemmas fprod.
 
 Section BelPl.
 
-  Variable (R : realFieldType).
-  Variable (W : finType).
+  Variable R : realFieldType.
+  Variable W : finType.
 
 
   Section BelDefs.
@@ -281,7 +281,6 @@ Section BelPl.
   Proof.
   have [H1 H2 /forallP H3] := and3P (bpa_ax m).
   rewrite /Pl.
-  Search (_ :&: setT).
   under eq_bigl do rewrite setIT.
   rewrite -(eqP H2).
   rewrite [RHS](bigD1 set0) //=.
@@ -313,7 +312,7 @@ Section BelPl.
   Definition subadditive (f : {set W} -> R) :=
     forall A B : {set W}, [disjoint A & B] -> f (A :|: B) <= f A + f B.
 
-  Lemma Bel_superadditive m : superadditive (Bel m).
+  Lemma Bel_super m : superadditive (Bel m).
   Proof.
   have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
   rewrite /Bel => A B HAB.  
@@ -338,7 +337,7 @@ Section BelPl.
   - by rewrite -(eq_bigl _ _ H1)  -(eq_bigl _ _ H2) addrA ler_addl sum_ge0.
   Qed.
 
-  Lemma Pl_subadditive m : subadditive (Pl m).
+  Lemma Pl_sub m : subadditive (Pl m).
   Proof.
   rewrite /Pl => A B HAB.
   have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).  
@@ -378,7 +377,6 @@ Section BelPl.
     by rewrite setIUr !andbT HA HB set0U eqxx.
   Qed.
 
-
   Lemma Bel_monotone m A B : Bel m (A :|: B) >= Bel m A.
   Proof.
   have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
@@ -417,8 +415,6 @@ Section BelPl.
   Lemma Pl_le1 (m : bpa) A : Pl m A <= 1.
   Proof.  rewrite -(Pl1 m)  -(setUCr A) ; exact: Pl_monotone. Qed.
 
-
-  
   Section KAdditivity.
     (**
        k-additive m = (\max_(B in focalset m) #|B| == k)
@@ -450,11 +446,9 @@ Section BelPl.
       exact: (eqP (H A HA1)).
     Qed.
 
-    Notation proba_axiom p := (1%N.-additive p) (only parsing).
-
     Structure proba :=
       { proba_val :> bpa ;
-        proba_ax : proba_axiom proba_val }.
+        proba_ax : 1%N.-additive proba_val }.
 
     Definition proba_eq : rel proba := fun p1 p2 => proba_val p1 == proba_val p2.
 
@@ -551,6 +545,12 @@ Section BelPl.
     by rewrite setI_eq0 disjoints1 Bool.negb_involutive.
     Qed.
 
+    Lemma PrE (m : proba) (A : {set W}) : Bel m A = Pl m A.
+    Proof. by rewrite -Pr_BelE Pr_PlE. Qed.
+
+    Lemma Pr_distE (m : proba) A : Bel m A = \sum_(w in A) dist m w.
+    Proof. by rewrite -Pr_BelE. Qed.
+
     Lemma proba_sum_dist_eq1 (p : proba) :
       \sum_w dist p w = 1.
     Proof.
@@ -634,16 +634,15 @@ Section BelPl.
           - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0)
        **)
 
-      Definition conditioning_axiom (revisable : bpa -> pred {set W}) (cond : forall m C, revisable m C -> bpa)
+      Definition conditioning_axiom
+          (revisable : bpa -> pred {set W})
+          (cond : forall m C, revisable m C -> bpa)
         := forall m C (HC : revisable m C), Bel (cond m C HC) (~:C) = 0.
-
-
 
       Structure conditioning
         := { revisable : bpa -> pred {set W} ;
              cond_val m C :>  revisable m C -> bpa ;
              cond_ax : @conditioning_axiom revisable cond_val }.
-
 
       Lemma conditioning_axiomE (revisable : bpa -> pred {set W}) (cond : forall m C, revisable m C -> bpa)
         : conditioning_axiom cond ->
@@ -1009,88 +1008,73 @@ Section BelPl.
     by case (BigOp.bigop (@None R)).
     Qed.
 
-    Notation utility_function := {ffun W -> R}.
+    Notation utility_function W := {ffun W -> R} (only parsing).
 
-    Definition EU (p : proba) (u : utility_function) : R
+    Definition xeu_function (W : finType) := ({ffun W -> R} -> {ffun {set W} -> R}).
+
+    Definition EU (p : proba) (u : utility_function W) : R
       := \sum_w dist p w * u w.
 
     Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
 
-    Notation xeu_function := (utility_function -> {ffun {set W} -> R}).
-
-    Definition eq_xeu (f_xeu : xeu_function) :=
-      forall (u1 u2 : utility_function),
+    Definition eq_xeu (f_xeu : xeu_function W) :=
+      forall (u1 u2 : utility_function W),
       forall B : {set W}, {in B, u1 =1 u2} -> f_xeu u1 B = f_xeu u2 B.
 
-    Definition XEU (m : bpa) (f_xeu : {ffun {set W} -> R}) : R
-      := \sum_(B in focalset m) m B * f_xeu B.
+    Definition XEU (m : bpa) (phi_u_a : {ffun {set W} -> R}) : R
+      := \sum_(B in focalset m) m B * phi_u_a B.
 
-
-
-
-    Definition f_CEU : xeu_function
+    Definition fCEU : xeu_function W
       := fun u => [ffun B => match minS u B with
                              | Some r => r
                              | None => 0
                              end].
 
-
-    Definition CEU m u := XEU m (f_CEU u).
+    Definition CEU m u_a := XEU m (fCEU u_a).
     Notation "[ 'CEU' 'of' u 'wrt' m ]" := (CEU m u) (at level 80).
 
-
-    (** TODO -- XEU : définition plus claire (faisant apparaître les actions **)
-    (*
-    Definition XEU' (m : bpa) (f_xeu : xeu_function) A (u :  A -> {ffun W -> R}) : A -> R :=
-      fun a => \sum_(B in focalset m) m B * f_xeu (u a) B.
-    Definition CEU' m {A} (u : A -> {ffun W -> R}) := XEU' m f_CEU u.
-     *)
-
-    Lemma eq_CEU : eq_xeu f_CEU.
+    Lemma eq_CEU : eq_xeu fCEU.
     Proof.
     move => u1 u2 B H.
     by rewrite !ffunE (minSE H).
     Qed.
 
-
-    Lemma ceuE (m : bpa) (u : utility_function) :
+    Lemma ceuE (m : bpa) (u : utility_function W) :
       [CEU of u wrt m] = ChoquetIntg u m.
     Proof.
     apply eq_bigr => B HB ; by rewrite ffunE.
     Qed.
 
-    Definition f_JEU (alpha : R -> R -> R) : xeu_function
-      := fun u => [ffun B => match minS u B, maxS u B with
-                             | Some rmin, Some rmax => let a := alpha rmin rmax in
-                                                       a * rmin + (1-a) * rmax
-                             | _, _ => 0
-                             end].
+    Definition fJEU (alpha : R -> R -> R) : xeu_function W
+      := fun u_a => [ffun B => match minS u_a B, maxS u_a B with
+                           | Some rmin, Some rmax =>
+                               let alp := alpha rmin rmax in alp * rmin + (1-alp) * rmax
+                           | _, _ => 0
+                           end].
 
-    Definition JEU alpha m u := XEU m (f_JEU alpha u).
+    Definition JEU alpha m u_a := XEU m (fJEU alpha u_a).
     Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (JEU alpha m u) (at level 80).
 
-
-    Lemma eq_JEU alpha : eq_xeu (f_JEU alpha).
+    Lemma eq_JEU alpha : eq_xeu (fJEU alpha).
     Proof.
     move => u1 u2 B H.
     by rewrite !ffunE (minSE H) (maxSE H).
     Qed.
 
+    Definition fTBEU : xeu_function W
+      := fun u_a => [ffun B : {set W} => \sum_(w in B) u_a w / #|B|%:R].
 
-    Definition f_TBEU : xeu_function
-      := fun u => [ffun B : {set W} => \sum_(w in B) u w / #|B|%:R].
-
-    Definition TBEU m u := XEU m (f_TBEU u).
+    Definition TBEU m u := XEU m (fTBEU u).
     Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (TBEU m u) (at level 80).
 
-    Lemma eq_TBEU : eq_xeu f_TBEU.
+    Lemma eq_TBEU : eq_xeu fTBEU.
     Proof.
     move => u1 u2 B H.
     rewrite !ffunE.
     by apply eq_bigr => w Hw ; rewrite H.
     Qed.
 
-    Lemma XEU_EU (p : proba) (u : utility_function) (xeu : xeu_function) (Hxeu : forall w, (xeu u) [set w] = u w) :
+    Lemma XEU_EU (p : proba) (u : utility_function W) (xeu : xeu_function W) (Hxeu : forall w, (xeu u) [set w] = u w) :
       XEU p (xeu u) = EU p u.
     Proof.
     destruct p as [m Hm].
@@ -1107,22 +1091,22 @@ Section BelPl.
       by rewrite mul0r.
     Qed.
 
-    Lemma CEU_EU (p : proba) (u : utility_function) :
-      [CEU of u wrt p] = [EU of u wrt p].
+    Lemma CEU_EU (p : proba) (u_a : utility_function W) :
+      [CEU of u_a wrt p] = [EU of u_a wrt p].
     Proof.
     apply: XEU_EU => w /=.
     by rewrite ffunE minS1.
     Qed.
 
-    Lemma JEU_EU alpha (p : proba) (u : utility_function) :
-      [JEU alpha of u wrt p] = [EU of u wrt p].
+    Lemma JEU_EU alpha (p : proba) (u_a : utility_function W) :
+      [JEU alpha of u_a wrt p] = [EU of u_a wrt p].
     Proof.
     apply: XEU_EU => w /=.
     by rewrite ffunE minS1 maxS1 /= mulrDl addrC -addrA -mulrDl (addrC (-_)) subrr mul1r mul0r addr0.
     Qed.
 
-    Lemma TBEU_EU (p : proba) (u : utility_function) :
-      [TBEU of u wrt p] = [EU of u wrt p].
+    Lemma TBEU_EU (p : proba) (u_a : utility_function W) :
+      [TBEU of u_a wrt p] = [EU of u_a wrt p].
     Proof.
     apply: XEU_EU => w /=.
     rewrite ffunE (bigD1 w) /= ; last by rewrite in_set1.
@@ -1133,9 +1117,9 @@ Section BelPl.
   End ScoringFunctions.
 
   Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
-  Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (f_CEU u)) (at level 80).
-  Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (f_JEU alpha u)) (at level 80).
-  Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (f_TBEU u)) (at level 80).
+  Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (fCEU u)) (at level 80).
+  Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (fJEU alpha u)) (at level 80).
+  Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (fTBEU u)) (at level 80).
 
   (* It could be nice to prove TBEU correctness, but not now :-) *)
   Section TBM.
@@ -1185,19 +1169,23 @@ Section BelPl.
 
 End BelPl.
 
+Arguments fCEU {R W} _.
+Arguments fJEU {R W} _.
+Arguments fTBEU {R W} _.
+
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
 Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
-Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (f_CEU u)) (at level 80).
-Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (f_JEU alpha u)) (at level 80).
-Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (f_TBEU u)) (at level 80).
+Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (fCEU u)) (at level 80).
+Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (fJEU alpha u)) (at level 80).
+Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (fTBEU u)) (at level 80).
 
 Section BelOnFFuns.
 
   Variable R : realFieldType.
-  Variable X : finType.
-  Variable T : X -> finType.
+  Variable I : finType.
+  Variable T : I -> finType.
 
-  Notation Tconfig := [finType of {dffun forall i : X, T i}].
+  Notation Tconfig := [finType of {dffun forall i : I, T i}].
 
   (* NOTE :: conditioning event "given t i == ti" *)
   Definition event_ti i (ti : T i) := [set t : Tconfig | t i == ti].
@@ -1215,12 +1203,12 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
-  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
-    (forall i : X, {ffun {set T i} -> R}).
+  Definition ffun_of_proba (p : forall i : I, proba R (T i)) :
+    (forall i : I, {ffun {set T i} -> R}).
   Proof. move=> i; apply p. Defined.
 
-  Lemma proba_set1 (p : forall i : X, proba R (T i)) :
-    forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
+  Lemma proba_set1 (p : forall i : I, proba R (T i)) :
+    forall i : I, \sum_(k in T i) p i [set k] = \sum_A p i A.
   Proof.
     move=> i.
     have x0 : T i.
@@ -1244,26 +1232,26 @@ Section BelOnFFuns.
     exact: eq_bigr.
   Qed.
 
-  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tconfig -> R}
+  Definition mk_prod_proba (p : forall i : I, proba R (T i)) : {ffun Tconfig -> R}
     := [ffun t : Tconfig => \prod_i dist (p i) (t i)].
 
-  Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
+  Lemma mk_prod_proba_dist p (witnessI : I) : is_dist (mk_prod_proba p).
   Proof.
   apply/andP ; split.
   - under eq_bigr do rewrite /mk_prod_proba ffunE.
     set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
-    have L := (@big_fprod R X (fun i => T i) pp).
+    have L := (@big_fprod R I (fun i => T i) pp).
     do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
     do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
     erewrite (reindex).
-    2: exists (@fprod_of_dffun X _).
+    2: exists (@fprod_of_dffun I _).
     2: move=> *; apply: dffun_of_fprodK.
     2: move => *; apply: fprod_of_dffunK.
     under (* Improve PG indentation *)
       eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
     rewrite L.
     under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
-    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
+    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in I) 1)%R; last by rewrite big1.
     rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
     apply eq_bigr => i _ /=.
     rewrite (big_tag pp).
@@ -1284,9 +1272,7 @@ Section BelOnFFuns.
     exact: (forallP Hm3).
   Qed.
 
-  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tconfig
-    := proba_of_dist (mk_prod_proba_dist p witnessX).
+  Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tconfig
+    := proba_of_dist (mk_prod_proba_dist p witnessI).
 
 End BelOnFFuns.
-
-Close Scope ring_scope.

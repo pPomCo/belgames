@@ -9,7 +9,7 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Open Scope ring_scope.
+Local Open Scope ring_scope.
 
 
 
