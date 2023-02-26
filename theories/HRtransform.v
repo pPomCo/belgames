@@ -386,19 +386,28 @@ Section HowsonRosenthal.
   Section TBMTransform.
 
     Variable G : belgame R A T.
-    Variable proper_G : proper_belgame G (Dempster_conditioning _ _).
+    Variable cond : conditioning R Tn.
+    Variable proper_G : proper_belgame G cond.
 
     Definition HRTBM_localgame : finType := Tn.
-    Definition HRTBM_plays_in : HRTBM_localgame -> pred HR_player :=
-      fun lg i_ti => lg (projT1 i_ti) == projT2 i_ti.
 
+    Definition m_ti (i_ti : HR_player) : bpa R Tn :=
+      let ti := projT2 i_ti in cond G.1 (event_ti ti) (forallP (forallP proper_G _) ti).
+    
+    Definition HRTBM_plays_in : HRTBM_localgame -> pred HR_player
+      := fun lg i_ti =>
+           [|| lg (projT1 i_ti) == projT2 i_ti |
+             [exists A : {set Tn}, [&& A \in focalset (m_ti i_ti), lg \in A & [exists t : Tn, (t \in A) && (t (projT1 i_ti) == projT2 i_ti)]]]].
+    (* Note: for Weak conditioning, i_ti may plays in lg = t' such as t' i != ti *)
+
+           
 
     Notation HRTBM_localagent := (fun lg => {i_ti | HRTBM_plays_in lg i_ti}).
     Notation HRTBM_localprof := (fun lg => local_cprofile HR_action (HRTBM_plays_in lg)).
 
 
-    Definition HRTBM_plays_in_given_lg (lg : HRTBM_localgame) j : HRTBM_plays_in lg (existT _ j (lg j))
-      := eqxx (projT2 (existT (fun i : I => T i) j (lg j))).
+    Lemma HRTBM_plays_in_given_lg (lg : HRTBM_localgame) j : HRTBM_plays_in lg (existT _ j (lg j)).
+    Proof. by rewrite /HRTBM_plays_in /= eqxx orTb. Qed.
 
     Definition HRTBM_mkprofile (lg : HRTBM_localgame) (p : HRTBM_localprof lg) : cprofile A
       := proj_flatlocalprofile (fun i => exist _ (lg i) (HRTBM_plays_in_given_lg lg i)) p.
@@ -416,7 +425,7 @@ Section HowsonRosenthal.
       := fun lg p x =>
          let (i_ti, _) := x in
          let (i, ti) := i_ti in
-         let betp := BetP (Dempster_conditioning _ _ G.1 (event_ti ti) (is_revisable proper_G ti)) in
+         let betp := BetP (m_ti i_ti) in
          dist betp lg * G.2 (HRTBM_mkprofile p) lg i.
 
     Definition HRTBM : cgame R HR_action := hg_game HRTBM_u.
@@ -425,36 +434,37 @@ Section HowsonRosenthal.
       belgame_utility fTBEU proper_G p ti = HRTBM (iprofile_flatten p) (existT _ i ti).
     Proof.
     set i_ti := existT _ i ti.
-    rewrite /belgame_utility /HRTBM /= hg_gameE [RHS]big_mkcond /=.
+    rewrite /belgame_utility /HRTBM /= hg_gameE [RHS]big_mkcond.
     rewrite TBEU_EUBetP.
     apply eq_bigr => lg _.
-    case (boolP (HRTBM_plays_in lg i_ti)) => H.
+    case (boolP (HRTBM_plays_in lg i_ti)) => /=.
     - by rewrite HRTBM_mkprofileE ffunE.
-    - rewrite /HRTBM_plays_in in H.
-      have H0 : dist (BetP (Dempster_cond (is_revisable proper_G ti))) lg = 0.
+    - rewrite negb_or.
+      rewrite negb_exists => /andP [H1 /forallP H2].
+      have H0 : dist (BetP (m_ti i_ti)) lg = 0.
       rewrite proba_of_distE /BetP_fun.
-      have HA (a : {set Tn}) : lg \in a -> a \notin focalset (Dempster_cond (is_revisable proper_G ti)).
-      move => HA.
-      rewrite inE /Dempster_cond /Dempster_fun /focal_element ffunE => /=.
-      have Hneset0 : a != set0. by apply/set0Pn ; exists lg.
-      rewrite (negbTE Hneset0).
-      rewrite big_pred0.
-      + by rewrite lt0r eqxx.
-      + move => B.
-        have HB0 : B :&: event_ti ti != a.
-        rewrite eqEsubset.
-        have Hsub0 : a \subset B :&: event_ti ti = false.
-        case (boolP (a \subset B :&: event_ti ti)) => //.
-        rewrite subsetI !subsetE /= => /andP [_ /pred0P Hcontra].
-        have := Hcontra lg.
-        by rewrite /= HA /event_ti /= andbT /= inE H.
-        by rewrite Hsub0 andbF.
-      by rewrite (negbTE HB0) andbF.
-      apply big_pred0 => a.
-      case (boolP (lg \in a)) => Hlg.
-      + by rewrite Hlg (negbTE (HA _ Hlg)).
-      + by rewrite (negbTE Hlg) andbF.
-    by rewrite H0 mul0r.
+      apply: big_pred0 => X.
+      have :=  H2 X.
+      rewrite !negb_and => /or3P ; case => HX.
+      + by rewrite (negbTE HX) andFb.
+      + by rewrite (negbTE HX) andbF.
+      + rewrite negb_exists in HX.
+        move/forallP in HX.
+        have : X \notin focalset (m_ti i_ti).
+        apply: conditioning_axiomE.
+        * by case cond.
+        * rewrite /event_ti.
+          rewrite -setD_eq0.
+          rewrite set0_existsF negb_exists.
+          apply/forallP => t.
+          rewrite in_setD negb_and.
+          case (boolP (t \in X)) => /= Ht ; last by rewrite orbT.
+          rewrite orbF.
+          apply/negPn.
+          rewrite !inE.
+          move: (HX t) ; by rewrite negb_and Ht orFb.
+        by move => HX2 ; rewrite (negbTE HX2) andFb.
+      by rewrite H0 mul0r.
     Qed.
 
   Theorem HRTBM_eqNash (p : iprofile A T) :
@@ -466,4 +476,5 @@ Section HowsonRosenthal.
 
   End TBMTransform.
 
+  
 End HowsonRosenthal.

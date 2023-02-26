@@ -1185,13 +1185,13 @@ Section BelOnFFuns.
   Variable I : finType.
   Variable T : I -> finType.
 
-  Notation Tconfig := [finType of {dffun forall i : I, T i}].
+  Notation Tn := [finType of {dffun forall i : I, T i}].
 
   (* NOTE :: conditioning event "given t i == ti" *)
-  Definition event_ti i (ti : T i) := [set t : Tconfig | t i == ti].
+  Definition event_ti i (ti : T i) := [set t : Tn | t i == ti].
 
-  Lemma negb_focal_revise (m : bpa R Tconfig) (cond : conditioning R Tconfig) i ti (H : revisable cond m (event_ti ti)) :
-    forall A : {set Tconfig},
+  Lemma negb_focal_revise (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
+    forall A : {set Tn},
     (forall t, t \in A -> ti != t i) -> A \notin focalset (cond m (event_ti ti) H).
   Proof.
   move => A HA.
@@ -1203,6 +1203,29 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
+  Lemma negb_focal_reviseb (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
+    forall A : {set Tn},
+    [forall t, (t \in A) ==> (ti != t i)] -> A \notin focalset (cond m (event_ti ti) H).
+  Proof.
+  move => A /forallP HA.
+  apply: negb_focal_revise => t.
+  exact: implyP (HA t).
+  Qed.
+
+  Lemma focal_revise (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
+    forall A : {set Tn},
+      A \in focalset (cond m (event_ti ti) H) -> exists t, (t \in A) && (ti == t i).
+  Proof.
+  move => A Ha.
+  have H2 := (negb_focal_reviseb H (A:=A)).
+  move/negPn in Ha.
+  have := contraFN H2 (negbTE Ha) => /=.
+  rewrite negb_forall => /existsP ; case => t.
+  rewrite negb_imply => /andP [Ht1 /negPn Ht2].
+  by exists t ; rewrite Ht1 Ht2.
+  Qed.
+  
+  
   Definition ffun_of_proba (p : forall i : I, proba R (T i)) :
     (forall i : I, {ffun {set T i} -> R}).
   Proof. move=> i; apply p. Defined.
@@ -1232,8 +1255,8 @@ Section BelOnFFuns.
     exact: eq_bigr.
   Qed.
 
-  Definition mk_prod_proba (p : forall i : I, proba R (T i)) : {ffun Tconfig -> R}
-    := [ffun t : Tconfig => \prod_i dist (p i) (t i)].
+  Definition mk_prod_proba (p : forall i : I, proba R (T i)) : {ffun Tn -> R}
+    := [ffun t : Tn => \prod_i dist (p i) (t i)].
 
   Lemma mk_prod_proba_dist p (witnessI : I) : is_dist (mk_prod_proba p).
   Proof.
@@ -1272,7 +1295,7 @@ Section BelOnFFuns.
     exact: (forallP Hm3).
   Qed.
 
-  Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tconfig
+  Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tn
     := proba_of_dist (mk_prod_proba_dist p witnessI).
 
 End BelOnFFuns.
