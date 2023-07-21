@@ -452,7 +452,7 @@ Section NumLemmas.
   Lemma prod_ge0 {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \prod_(x | P x) f x >= 0.
   Proof.
-  move => H ; apply big_ind => //= ; first by rewrite ler01.
+  move => H ; apply big_ind =>// x y .
   exact: mulr_ge0.
   Qed.
 
@@ -523,7 +523,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (A, y) Hy).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop bool_eqType)).
+            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _)).
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra Hy in Hx.
@@ -548,7 +548,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (B, x) HB).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop bool_eqType)).
+            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _)).
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra HB in HA.

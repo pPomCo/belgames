@@ -77,12 +77,12 @@ Section HowsonRosenthal.
   Variable T : I -> finType.
 
   Notation profile := (cprofile A).
-  Notation Tn := [finType of {dffun forall i : I, T i}].
+  Notation Tn := {dffun forall i : I, T i}.
   Notation iprof := (iprofile I T).
 
   (* Definitions for all transforms *)
 
-  Definition HR_player : finType := [finType of {i : I & T i}].
+  Definition HR_player : finType := {i : I & T i}.
 
   Definition HR_action (i_ti : HR_player) : eqType := A (projT1 i_ti).
 
@@ -165,7 +165,7 @@ Section HowsonRosenthal.
     Variable proper_fXEU : eq_xeu fXEU.
 
     Definition HRdirect_localgame : finType
-      := [finType of {set Tn}].
+      := {set Tn}.
 
     Definition HRdirect_plays_in : HRdirect_localgame -> pred HR_player
       := fun lg i_ti => [exists t : Tn, [&& t \in lg & t (projT1 i_ti) == projT2 i_ti]].
@@ -222,7 +222,13 @@ Section HowsonRosenthal.
       = (proj_iprofile p t).
     Proof.
     rewrite /HRdirect_mkprofile /proj_iprofile /HRdirect_mkprofile1 /proj_flatlocalprofile.
-    case (boolP (t \in lg)) => Htinlg ; last by rewrite (negbTE Htinlg) in Ht.
+    case (boolP
+        (@in_mem
+           (@dfinfun_of I (fun i : Finite.sort I => Finite.sort (T i))
+              (Phant (forall i : Finite.sort I, Finite.sort (T i)))) t
+           (@mem (Finite.sort (@finfun_dfinfun_of__canonical__fintype_Finite I T))
+              (predPredType (Finite.sort (@finfun_dfinfun_of__canonical__fintype_Finite I T)))
+              (@pred_of_set.body (@finfun_dfinfun_of__canonical__fintype_Finite I T) lg)))) => Htinlg ; last by rewrite (negbTE Htinlg) in Ht.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
@@ -282,7 +288,7 @@ Section HowsonRosenthal.
 
 
     Definition HRcond_localgame : finType
-      := [finType of {set Tn}].
+      := {set Tn}.
 
     Definition HRcond_plays_in : HRcond_localgame -> pred HR_player :=
       fun lg it => [exists t : Tn , [&& t \in lg & t (projT1 it) == projT2 it]].
@@ -348,7 +354,13 @@ Section HowsonRosenthal.
       = (proj_iprofile p t).
     Proof.
     rewrite /HRcond_mkprofile /proj_iprofile /HRcond_mkprofile1 /proj_flatlocalprofile.
-    case (boolP (t \in lg)) => Htinlg ; last by rewrite (negbTE Htinlg) in Ht.
+    case (boolP
+        (@in_mem
+           (@dfinfun_of I (fun i : Finite.sort I => Finite.sort (T i))
+              (Phant (forall i : Finite.sort I, Finite.sort (T i)))) t
+           (@mem (Finite.sort (@finfun_dfinfun_of__canonical__fintype_Finite I T))
+              (predPredType (Finite.sort (@finfun_dfinfun_of__canonical__fintype_Finite I T)))
+              (@pred_of_set.body (@finfun_dfinfun_of__canonical__fintype_Finite I T) lg)))) => Htinlg ; last by rewrite (negbTE Htinlg) in Ht.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
@@ -516,11 +528,11 @@ End HowsonRosenthal.
 Section HRTBMWeakConditioningLocalGames.
 
   Variable R : realFieldType.
-  Notation I := [finType of 'I_2].
-  Notation A := (fun _ : I => [eqType of 'I_2]).
-  Notation T := (fun _ : I => [finType of 'I_2]).
+  Notation I := 'I_2.
+  Notation A := (fun _ : I => 'I_2).
+  Notation T := (fun _ : I => 'I_2).
 
-  Notation Tn := [finType of {ffun forall i, T i}].
+  Notation Tn := {ffun forall i, T i}.
 
   Program Definition HRTBM_Weak_example_m : bpa R Tn :=
     {| bpa_val := [ffun X => if X == setT then 1 else 0] |}.
@@ -533,9 +545,9 @@ Section HRTBMWeakConditioningLocalGames.
     * by rewrite addr0.
     * by rewrite ffunE (negbTE HX).
   + apply/forallP => X.
-    rewrite ffunE.
+    rewrite ffunE /=.
     case (boolP (X == setT)) => [->//|H].
-    exact: ler01. by rewrite (negbTE H) //.
+    by rewrite (negbTE H) //.
   Defined.
 
   Definition HRTBM_Weak_example_belgame : belgame R A T :=
@@ -545,7 +557,6 @@ Section HRTBMWeakConditioningLocalGames.
   Proof.
   apply/forallP => i ; apply/forallP => ti.
   rewrite/revisable/Weak_conditioning/Weak_revisable/Pl.
-  Search (_ > 0) (_ != 0).
   apply: lt0r_neq0.
   rewrite (bigD1 setT) /=.
   - rewrite ffunE eqxx big1 => [|X /andP [HX1 HX2]].

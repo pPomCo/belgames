@@ -75,6 +75,7 @@
 
 
 (******************************************************************************)
+From HB Require Import structures.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
 From mathcomp Require Import all_algebra. (* .none *)
@@ -88,7 +89,9 @@ Import Num.Theory.
 
 Local Open Scope ring_scope.
 
-Require Import general_lemmas fprod.
+(** TODO: uncomment when fprod is fixed *)
+(* Require Import general_lemmas fprod. *)
+Require Import general_lemmas.
 
 Section BelPl.
 
@@ -137,8 +140,7 @@ Section BelPl.
     by rewrite (eq_irrelevance Hf1 Hf2).
     Qed.
 
-    Definition bpa_eqMixin := EqMixin bpa_eqP.
-    Canonical bpa_eqType := EqType bpa bpa_eqMixin.
+    HB.instance Definition _ : hasDecEq bpa := hasDecEq.Build bpa bpa_eqP.
 
   End BelTypes.
 
@@ -149,7 +151,7 @@ Section BelPl.
   Proof.
   have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
   apply /card_gt0P.
-  have := (sum_ge0_neq0E (R:=R) (X:=[finType of {set W}]) (P:=predT)) => //= H.
+  have := (sum_ge0_neq0E (R:=R) (X:={set W}) (P:=predT)) => //= H.
   edestruct H as [A HA].
   - move => A HA. exact: forallP Hm3 A.
   - rewrite (eqP Hm2) eq_sym ; exact: neq01.
@@ -206,7 +208,7 @@ Section BelPl.
   Proof.
   have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
   apply /card_gt0P.
-  have := (sum_ge0_neq0E (R:=R) (X:=[finType of {set W}]) (P:=predT)) => //= H.
+  have := (sum_ge0_neq0E (R:=R) (X:={set W}) (P:=predT)) => //= H.
   edestruct H as [A HA].
   - move => A HA. exact: forallP Hm3 A.
   - rewrite (eqP Hm2) eq_sym ; exact: neq01.
@@ -334,7 +336,7 @@ Section BelPl.
     symmetry ; rewrite !andbT ; apply/andP ; split.
     + apply: subsetU ; by rewrite H orbT.
     + rewrite disjoint_sym in HAB ; by apply: (subset_disjoint HAB).
-  - by rewrite -(eq_bigl _ _ H1)  -(eq_bigl _ _ H2) addrA ler_addl sum_ge0.
+  - by rewrite -(eq_bigl _ _ H1)  -(eq_bigl _ _ H2) addrA lerDl sum_ge0.
   Qed.
 
   Lemma Pl_sub m : subadditive (Pl m).
@@ -357,7 +359,7 @@ Section BelPl.
   rewrite [s in _ <= _ + _ + s + _](eq_bigl [predD PA0 &  PB0]) => //.
   rewrite [s in _ <= _ + _ + _ + s](eq_bigl [predI [predC PB0] & [predC PA0]]) => //.
   rewrite [s in s + _ <= _]addrC.
-  by rewrite -addrA [s in _ + (s) <= _]addrC addrA ler_addl sum_ge0.
+  by rewrite -addrA [s in _ + (s) <= _]addrC addrA lerDl sum_ge0.
   - rewrite !inE setIUr !/(_ \in _) !/mem /=.
     case (boolP (PA0 X)) => [/eqP ->|HA0] ; first by rewrite andbF.
     case (boolP (PB0 X)) => [/eqP ->|/set0Pn [x Hx]] ; first by rewrite andbF.
@@ -382,7 +384,7 @@ Section BelPl.
   have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
   rewrite [s in _ <= s](bigID [pred X : {set W} | X \subset A]) => /=.
   rewrite [s in s + _](eq_bigl [pred X : {set W} | X \subset A]) => /=.
-  - rewrite ler_addl ; apply: sumr_ge0 => X _ ; exact: Hm3 X.
+  - rewrite lerDl ; apply: sumr_ge0 => X _ ; exact: Hm3 X.
   - move => X /= ; case (boolP (X \subset A)) => H ; last by rewrite andbF.
     by rewrite subsetU // H orTb.
   Qed.
@@ -399,7 +401,7 @@ Section BelPl.
   rewrite /Pl.
   rewrite [s in _ <= s](bigID [pred X : {set W} | X :&: A != set0]) => /=.
   rewrite [s in s + _](eq_bigl [pred X : {set W} | X :&: A != set0]) => /=.
-  - rewrite ler_addl.
+  - rewrite lerDl.
     apply: sumr_ge0 => X _.
     exact: Hm3 X.
   - move => X /=.
@@ -459,8 +461,7 @@ Section BelPl.
     by rewrite (eq_irrelevance Hm1 Hm2).
     Qed.
 
-    Definition proba_eqMixin := EqMixin proba_eqP.
-    Canonical proba_eqType := EqType proba proba_eqMixin.
+    HB.instance Definition _ : hasDecEq proba := hasDecEq.Build proba proba_eqP.
 
     Lemma proba_set1_eq0 (p : proba) (s : {set W}) : #|s| != 1%N -> p s = 0.
     Proof.
@@ -602,7 +603,7 @@ Section BelPl.
     Proof.
     apply k_additive1E => B ; rewrite /bpa_of_dist in_focalset_mass /bpa_of_dist_fun ffunE => /=.
     case (boolP (#|B| == 1)%N) => H /=.
-    - case (boolP (negb (@eq_op (set_of_eqType W) B (@set0 W)))) => [HB //|/negPn/eqP HB].
+    - case (boolP (negb (@eq_op (_ W) B (@set0 W)))) => [HB //|/negPn/eqP HB].
       by rewrite HB cards0 in H.
     - by rewrite lt0r eqxx andFb.
     Qed.
@@ -690,6 +691,7 @@ Section BelPl.
         {| bpa_val := Dempster_fun m C ; bpa_ax := _ |}.
       Next Obligation.
       Proof.
+      move=>m C HC.
       apply/and3P ; split.
       - by rewrite ffunE eqxx.
       - under eq_bigr do rewrite ffunE -if_neg.
@@ -777,6 +779,7 @@ Section BelPl.
         {| bpa_val := Strong_fun m C ; bpa_ax := _ |}.
       Next Obligation.
       Proof.
+      move=>m C HC.
       have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
       apply/and3P ; split.
       - by rewrite ffunE eqxx.
@@ -832,6 +835,7 @@ Section BelPl.
         {| bpa_val := Weak_fun m C ; bpa_ax := _ |}.
       Next Obligation.
       Proof.
+      move=>m C HC.
       have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
       apply/and3P ; split.
       - by rewrite ffunE set0I eqxx.
@@ -918,19 +922,26 @@ Section BelPl.
                            | _, _ => None
                            end.
 
+    (*
     Definition min_monoid_law : Monoid.law (None : option R).
-    exists omin ; rewrite /omin.
+    exists omin ; rewrite /omin => //=.
+    do 2 split.
     - move => [x|] [y|] [z|] // ; by rewrite minA.
     - by move => [x|] //.
     - by move => [x|] //.
     Defined.
-
+     *)
+    
     Definition min_comlaw : Monoid.com_law (None : option R).
     Proof.
-    exists min_monoid_law => /=.
-    move => [x|] [y|] //=.
-    apply f_equal.
-    by rewrite minC.
+    exists omin ; rewrite/omin =>//=.
+    do 2 split.
+    - move => [x|] [y|] [z|] // ; by rewrite minA.
+    - by move => [x|] //.
+    - by move => [x|] //.
+    - move => [x|] [y|] //=.
+      apply f_equal.
+      by rewrite minC.
     Defined.
 
     Definition minS (u : W -> R) (B : {set W}) : option R
@@ -943,19 +954,25 @@ Section BelPl.
                            | _, _ => None
                            end.
 
+    (*
     Definition max_monoid_law : Monoid.law (None : option R).
     exists omax ; rewrite /omax.
     - move => [x|] [y|] [z|] // ; by rewrite maxA.
     - by move => [x|] //.
     - by move => [x|] //.
     Defined.
-
+     *)
+    
     Definition max_comlaw : Monoid.com_law (None : option R).
     Proof.
-    exists max_monoid_law => /=.
-    move => [x|] [y|] //=.
-    apply f_equal.
-    by rewrite maxC.
+    exists omax ; rewrite /omax.
+    do 2 split.
+    - move => [x|] [y|] [z|] // ; by rewrite maxA.
+    - by move => [x|] //.
+    - by move => [x|] //.
+    - move => [x|] [y|] //=.
+      apply f_equal.
+      by rewrite maxC.
     Defined.
 
     Definition maxS (u : W -> R) (B : {set W}) : option R
@@ -1005,7 +1022,7 @@ Section BelPl.
     rewrite /minS => B HB.
     have [w Hw] := pick_nonemptyset_sig (focal_neq_set0 HB).
     rewrite (bigD1 w Hw) => /=.
-    by case (BigOp.bigop (@None R)).
+    by case (@bigop.body _ _ (@None (Num.RealField.sort R))).
     Qed.
 
     Notation utility_function W := {ffun W -> R} (only parsing).
@@ -1185,7 +1202,8 @@ Section BelOnFFuns.
   Variable I : finType.
   Variable T : I -> finType.
 
-  Notation Tn := [finType of {dffun forall i : I, T i}].
+  (*Notation Tn := (Finite.clone _ {dffun forall i : I, T i}).*)
+  Notation Tn := {dffun forall i : I, T i}.
 
   (* NOTE :: conditioning event "given t i == ti" *)
   Definition event_ti i (ti : T i) := [set t : Tn | t i == ti].
@@ -1238,16 +1256,16 @@ Section BelOnFFuns.
     { have P_i := p i.
       have [b _] := P_i.
       apply: bpa_nonemptyW b. }
-    set h' : set_of_finType (T i) -> T i :=
+    set h' : {set (T i)} -> T i :=
       fun s =>
         match [pick x | x \in s] with
         | Some x => x
         | None => x0
         end.
     rewrite
-      -(big_rmcond _ (I := set_of_finType (T i)) _ (P := fun s => #|s| == 1%N));
+      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N));
       last by move=> s Hs; exact: proba_set1_eq0.
-    rewrite (reindex_onto (I := set_of_finType (T i)) (J := T i)
+    rewrite (reindex_onto (I := {set (T i)}) (J := T i)
                           (fun j => [set j]) h'
                           (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
     { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
@@ -1260,6 +1278,8 @@ Section BelOnFFuns.
 
   Lemma mk_prod_proba_dist p (witnessI : I) : is_dist (mk_prod_proba p).
   Proof.
+  (** TODO: fix when fprod is fixed **)
+  (*
   apply/andP ; split.
   - under eq_bigr do rewrite /mk_prod_proba ffunE.
     set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
@@ -1294,7 +1314,10 @@ Section BelOnFFuns.
     have [_ _ Hm3] := and3P (bpa_ax (p i)).
     exact: (forallP Hm3).
   Qed.
+   *)
+  Admitted.
 
+  
   Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tn
     := proba_of_dist (mk_prod_proba_dist p witnessI).
 

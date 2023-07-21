@@ -104,7 +104,7 @@ Section Profile.
     := {dffun forall i : I, A i}.
 
   Definition iprofile I (A : I -> eqType) (T : I -> finType)
-    := cprofile (fun i => [eqType of {ffun T i -> A i}]).
+    := cprofile (fun i => {ffun T i -> A i}).
 
   Definition change_strategy I A (p : cprofile A) (i : I) (a'_i : A i) : cprofile A
     := [ffun j => match boolP (i == j) with
@@ -144,7 +144,7 @@ Section Profile.
              (p : local_cprofile (fun i_ti => A (projT1 i_ti)) P) : cprofile A
     := [ffun i : I =>
         let (ti, Hi_ti) := HP i in
-        let x : sig_finType P := (exist P (existT T i ti) Hi_ti) in
+        let x := (exist P (existT T i ti) Hi_ti) in
         let ai : A i := p x in
         ai
        ].
@@ -184,8 +184,7 @@ Section Profile.
   Proof.
   apply eq_dffun => j_tj //=.
   rewrite !ffunE.
-  case (boolP (@eq_op (Finite.eqType (tag_finType T)) i_ti j_tj)) => H1;
-                   case (boolP (projT1 i_ti == projT1 j_tj)) => H2 //=.
+  case (boolP (@eq_op (fintype_Finite__to__eqtype_Equality (@Specif_sigT__canonical__fintype_Finite I T)) i_ti j_tj)) =>H1 ; case (boolP (projT1 i_ti == projT1 j_tj)) => H2 //=.
   - case (boolP ((eq_rect _ _ (projT2 i_ti) (projT1 j_tj)  (@elimT
       (@eq (Finite.sort I) _ _) _ eqP H2)) == (projT2 j_tj))) => H3.
     + rewrite (rew_map A _ (eqP H1) ai).
@@ -298,7 +297,7 @@ Section Games.
     Variable A : forall i : I, eqType.
     Variable T : forall i : I, finType.
 
-    Notation Tn := [finType of {dffun forall i : I, T i}].
+    Notation Tn := {dffun forall i : I, T i}.
 
     Notation xeu_function W := ({ffun W -> R} -> {ffun {set W} -> R}) (only parsing).
 
@@ -329,7 +328,7 @@ Section Games.
     Variable fA : forall i : I, finType.
     Variable T : forall i : I, finType.
 
-    Notation Tn := [finType of {dffun forall i : I, T i}].
+    Notation Tn := {dffun forall i : I, T i}.
 
     Definition BelG_Nash_equilibrium_bool (G : belgame fA T) (cond : conditioning R Tn) fXEU (HG : proper_belgame G cond) (p : iprofile fA T) : bool :=
       [forall i : I,
@@ -355,12 +354,12 @@ Section Games.
 
   Section BGame.
 
-    Notation Tconfig := (fun T => [finType of {ffun forall i : I, T i}]).
+    Notation Tconfig := (fun T => {ffun forall i : I, T i}).
 
     Variable A : forall i : I, eqType.
     Variable T : forall i : I, finType.
 
-    Notation Tn := [finType of {dffun forall i : I, T i}].
+    Notation Tn := {dffun forall i : I, T i}.
 
     Definition bgame :=
       (proba R Tn * (cprofile A -> Tn -> I -> R))%type.

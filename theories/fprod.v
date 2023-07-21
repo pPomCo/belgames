@@ -49,19 +49,22 @@ Record fprod : predArgType :=
 Program Definition fprod_type_of_fprod (f : fprod) : fprod_type :=
   fun i => ecast j (T_ j) _ (tagged (fprod_fun f i)).
 Next Obligation.
-case: f => f p /=; apply/eqP.
+case => f p i /= ; apply/eqP.
 by move/forallP in p.
 Defined.
 
 Program Definition fprod_of_fprod_type (f : fprod_type) : fprod :=
   @Build_fprod (finfun (fun i => @existT _ _ i (f i))) _.
 Next Obligation.
+move=>f.
 by apply/forallP => i; rewrite ffunE.
 Defined.
 
 Coercion fprod_type_of_fprod : fprod >-> Funclass.
 
 (* Canonical fprod_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
+(** TODO: fix canonical projections **)
+
 Canonical fprod_subType := Eval hnf in [subType for fprod_fun].
 Definition fprod_eqm := Eval hnf in [eqMixin of fprod by <:].
 Canonical fprod_eqType := Eval hnf in EqType fprod fprod_eqm.
@@ -74,6 +77,7 @@ Definition fprod_finm := [finMixin of fprod by <:].
 Canonical fprod_finType := Eval hnf in FinType fprod fprod_finm.
 Canonical fprod_subFinType := Eval hnf in [subFinType of fprod_finType].
 (* Print Canonical Projections. Print fprod_finm. Print fprod_cntm. *)
+
 
 Lemma fprodK : cancel fprod_type_of_fprod fprod_of_fprod_type.
 Proof.
