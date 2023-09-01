@@ -17,53 +17,47 @@ Import Num.Theory.
 
 Require Import general_lemmas capacity games.
 
-Local Open Scope ring_scope.
+Open Scope ring_scope.
 
 
 
 (******************************************************************************)
-(** This file contains Howson-Rosenthal-like transform for BelGames
+(** OLD COMMENT VERSION
+
+    This file contains Howson-Rosenthal-like transform for BelGames
     i.e. cast of BelGames to complete (hypergraphical) games
 
-    We propose 3 transforms : "direct", "conditionned" and "TBM", which partly
-    rely on the same definitions.
+    We propose 2 transforms : "direct" and "conditionned" which patially rely
+    on the same definitions.
 
-     Parameter R : realFieldType.     (* values *)
-     Parameter I : finType.           (* players *)
-     Parameter A : I -> finType.      (* actions *)
-     Parameter T : I -> finType.      (* types *)
+     Parameter R : realFieldType.     (* nums *)
+     Parameter X : finType.           (* agents *)
+     Parameter A : agent -> finType.  (* actions *)
+     Parameter T : agent -> finType.  (* agent's types aka signals *)
      Parameter G : belgame R A T.     (* the belgame to cast *)
 
    COMMON DEFINITIONS:
-     HR_player      == [finType of {i : I & T i}]
+     HR_agent       == [finType of {i : X & T i}]
      HR_action i_ti == A (projT1 i_ti).
 
    DIRECT TRANSFORM:
-     HRdirect
-     HRdirect_correct fXEU proper_G i ti p :
-       belgame_utility fXEU proper_G p ti
-       = HRdirect fXEU (iprofile_flatten p) (existT _ i ti).
+     HRdirect_transform                  ==  cgame R HR_action.
+     HRdirect_transform_correct HG i ti p :
+       belgame_utility (HG : proper_belgame G (DempCEU R (cprofile T))) p i ti
+       = HRdirect_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT T i ti).
      HRdirect_eqNash p :
-       BelG_Nash_equilibrium fXEU proper_G p
-       <-> Nash_equilibrium (HRdirect G fXEU) (iprofile_flatten p).
+      BelG_Nash_equilibrium proper_G p
+      = Nash_equilibrium (HRdirect_transform) [ffun it => p _ (projT2 it)].
 
    CONDITIONED TRANSFORM:
-     HRcond
-     HRcond_correct cond fXEU (proper_G : proper_belgame G cond) i ti p :
-       belgame_utility fXEU proper_G p ti
-       = HRcond fXEU proper_G (iprofile_flatten p) (existT _ i ti).
-     HRcond_eqNash dbox p :
-       BelG_Nash_equilibrium fXEU proper_G p
-       <-> Nash_equilibrium (HRcond fXEU proper_G) (iprofile_flatten p).
+     Definition HRcond_transform dbox HG == cgame HowsonRosenthal.R HR_action.
+     HRcond_transform_correct HG i ti p :
+       belgame_utility dbox HG p ti 
+       = HRcond_transform dbox HG (iprofile_flatten p) (existT _  i ti).
+     HRcond_eqNash dbox HG p :
+       BelG_Nash_equilibrium proper_G p 
+       = Nash_equilibrium (HRcond_transform proper_G) [ffun i_ti => p (projT1 it) (projT2 it)].
 
-   TBM TRANSFORM:
-     HRTBM
-     HRTBM_correct proper_G i ti p :
-       belgame_utility fTBEU proper_G p ti
-       = HRTBM proper_G (iprofile_flatten p) (existT _ i ti).
-     HRTBM_eqNash proper_G p :
-       BelG_Nash_equilibrium fTBEU proper_G p
-       <-> Nash_equilibrium (HRTBM proper_G) (iprofile_flatten p).
  **)
 (******************************************************************************)
 
@@ -72,29 +66,37 @@ Local Open Scope ring_scope.
 Section HowsonRosenthal.
 
   Variable R : realFieldType.
-  Variable I : finType.
-  Variable A : I -> eqType.
-  Variable T : I -> finType.
+  Variable agent : finType.
+  Variable action : agent -> eqType.
+  Variable agent_type : agent -> finType.
 
-  Notation profile := (cprofile A).
-  Notation Tn := [finType of {dffun forall i : I, T i}].
-  Notation iprof := (iprofile I T).
+  Notation profile := (cprofile action).
+  Notation Tconfig := [finType of {dffun forall i : agent, agent_type i}].
+  Notation iprof := (iprofile agent_type action).
+
+
 
   (* Definitions for all transforms *)
 
-  Definition HR_player : finType := [finType of {i : I & T i}].
+  Definition HR_agent : finType
+    := [finType of {i : agent & agent_type i}].
 
-  Definition HR_action (i_ti : HR_player) : eqType := A (projT1 i_ti).
+  Definition HR_action : HR_agent -> eqType
+    := fun it : HR_agent => action (projT1 it).
+
+
+
+
 
 
   Section HRclassical.
 
-    Variable G : bgame R A T.
+    Variable G : bgame R action agent_type.
 
     Variable properG : proper_bgame G.
 
-    Definition HRclassical_localgame : finType := Tn.
-    Definition HRclassical_plays_in : HRclassical_localgame -> pred HR_player
+    Definition HRclassical_localgame : finType := Tconfig.
+    Definition HRclassical_plays_in : HRclassical_localgame -> pred HR_agent
       := fun lg i_ti => lg (projT1 i_ti) == projT2 i_ti.
 
 
@@ -103,13 +105,13 @@ Section HowsonRosenthal.
 
 
     Definition HRclassical_plays_in_given_lg (lg : HRclassical_localgame) j : HRclassical_plays_in lg (existT _ j (lg j))
-      := eqxx (projT2 (existT (fun i : I => T i) j (lg j))).
+      := eqxx (projT2 (existT (fun i : agent => agent_type i) j (lg j))).
 
-    Definition HRclassical_mkprofile (lg : HRclassical_localgame) (p : HRclassical_localprof lg) : cprofile A
+    Definition HRclassical_mkprofile (lg : HRclassical_localgame) (p : HRclassical_localprof lg) : cprofile action
       := proj_flatlocalprofile (fun i => exist _ (lg i) (HRclassical_plays_in_given_lg lg i)) p.
 
     Lemma HRclassical_mkprofileE (lg : HRclassical_localgame) (p : iprofile _ _) :
-      HRclassical_mkprofile (lg:=lg) [ffun x : {x : HR_player | HRclassical_plays_in lg x} =>
+      HRclassical_mkprofile (lg:=lg) [ffun x : {x : HR_agent | HRclassical_plays_in lg x} =>
                        (iprofile_flatten p )(val x)]
       = (proj_iprofile p lg).
     Proof.
@@ -125,7 +127,7 @@ Section HowsonRosenthal.
     Definition HRclassical_transform : cgame R HR_action := hg_game HRclassical_localutility.
 
     Theorem HRclassical_transform_correct (Hproper : proper_bgame G) :
-      forall i (ti : T i) p,
+      forall i (ti : agent_type i) p,
       bgame_utility Hproper p ti = HRclassical_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
     Proof.
     move => i ti p.
@@ -133,7 +135,7 @@ Section HowsonRosenthal.
     rewrite /bgame_utility /HRclassical_transform/= hg_gameE [RHS]big_mkcond /=.
     apply eq_bigr => lg _.
     case (boolP (HRclassical_plays_in lg i_ti)) => H.
-    - by rewrite ffunE HRclassical_mkprofileE.
+    - by rewrite HRclassical_mkprofileE.
     - rewrite /HRclassical_plays_in in H.
       rewrite /Pr_conditioning proba_of_distE /Pr_conditioning_dist.
       have H2 : lg \notin event_ti ti. by rewrite inE.
@@ -142,11 +144,12 @@ Section HowsonRosenthal.
 
   End HRclassical.
 
-  Theorem HR_eqNash_prop (G : belgame R A T) (G' : cgame R HR_action) (cond : conditioning R Tn) fXEU (proper_G : proper_belgame G cond) :
-    (forall p i ti, belgame_utility fXEU proper_G p ti = G' (iprofile_flatten p) (existT _ i ti))
+
+  Theorem HR_eqNash_prop (G : igame R action agent_type) (G' : cgame R HR_action) (cond : conditioning R Tconfig) (xeu : xeu_box R _) (proper_G : proper_igame G cond) :
+    (forall p i ti, igame_utility xeu proper_G p ti = G' (iprofile_flatten p) (existT _ i ti))
     ->
     forall p,
-    BelG_Nash_equilibrium fXEU proper_G p <-> Nash_equilibrium G' (iprofile_flatten p).
+    BelG_Nash_equilibrium_prop xeu proper_G p <-> Nash_equilibrium_prop G' (iprofile_flatten p).
   Proof.
   move => Hcorrect p ; split => HNash => [i_ti ai| i ti ai].
   - have :=  HNash (projT1 i_ti) (projT2 i_ti) ai.
@@ -156,19 +159,19 @@ Section HowsonRosenthal.
   Qed.
 
 
+
+
+
   Section DirectTransform.
 
-    Variable G : belgame R A T.
-    Variable proper_G : proper_belgame G (Dempster_conditioning R Tn).
-
-    Variable fXEU : xeu_function R Tn.
-    Variable proper_fXEU : eq_xeu fXEU.
+    Variable G : igame R action agent_type.
+    Variable proper_G : proper_igame G (Dempster_conditioning R Tconfig).
 
     Definition HRdirect_localgame : finType
-      := [finType of {set Tn}].
+      := [finType of {set Tconfig}].
 
-    Definition HRdirect_plays_in : HRdirect_localgame -> pred HR_player
-      := fun lg i_ti => [exists t : Tn, [&& t \in lg & t (projT1 i_ti) == projT2 i_ti]].
+    Definition HRdirect_plays_in : HRdirect_localgame -> pred HR_agent
+      := fun lg i_ti => [exists t : Tconfig, [&& t \in lg & t (projT1 i_ti) == projT2 i_ti]].
 
     Lemma HRdirect_plays_in_event_ti lg i_ti :
       HRdirect_plays_in lg i_ti = (lg :&: event_ti (projT2 i_ti) != set0).
@@ -192,16 +195,16 @@ Section HowsonRosenthal.
     Notation HRdirect_localprof := (fun lg => local_cprofile HR_action (HRdirect_plays_in lg)).
 
 
-    Lemma HRdirect_plays_in_given_t (lg : HRdirect_localgame) t (Ht : t \in lg) j : HRdirect_plays_in lg (existT T j (t j)).
+    Lemma HRdirect_plays_in_given_t (lg : HRdirect_localgame) t (Ht : t \in lg) j : HRdirect_plays_in lg (existT agent_type j (t j)).
     Proof.
     apply/existsP ; exists t ; by rewrite Ht /=.
     Qed.
 
-    Definition HRdirect_mkprofile1 lg (p : HRdirect_localprof lg) (t : Tn) (Ht : t \in lg) : profile :=
+    Definition HRdirect_mkprofile1 lg (p : HRdirect_localprof lg) (t : Tconfig) (Ht : t \in lg) : profile :=
       proj_flatlocalprofile (fun i => exist _ (t i) (HRdirect_plays_in_given_t Ht i)) p.
 
     (* Lorsque t n'est pas dans lg, on construit un profil quelconque (d'après un t permettant à i_ti de jouer dans lg. Afin de rendre la fonction mkprofile totale *)
-    Definition HRdirect_mkprofile2 lg i_ti (Hi_ti : HRdirect_plays_in lg i_ti) (p : HRdirect_localprof lg) (t : Tn) (Ht : t \notin lg) : profile.
+    Definition HRdirect_mkprofile2 lg i_ti (Hi_ti : HRdirect_plays_in lg i_ti) (p : HRdirect_localprof lg) (t : Tconfig) (Ht : t \notin lg) : profile.
     Proof.
     apply finfun => j.
     have [t' Ht'] := pick_nonemptyset_sig (HRdirect_lg_nonempty Hi_ti).
@@ -210,14 +213,14 @@ Section HowsonRosenthal.
     Qed.
 
 
-    Definition HRdirect_mkprofile lg i_ti (Hi_ti : HRdirect_plays_in lg i_ti) (p : HRdirect_localprof lg) (t : Tn) : profile
+    Definition HRdirect_mkprofile lg i_ti (Hi_ti : HRdirect_plays_in lg i_ti) (p : HRdirect_localprof lg) (t : Tconfig) : profile
       := match boolP (t \in lg) with
          | AltTrue H => HRdirect_mkprofile1 p H
          | AltFalse H => HRdirect_mkprofile2 Hi_ti p H
          end.
 
     Lemma HRdirect_mkprofileE lg i_ti (Hi_ti : HRdirect_plays_in lg i_ti) (p : iprofile _ _) t (Ht : t \in lg) :
-      HRdirect_mkprofile Hi_ti [ffun x : {x : HR_player | HRdirect_plays_in lg x} =>
+      HRdirect_mkprofile Hi_ti [ffun x : {x : HR_agent | HRdirect_plays_in lg x} =>
                        (iprofile_flatten p )(val x)] t
       = (proj_iprofile p t).
     Proof.
@@ -226,39 +229,44 @@ Section HowsonRosenthal.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
-    Definition HRdirect_u : forall lg : HRdirect_localgame, HRdirect_localprof lg -> HRdirect_localagent lg -> R
+
+    Definition HRdirect_localutility : forall lg : HRdirect_localgame, HRdirect_localprof lg -> HRdirect_localagent lg -> R
       := fun lg p x =>
-         let (i_ti, Hi_ti) := x in let (i, ti) := i_ti in
-         G.1 lg * fXEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
+         let (i_ti, Hi_ti) := x in
+         let (i, ti) := i_ti in
+         G.1 lg * CEU R _ (fun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i) (lg :&: (event_ti ti)) / Psup G.1 (event_ti ti).
 
-    Definition HRdirect : cgame R HR_action := hg_game HRdirect_u.
 
-    Theorem HRdirect_correct (i : I) (ti : T i) (p : iprofile A T) :
-      belgame_utility fXEU proper_G p ti = HRdirect (iprofile_flatten p) (existT _ i ti).
+    Definition HRdirect_transform : cgame R HR_action := hg_game HRdirect_localutility.
+
+    Theorem HRdirect_transform_correct:
+      forall i (ti : agent_type i) p,
+      igame_utility (CEU R _) proper_G p ti = HRdirect_transform (iprofile_flatten p) (existT _ i ti).
     Proof.
+    move => i ti p.
     set i_ti := existT _ i ti.
-    rewrite /belgame_utility /XEU /HRdirect hg_gameE => //=.
+    rewrite /igame_utility /XEU /HRdirect_transform hg_gameE => //=.
     rewrite Dempster_cond_sumE.
     rewrite -big_mkcondr sum_fun_focalset_cond big_mkcond [in RHS]big_mkcond => //=.
     rewrite big_distrl.
     apply eq_bigr => B _ //=.
     case (boolP (HRdirect_plays_in B i_ti)) => H.
     - have := H ; rewrite HRdirect_plays_in_event_ti => ->.
-      apply: mulr_rr ; apply: mulr_ll.
-      apply: proper_fXEU => t Hdomain.
-      rewrite !ffunE.
-      rewrite HRdirect_mkprofileE //.
-      rewrite in_setI in Hdomain.
-      by have [Hdomain1 _] := andP Hdomain.
+      congr (_ * _) ; congr (_ * _).
+      apply ceu_ax => t Ht.
+      rewrite in_setI in Ht.
+      have [Ht1 Ht2] := andP Ht.
+      by rewrite HRdirect_mkprofileE.
     - rewrite HRdirect_plays_in_event_ti in H.
       by rewrite (negbTE H) mul0r.
     Qed.
 
-    Theorem HRdirect_eqNash (p : iprofile A T) :
-      BelG_Nash_equilibrium fXEU proper_G p <-> Nash_equilibrium HRdirect (iprofile_flatten p).
+    Theorem HRdirect_eqNash :
+      forall p,
+      BelG_Nash_equilibrium_prop (CEU _ _) proper_G p <-> Nash_equilibrium_prop HRdirect_transform (iprofile_flatten p).
     Proof.
-    apply: HR_eqNash_prop => p' i ti.
-    by rewrite HRdirect_correct.
+    apply HR_eqNash_prop => p i ti.
+    by rewrite HRdirect_transform_correct.
     Qed.
 
   End DirectTransform.
@@ -274,25 +282,25 @@ Section HowsonRosenthal.
   Section ConditionedTransform.
 
 
-    Variable G : belgame R A T.
-    Variable cond : conditioning R Tn.
-    Variable xeu : xeu_function R Tn.
-    Variable xeu_equality : eq_xeu xeu.
-    Variable proper_G : proper_belgame G cond.
+    Variable G : igame R action agent_type.
+    Variable cond : conditioning R Tconfig.
+    Variable xeu : xeu_box R Tconfig.
+    Variable proper_G : proper_igame G cond.
 
 
     Definition HRcond_localgame : finType
-      := [finType of {set Tn}].
+      := [finType of {set Tconfig}].
 
-    Definition HRcond_plays_in : HRcond_localgame -> pred HR_player :=
-      fun lg it => [exists t : Tn , [&& t \in lg & t (projT1 it) == projT2 it]].
+    Definition HRcond_plays_in : HRcond_localgame -> pred HR_agent
+      := fun lg it => [exists t : Tconfig , [&& t \in lg & t (projT1 it) == projT2 it]].
+
 
     Lemma HRcond_lg_nonempty (lg :HRcond_localgame) i_ti (Hlg : HRcond_plays_in lg i_ti) : lg != set0.
     Proof.
     by have := existsP (existsb_l Hlg) => /set0Pn ->.
     Qed.
 
-    Notation HRcond_localagent := (fun lg => {i_ti : HR_player | HRcond_plays_in lg i_ti}).
+    Notation HRcond_localagent := (fun lg => {i_ti : HR_agent | HRcond_plays_in lg i_ti}).
     Notation HRcond_localprof := (fun lg => local_cprofile HR_action (HRcond_plays_in lg)).
 
     Lemma negb_HRcond_plays_in lg i_ti (H : ~~ HRcond_plays_in lg i_ti) :
@@ -307,17 +315,17 @@ Section HowsonRosenthal.
     Qed.
 
 
-    Lemma HRcond_plays_in_given_t (lg : HRcond_localgame) t (Ht : t \in lg) j : HRcond_plays_in lg (existT T j (t j)).
+    Lemma HRcond_plays_in_given_t (lg : HRcond_localgame) t (Ht : t \in lg) j : HRcond_plays_in lg (existT agent_type j (t j)).
     Proof.
     apply/existsP ; exists t ; by rewrite Ht /=.
     Qed.
 
-    Definition HRcond_mkprofile1 lg (p : HRcond_localprof lg) (t : Tn) (Ht : t \in lg) : profile :=
+    Definition HRcond_mkprofile1 lg (p : HRcond_localprof lg) (t : Tconfig) (Ht : t \in lg) : profile :=
       proj_flatlocalprofile (fun i => exist _ (t i) (HRcond_plays_in_given_t Ht i)) p.
 
 
     (* Lorsque t n'est pas dans lg, on construit un profil quelconque (d'après un t permettant à i_ti de jouer dans lg. Afin de rendre la fonction mkprofile totale *)
-    Definition HRcond_mkprofile2 lg i_ti (Hi_ti : HRcond_plays_in lg i_ti) (p : HRcond_localprof lg) (t : Tn) (Ht : t \notin lg) : profile.
+    Definition HRcond_mkprofile2 lg i_ti (Hi_ti : HRcond_plays_in lg i_ti) (p : HRcond_localprof lg) (t : Tconfig) (Ht : t \notin lg) : profile.
     Proof.
     apply finfun => j.
     have [t' Ht'] := pick_nonemptyset_sig (HRcond_lg_nonempty Hi_ti).
@@ -326,25 +334,26 @@ Section HowsonRosenthal.
     Qed.
 
 
-    Definition HRcond_mkprofile lg i_ti (Hi_ti : HRcond_plays_in lg i_ti) (p : HRcond_localprof lg) (t : Tn) : profile
+    Definition HRcond_mkprofile lg i_ti (Hi_ti : HRcond_plays_in lg i_ti) (p : HRcond_localprof lg) (t : Tconfig) : profile
       := match boolP (t \in lg) with
          | AltTrue H => HRcond_mkprofile1 p H
          | AltFalse H => HRcond_mkprofile2 Hi_ti p H
          end.
 
-    Definition HRcond_u : forall lg : HRcond_localgame, HRcond_localprof lg -> HRcond_localagent lg -> R
+    Definition HRcond_localutility : forall lg : HRcond_localgame, HRcond_localprof lg -> HRcond_localagent lg -> R
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
          let kn := cond G.1 (event_ti ti) (is_revisable proper_G ti) in
-         kn lg * xeu [ffun t => G.2 (HRcond_mkprofile Hi_ti p t) t i] lg.
+         kn lg * xeu (fun t => G.2 (HRcond_mkprofile Hi_ti p t) t i) lg.
 
 
-    Definition HRcond : cgame R HR_action := hg_game HRcond_u.
+    Definition HRcond_transform : cgame R HR_action :=
+      hg_game HRcond_localutility.
 
 
     Lemma HRcond_mkprofileE lg i_ti (Hi_ti : HRcond_plays_in lg i_ti) (p : iprofile _ _) t (Ht : t \in lg) :
-      HRcond_mkprofile Hi_ti [ffun x : {x : HR_player | HRcond_plays_in lg x} => (iprofile_flatten p )(val x)] t
+      HRcond_mkprofile Hi_ti [ffun x : {x : HR_agent | HRcond_plays_in lg x} => (iprofile_flatten p )(val x)] t
       = (proj_iprofile p t).
     Proof.
     rewrite /HRcond_mkprofile /proj_iprofile /HRcond_mkprofile1 /proj_flatlocalprofile.
@@ -352,254 +361,116 @@ Section HowsonRosenthal.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
-    Theorem HRcond_correct (i : I) (ti : T i) (p : iprofile A T):
-      belgame_utility xeu proper_G p ti = HRcond (iprofile_flatten p) (existT _ i ti).
+    Theorem HRcond_transform_correct (i : agent) (ti : agent_type i) (p : iprofile agent_type action):
+      igame_utility xeu proper_G p ti = HRcond_transform (iprofile_flatten p) (existT _  i ti).
     Proof.
     set i_ti := existT _ i ti.
-    rewrite /HRcond hg_gameE /belgame_utility /XEU.
+    rewrite /HRcond_transform hg_gameE /igame_utility /XEU.
     rewrite sum_fun_focalset [in RHS]big_mkcond.
     apply eq_bigr => lg _.
     case (boolP (HRcond_plays_in lg i_ti)) => H.
-    - rewrite /HRcond_u /=.
+    - rewrite /HRcond_localutility /=.
       set kn := cond G.1 (event_ti ti) (is_revisable proper_G ti).
-      + apply: mulr_ll ; apply: xeu_equality => t Ht.
-        by rewrite !ffunE HRcond_mkprofileE.
+      + apply: mulr_ll ; apply: xeu_ax => t Ht ; by rewrite HRcond_mkprofileE.
     - have := negb_HRcond_plays_in H.
       rewrite notin_focalset => /eqP -> ; by rewrite mul0r.
     Qed.
 
     Theorem HRcond_eqNash :
       forall p,
-      BelG_Nash_equilibrium xeu proper_G p <-> Nash_equilibrium HRcond (iprofile_flatten p).
+      BelG_Nash_equilibrium_prop xeu proper_G p <-> Nash_equilibrium_prop HRcond_transform (iprofile_flatten p).
     Proof.
     apply HR_eqNash_prop => p i ti.
-    by rewrite HRcond_correct.
+    by rewrite HRcond_transform_correct.
     Qed.
 
   End ConditionedTransform.
 
-  Definition HRcondCEU_eqNash G cond := @HRcond_eqNash G cond _ (@eq_CEU _ _).
-  Definition HRcondJEU_eqNash alpha G cond := @HRcond_eqNash G cond _ (eq_JEU alpha).
-  Definition HRcondTBEU_eqNash G cond := @HRcond_eqNash G cond _ (@eq_TBEU _ _).
-
 
   Section TBMTransform.
 
-    Variable G : belgame R A T.
-    Variable cond : conditioning R Tn.
-    Variable proper_G : proper_belgame G cond.
+    Variable G : igame R action agent_type.
+    Variable proper_G : proper_igame G (Dempster_conditioning _ _).
 
-    Definition HRTBM_localgame : finType := Tn.
+    Definition HRTBM_localgame : finType := Tconfig.
+    Definition HRTBM_plays_in : HRTBM_localgame -> pred HR_agent
+      := fun lg i_ti => lg (projT1 i_ti) == projT2 i_ti.
 
-    Definition m_ti (i_ti : HR_player) : bpa R Tn :=
-      let ti := projT2 i_ti in cond G.1 (event_ti ti) (forallP (forallP proper_G _) ti).
-    
-    Definition HRTBM_plays_in : HRTBM_localgame -> pred HR_player
-      := fun lg i_ti =>
-           [|| lg (projT1 i_ti) == projT2 i_ti |
-             [exists A : {set Tn}, [&& A \in focalset (m_ti i_ti), lg \in A & [exists t : Tn, (t \in A) && (t (projT1 i_ti) == projT2 i_ti)]]]].
-    (* Note: for Weak conditioning, i_ti may plays in lg = t' such as t' i != ti *)
-
-           
 
     Notation HRTBM_localagent := (fun lg => {i_ti | HRTBM_plays_in lg i_ti}).
     Notation HRTBM_localprof := (fun lg => local_cprofile HR_action (HRTBM_plays_in lg)).
 
 
-    Lemma HRTBM_plays_in_given_lg (lg : HRTBM_localgame) j : HRTBM_plays_in lg (existT _ j (lg j)).
-    Proof. by rewrite /HRTBM_plays_in /= eqxx orTb. Qed.
+    Definition HRTBM_plays_in_given_lg (lg : HRTBM_localgame) j : HRTBM_plays_in lg (existT _ j (lg j))
+      := eqxx (projT2 (existT (fun i : agent => agent_type i) j (lg j))).
 
-    Definition HRTBM_mkprofile (lg : HRTBM_localgame) (p : HRTBM_localprof lg) : cprofile A
+    Definition HRTBM_mkprofile (lg : HRTBM_localgame) (p : HRTBM_localprof lg) : cprofile action
       := proj_flatlocalprofile (fun i => exist _ (lg i) (HRTBM_plays_in_given_lg lg i)) p.
 
     Lemma HRTBM_mkprofileE (lg : HRTBM_localgame) (p : iprofile _ _) :
-      HRTBM_mkprofile (lg:=lg) [ffun x : {x : HR_player | HRTBM_plays_in lg x} =>
+      HRTBM_mkprofile (lg:=lg) [ffun x : {x : HR_agent | HRTBM_plays_in lg x} =>
                        (iprofile_flatten p )(val x)]
       = (proj_iprofile p lg).
     Proof.
     apply eq_dffun => i /= ; by rewrite !ffunE /=.
     Qed.
 
-    (* local utilities *)
-    Definition HRTBM_u : forall lg : HRTBM_localgame, HRTBM_localprof lg -> HRTBM_localagent lg -> R
+    Definition HRTBM_localutility : forall lg : HRTBM_localgame, HRTBM_localprof lg -> HRTBM_localagent lg -> R
       := fun lg p x =>
          let (i_ti, _) := x in
          let (i, ti) := i_ti in
-         let betp := BetP (m_ti i_ti) in
-         dist betp lg * G.2 (HRTBM_mkprofile p) lg i.
+         let betp := BetP_fun (Dempster_conditioning _ _ G.1 (event_ti ti) (is_revisable proper_G ti)) in
+         betp lg * G.2 (HRTBM_mkprofile p) lg i.
 
-    Definition HRTBM : cgame R HR_action := hg_game HRTBM_u.
+    Definition HRTBM_transform : cgame R HR_action := hg_game HRTBM_localutility.
 
-    Theorem HRTBM_correct (i : I) (ti : T i) (p : iprofile A T) :
-      belgame_utility fTBEU proper_G p ti = HRTBM (iprofile_flatten p) (existT _ i ti).
+    Theorem HRTBM_transform_correct :
+      forall i (ti : agent_type i) p,
+      igame_utility (TBEU _ _) proper_G p ti = HRTBM_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
     Proof.
+    move => i ti p.
     set i_ti := existT _ i ti.
-    rewrite /belgame_utility /HRTBM /= hg_gameE [RHS]big_mkcond.
-    rewrite TBEU_EUBetP.
+    rewrite /igame_utility /HRTBM_transform/= hg_gameE [RHS]big_mkcond /=.
+    rewrite TBEU_E.
     apply eq_bigr => lg _.
-    case (boolP (HRTBM_plays_in lg i_ti)) => /=.
-    - by rewrite HRTBM_mkprofileE ffunE.
-    - rewrite negb_or.
-      rewrite negb_exists => /andP [H1 /forallP H2].
-      have H0 : dist (BetP (m_ti i_ti)) lg = 0.
-      rewrite proba_of_distE /BetP_fun.
-      apply: big_pred0 => X.
-      have :=  H2 X.
-      rewrite !negb_and => /or3P ; case => HX.
-      + by rewrite (negbTE HX) andFb.
-      + by rewrite (negbTE HX) andbF.
-      + rewrite negb_exists in HX.
-        move/forallP in HX.
-        have : X \notin focalset (m_ti i_ti).
-        apply: conditioning_axiomE.
-        * by case cond.
-        * rewrite /event_ti.
-          rewrite -setD_eq0.
-          rewrite set0_existsF negb_exists.
-          apply/forallP => t.
-          rewrite in_setD negb_and.
-          case (boolP (t \in X)) => /= Ht ; last by rewrite orbT.
-          rewrite orbF.
-          apply/negPn.
-          rewrite !inE.
-          move: (HX t) ; by rewrite negb_and Ht orFb.
-        by move => HX2 ; rewrite (negbTE HX2) andFb.
-      by rewrite H0 mul0r.
+    case (boolP (HRTBM_plays_in lg i_ti)) => H.
+    - by rewrite HRTBM_mkprofileE.
+    - rewrite /HRTBM_plays_in in H.
+      have H0 : BetP_fun (Dempster_cond (is_revisable proper_G ti)) lg = 0.
+      have HA (A : {set Tconfig}) : lg \in A -> A \notin focalset (Dempster_cond (is_revisable proper_G ti)).
+      move => HA.
+      rewrite inE /Dempster_cond /Dempster_cond_fun /focal_element ffunE => /=.
+      have Hneset0 : A != set0. by apply/set0Pn ; exists lg.
+      rewrite (negbTE Hneset0).
+      rewrite big_pred0.
+      + by rewrite eqxx.
+      + move => B.
+        have HB0 : B :&: event_ti ti != A.
+        rewrite eqEsubset.
+        have Hsub0 : A \subset B :&: event_ti ti = false.
+        case (boolP (A \subset B :&: event_ti ti)) => //.
+        rewrite subsetI !subsetE /= => /andP [_ /pred0P Hcontra].
+        have := Hcontra lg.
+        by rewrite /= HA /event_ti /= andbT /= inE H.
+        by rewrite Hsub0 andbF.
+        by rewrite (negbTE HB0).
+      apply big_pred0 => A.
+      case (boolP (lg \in A)) => Hlg.
+      + by rewrite Hlg (negbTE (HA _ Hlg)).
+      + by rewrite (negbTE Hlg) andbF.
+    by rewrite H0 mul0r.
     Qed.
 
-  Theorem HRTBM_eqNash (p : iprofile A T) :
-    BelG_Nash_equilibrium fTBEU proper_G p <-> Nash_equilibrium HRTBM (iprofile_flatten p).
+  Theorem HRTBM_eqNash :
+    forall p,
+    BelG_Nash_equilibrium_prop (TBEU _ _) proper_G p <-> Nash_equilibrium_prop HRTBM_transform (iprofile_flatten p).
   Proof.
-  apply: HR_eqNash_prop => p' i ti.
-  by rewrite HRTBM_correct.
+  apply HR_eqNash_prop => p i ti.
+    by rewrite HRTBM_transform_correct.
   Qed.
 
-  End TBMTransform.
+  End TBMTransform.    
 
-
-  Lemma HRTBM_Dempster_plays_in G (HG : proper_belgame G (Dempster_conditioning _ _)) lg :
-    HRTBM_plays_in HG lg =1 [pred i_ti | lg (projT1 i_ti) == projT2 i_ti].
-  Proof.
-  rewrite /HRTBM_plays_in => i_ti /=.
-  case (boolP (lg (projT1 i_ti) == projT2 i_ti)) => // H.
-  rewrite orFb ; apply: negbTE ; rewrite negb_exists.
-  apply/forallP => X ; apply/negP => /and3P [Hcontra1 Hcontra2 Hcontra3].
-  move: Hcontra1 ; rewrite in_focalset_focalelement /focal_element /= ffunE.
-  have X_neq_set0 : X != set0 by apply/set0Pn ; exists lg.
-  rewrite (negbTE X_neq_set0)  big_pred0 => [|Y] ; first by rewrite lt0r eqxx andFb.
-  suff H1 : Y :&: [set t : {dffun forall i, T i} | t (projT1 i_ti) == projT2 (i_ti)] == X = false
-    by rewrite H1 andbF.
-  apply/negP => /eqP Hcontra.
-  move: Hcontra2 ; by rewrite -Hcontra in_setI !inE (negbTE H) andbF.
-  Qed.  
-
-  Lemma HRTBM_Strong_plays_in G (HG : proper_belgame G (Strong_conditioning _ _)) lg :
-    HRTBM_plays_in HG lg =1 [pred i_ti | lg (projT1 i_ti) == projT2 i_ti].
-  Proof.
-  rewrite /HRTBM_plays_in => i_ti /=.
-  case (boolP (lg (projT1 i_ti) == projT2 i_ti)) => // H.
-  rewrite orFb ; apply: negbTE ; rewrite negb_exists.
-  apply/forallP => X ; apply/negP => /and3P [Hcontra1 Hcontra2 Hcontra3].
-  move: Hcontra1 ; rewrite in_focalset_focalelement /focal_element /= ffunE.
-  have X_neq_set0 : X != set0 by apply/set0Pn ; exists lg.
-  rewrite (negbTE X_neq_set0) andTb.
-  suff H1 : ~~ (X \subset event_ti (projT2 i_ti))
-    by rewrite (negbTE H1) lt0r eqxx andFb.
-  by apply/subsetPn ; exists lg ; try rewrite !inE.
-  Qed.
-      
-
-  
 End HowsonRosenthal.
 
-
-Section HRTBMWeakConditioningLocalGames.
-
-  Variable R : realFieldType.
-  Notation I := [finType of 'I_2].
-  Notation A := (fun _ : I => [eqType of 'I_2]).
-  Notation T := (fun _ : I => [finType of 'I_2]).
-
-  Notation Tn := [finType of {ffun forall i, T i}].
-
-  Program Definition HRTBM_Weak_example_m : bpa R Tn :=
-    {| bpa_val := [ffun X => if X == setT then 1 else 0] |}.
-  Next Obligation.
-  have H0T : [set: {dffun 'I_2 -> 'I_2}] != set0
-    by apply/set0Pn ; exists [ffun t => ord0].
-  apply/and3P ; split.
-  + by rewrite ffunE [e in if e then _ else _]eq_sym (negbTE H0T) eqxx.
-  + rewrite (bigD1 setT) //= ffunE eqxx big1 => [|X HX].
-    * by rewrite addr0.
-    * by rewrite ffunE (negbTE HX).
-  + apply/forallP => X.
-    rewrite ffunE.
-    case (boolP (X == setT)) => [->//|H].
-    exact: ler01. by rewrite (negbTE H) //.
-  Defined.
-
-  Definition HRTBM_Weak_example_belgame : belgame R A T :=
-    (HRTBM_Weak_example_m, (fun => fun => fun => 0)).
-  
-  Lemma HRTBM_Weak_example_proper : proper_belgame HRTBM_Weak_example_belgame (Weak_conditioning _ _).
-  Proof.
-  apply/forallP => i ; apply/forallP => ti.
-  rewrite/revisable/Weak_conditioning/Weak_revisable/Pl.
-  Search (_ > 0) (_ != 0).
-  apply: lt0r_neq0.
-  rewrite (bigD1 setT) /=.
-  - rewrite ffunE eqxx big1 => [|X /andP [HX1 HX2]].
-    + by rewrite addr0 ltr01.
-    + by rewrite ffunE (negbTE HX2).
-    + apply/set0Pn.
-      exists [ffun j => ti].
-      by rewrite setTI !inE ffunE.
-  Qed.
-
-  Lemma Pl_1 X : X != set0 -> Pl HRTBM_Weak_example_m X = 1.
-  Proof.
-  move => HX.
-  rewrite /Pl.
-  rewrite (bigD1 setT) /=.
-  - rewrite ffunE eqxx big1 => [|Y /andP [HY1 HY2]] ; first by rewrite addr0.
-    by rewrite ffunE (negbTE HY2).
-  - apply/set0Pn.
-    rewrite -card_gt0 in HX.
-    have [t Ht _] := eq_bigmax_cond (fun=>1%N) HX.
-    exists t ; by rewrite setTI.
-  Qed.
-              
-
-  Lemma HRTBM_WEAK_example_plays_in lg i_ti : HRTBM_plays_in HRTBM_Weak_example_proper lg i_ti.
-  rewrite /HRTBM_plays_in.
-  apply/orP ; right.
-  apply/existsP ; exists setT.
-  apply/and3P ; split.
-  - rewrite !inE /focal_element /= ffunE.
-    have : setT :&: event_ti (projT2 i_ti) != set0
-      by apply/set0Pn ; exists [ffun _ => projT2 i_ti] ; rewrite in_setI !inE andTb ffunE.
-    move => ->.
-    rewrite ffunE eqxx Pl_1 ; first by rewrite divr_gt0 // ltr01.
-    apply/set0Pn ; exists [ffun _ => projT2 i_ti].
-    by rewrite !inE ffunE.
-  - by rewrite in_setT.
-  - apply/existsP.
-    exists [ffun _ => projT2 i_ti].
-    by rewrite in_setT ffunE eqxx.
-  Qed.
-
-  Lemma HRTBM_Xeak_example_plays_in2 i_ti : exists lg,
-      [&& HRTBM_plays_in HRTBM_Weak_example_proper lg i_ti & lg (projT1 i_ti) != projT2 i_ti].
-  Proof.
-  case (boolP (projT2 i_ti == 0)) => H.
-  - exists [ffun => 1].
-    apply/andP ; split.
-    + by apply HRTBM_WEAK_example_plays_in.
-    + by rewrite ffunE (eqP H).
-  - exists [ffun => 0].
-    apply/andP ; split.
-    + by apply HRTBM_WEAK_example_plays_in.
-    + by rewrite ffunE eq_sym.
-  Qed.
-
-End HRTBMWeakConditioningLocalGames.
+Close Scope ring_scope.

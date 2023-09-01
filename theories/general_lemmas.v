@@ -9,14 +9,12 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Local Open Scope ring_scope.
-
-
-
+Open Scope ring_scope.
 
 
 (******************************************************************************)
-(** 
+(** OLD COMMENT VERSION
+ 
     General lemmas which are useful but which are not specially about BelGames
     and HRtransforms
 
@@ -150,25 +148,21 @@ Section SomeLemmas.
 
 
 
-
+  (* TODO ssreflect/eqType après eq_comparable *)
   (** Decidability of eqTypes **)
   Lemma eqType_dec_prop (T : eqType) (t1 t2 : T) :
     t1 = t2 \/ t1 <> t2.
-  Proof.
-  case (boolP (t1 == t2)) => /eqP H.
-  - exact: or_introl.
-  - exact: or_intror.
-  Qed.
+  Proof. destruct (eq_comparable t1 t2). by left. by right. Qed.
 
+  (* EXISTANT : eq_comparable *)
   Lemma eqType_dec (T : eqType) (t1 t2 : T) :
     {t1 = t2} + {t1 <> t2}.
   Proof.
-  case (boolP (t1 == t2)) => /eqP Ht.
-  - by left.
-  - by right.
+  exact: eq_comparable t1 t2.
   Qed.
 
 
+  (* DONE -- ssreflect/finset (section PickSet1) *)
   Lemma pick_set1E (T : finType) (x0 : T) : [pick x in [set x0]] = Some x0.
   Proof.
     case: pickP.
@@ -176,13 +170,14 @@ Section SomeLemmas.
     - by move/(_ x0); rewrite inE eqxx.
   Qed.
 
-
+  (* ne pas ajouter ? *)
   Definition pick_nonemptyset {X : finType} (B : {set X}) (HB : B != set0) : X.
   case (pickP [pred x in B]) => [x _ | H0].
   - exact: x.
   - by rewrite (cards0_eq (eq_card0 H0)) eqxx in HB.
   Defined.
 
+  (* ne pas ajouter ? *)
   Definition pick_nonemptyset_sig {X : finType} (B : {set X}) (HB : B != set0) : {x : X | x \in B}.
   exists (pick_nonemptyset HB).
   rewrite /pick_nonemptyset => //=.
@@ -191,6 +186,45 @@ Section SomeLemmas.
   by rewrite (cards0_eq (eq_card0 H0)) eqxx in HB'.
   Defined.
 
+  (* ne pas ajouter ? *)
+  Lemma tmp {X : finType} (x : X) A (HA : A = [set x]) :
+    A != set0.
+  Proof.
+  apply/set0Pn.
+  exists x.
+  rewrite HA.
+  exact: set11.
+  Defined.
+
+  Lemma setI1 {X : finType} (A : {set X}) (x : X) :
+    (A :&: [set x] = [set x]) \/ (A :&: [set x] = set0).
+  Proof.
+  case (boolP (x \in A))=>H.
+  - left ; apply/setP=>y.
+    rewrite !inE.
+    by case (boolP (y == x))=>[/eqP->|] ; rewrite ?H ?andbF.
+  - right ; apply/setP=>y.
+    rewrite in_setI !inE.
+    by case (boolP (y == x))=>[/eqP->|] ; rewrite ?(negbTE H) ?andbF.
+  Qed.
+  
+  Lemma set1_neq_set0 (X : finType) (x : X) :
+    [set x] != set0.
+  Proof.
+  apply/set0Pn.
+  exists x.
+  exact: set11.
+  Qed.
+
+  Lemma pick_set1' (X : finType) (x : X) :
+    pick_nonemptyset (set1_neq_set0 x) = x.
+  Proof.
+  rewrite /pick_nonemptyset.
+  case pickP => /= [y|H].
+  - by rewrite in_set1 => /eqP ->.
+  - have := H x => /= ; by rewrite in_set1 eqxx.
+  Qed.
+  
   Lemma pick_set1 {X : finType} (x : X) A (HA : A = [set x]) (Hx : A != set0) :
     pick_nonemptyset Hx = x.
   Proof.
@@ -200,6 +234,7 @@ Section SomeLemmas.
   - have := H x => /= ; by rewrite {1}HA in_set1 eqxx.
   Qed.
 
+  (* DONE: ssreflect/finset ajouté subset_eq0 *)
   (** The only subset of B and B^c is set0 **)
   Lemma subset_set0 {T : finType} (A B : {set T}) :
     (A \subset B) && (A \subset ~:B) = (A == set0).
@@ -215,7 +250,7 @@ Section SomeLemmas.
     by rewrite -in_setC setCK Hx2 in Hx1.
   Qed.
 
-
+  (* Ne pas ajouter ? *)
   Lemma subsetF {T : finType} (A B : {set T}) :
     A \subset B -> A \subset ~:B -> forall t, t \in A -> Logic.False.
   Proof.
@@ -224,6 +259,7 @@ Section SomeLemmas.
   by rewrite HA in_set0 in Ht.
   Qed.
 
+  (* DONE : ssreflect/finset ajouté subset_disjoint *)
   Lemma subset_disjoint {T : finType} (A B : {set T}) :
     [disjoint A & B] ->
     forall B0 : {set T},
@@ -236,20 +272,18 @@ Section SomeLemmas.
   exists x => //.
   by rewrite (disjointFr HAB (H x Hx)).
   Qed.
-  
+
   (** Split 'exists' predicates **)
-  Lemma exists_l (T : Type) (P Q : T -> Prop) :
-    (exists x, P x /\ Q x) -> (exists x, P x).
-  Proof.
-  case => x [H _] ; by exists x.
-  Qed.
+  (* Reformulé avec exists2 -- mettre dans Coq.Init.Logic.ex2 ? *)
+  Lemma exists2_l (T : Type) (P Q : T -> Prop) :
+    (exists2 x, P x & Q x) -> (exists x, P x).
+  Proof. case => x ; by exists x. Qed.
 
-  Lemma exists_r (T : Type) (P Q : T -> Prop) :
-    (exists x, P x /\ Q x) -> (exists x, Q x).
-  Proof.
-  case => x [_ H] ; by exists x.
-  Qed.
+  Lemma exists2_r (T : Type) (P Q : T -> Prop) :
+    (exists2 x, P x & Q x) -> (exists x, Q x).
+  Proof. case => x ; by exists x. Qed.
 
+  (* Ajouté a ssreflect/finType *)
   (* The only one used *)
   Lemma existsb_l (T : finType) (P Q : pred T) :
     [exists x, P x && Q x] -> [exists x, P x].
@@ -265,7 +299,7 @@ Section SomeLemmas.
   apply/existsP ; by exists x.
   Qed.
 
-
+  (* Ajouté a ssreflect/finset *)
   Lemma set0_existsF (X : finType) (B : {set X}) :
     (B == set0) = (~~ [exists x, x \in B]).
   Proof.
@@ -275,6 +309,7 @@ Section SomeLemmas.
 
 
 
+  (* Ajouté dans ssreflect/bigop *)
   Section SigBigDep2.
     (** Proof of a version of sig_big_dep about 'sig' (but not about 'sigT') **)
 
@@ -295,10 +330,9 @@ Section SomeLemmas.
     rewrite (reindex_omap (op:=op) (sval) (osig P) (@osig_bij _ P)).
     apply eq_big => [[x Hx]|[x Hx] _] /=.
     - rewrite /osig ; case (boolP (P x)) => [Hx'|] ; last by rewrite Hx.
-        by rewrite (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _ ) Hx Hx') eqxx.
+      by rewrite (eq_irrelevance Hx Hx') eqxx.
     - case (boolP (P x)) => [Hx'|] ; last by rewrite Hx.
-        by rewrite (Eqdep_dec.eq_proofs_unicity
-                    (@eqType_dec_prop _ ) ((ssrfun.svalP (exist (fun x0 : X => P x0) x Hx)))).
+      by rewrite (eq_irrelevance (svalP (exist _ x Hx)) Hx').
     Qed.
 
     (* Not used *)
@@ -314,7 +348,7 @@ Section SomeLemmas.
 
 
 
-
+  (* Ajotué à ssreflect/finset -- section set1_inverse et lemma big_card1 dans la section bigop *)
   Section Set1_inverse.
     (** option-inverse of (set1 : X -> {set X}) **)
     (* not used *)
@@ -384,9 +418,8 @@ Section SomeLemmas.
 
   End Set1_inverse.
 
-
-
-
+  
+  (* Ajouté a ssreflect/finset *)
   (** Similar to partition_big + big_distrl **)
   Lemma big_setI_distrl {R} {zero : R} {times : Monoid.mul_law zero} {plus : Monoid.add_law zero times} {T : finType} (P : pred {set T}) (h : {set T} -> {set T}) (f g : {set T} -> R) :
     \big[plus/zero]_(A : {set T} | P (h A)) times (g A) (f (h A))
@@ -401,7 +434,7 @@ Section SomeLemmas.
   - by rewrite (eqP HA2).
   Qed.
 
-
+  (* Ajouté à ssreflect/bigop *)
   (** Split a commutative bigop according to a predicate P **)
   (* From theories.common *)
   Lemma split_big {R} {idx : R} {op : Monoid.com_law idx} {I} [r : seq I] P Q f :
@@ -409,7 +442,11 @@ Section SomeLemmas.
     op (\big[op/idx]_(i <- r | P i && Q i) f i)
        (\big[op/idx]_(i <- r | P i && ~~ Q i) f i).
   Proof.
-  exact: bigID.
+  rewrite !big_mkcondr -big_split.
+  apply eq_bigr => t _.
+  case (Q t) => /=.
+  - by rewrite Monoid.Theory.mulm1.
+  - by rewrite Monoid.Theory.mul1m.
   Qed.
 
 End SomeLemmas.
@@ -419,6 +456,7 @@ Section NumLemmas.
   Context {R : numFieldType}.
   Implicit Type X : finType.
 
+  (* algebra/ssralg *)
   Lemma mulr_ll (x y z : R) :
     y = z -> x * y = x * z.
   Proof. by move => ->. Qed.
@@ -429,52 +467,50 @@ Section NumLemmas.
 
 
 
-  
-
+  (* algebra/ssrnum -- après ltr01 -- DONE *)
   Lemma neq01 : ((0:R) != 1).
   Proof.
   have := ltr01 (R:=R) ; by rewrite lt0r eq_sym => /andP [H _].
   Qed.
 
+
+  (* algebra/ssrnum -- addr_gte0 && lte0_add -- Compil pb *)
   Lemma addr_gte0 [x y : R] : 0 < x -> 0 <= y -> 0 < x + y.
   Proof.
-  rewrite le0r => Hx /orP ; case => [/eqP ->| Hy].
-  - by rewrite addr0.
-  - exact: addr_gt0.
+  apply ltr_spaddl.
   Qed.
 
+  (* EXISTANT : sumr_ge0 *)
+  (*
   Lemma sum_ge0 {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \sum_(x | P x) f x >= 0.
   Proof.
-  move => H ; apply big_ind => // ; exact: addr_ge0.
+  exact: sumr_ge0.
   Qed.
+  *)
   
+  (* EXISTANT : prodr_ge0 *)
+  (*
   Lemma prod_ge0 {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \prod_(x | P x) f x >= 0.
   Proof.
-  move => H ; apply big_ind => //= ; first by rewrite ler01.
-  exact: mulr_ge0.
+  exact: prodr_ge0.
   Qed.
+   *)
 
+  (* PROCHE EXISTANT : psumr_eq0 et psumr_eq0P *)
   Lemma sum_ge0_eq0E {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \sum_(x | P x) f x = 0 <-> forall x, P x -> f x = 0.
   Proof.
-  move => Hge0 ; split => [Hsum x Hx | Heq0].
-  - apply/eqP/negP => /negP Hcontra.
-    rewrite (bigD1 x) //= in Hsum.
-    have Hge0' : forall y, P y && (y != x) -> 0 <= f y. move => y /andP [Hy _] ; exact: Hge0.
-    have Hgt0 : f x > 0. by rewrite lt0r Hge0 // Hcontra.
-    have := addr_gte0 Hgt0 (sum_ge0 Hge0').
-    by rewrite Hsum lt0r eqxx andFb.
-  - by rewrite (eq_bigr (fun=>0)) // big1.
+  move/psumr_eq0P => H. split => // Heq0 ; by rewrite big1.
   Qed.
 
-
+  (* TODO: algebra/ssrnum après psumr_eq0 -- nommé psumr_neq0E *)
   Lemma sum_ge0_neq0E {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \sum_(x | P x) f x != 0 -> exists x : X, P x && (f x > 0).
   Proof.
   move => Hge0 Hsum.
-  have Hsum2 : \sum_(x | P x) f x > 0. by rewrite lt0r Hsum sum_ge0 //.
+  have Hsum2 : \sum_(x | P x) f x > 0. by rewrite lt0r Hsum sumr_ge0 //.
   have Hex : exists x : X, ~~ ~~ (P x && (f x != 0)).
   apply/forallPn/negP => /forallP Hcontra.
   have Hcontra2 : \sum_(x | P x) f x = 0. apply sum_ge0_eq0E => // x Hx.
@@ -486,21 +522,37 @@ Section NumLemmas.
   by rewrite lt0r Hx1 Hx2 Hge0.
   Qed.
 
+  Lemma big_eq1 (R0 : eqType) (idx : R0) (op : Monoid.law idx) (I : finType) (r : seq I) (P : pred I) (F : I -> R0) :
+    \big[op/idx]_(i <- r | P i) F i != idx -> exists i, [&& i \in r, P i & F i != idx].
+  Proof.
+  move=>H ; apply/existsP/negbNE/existsPn=>Hcontra.
+  - have Hcontra2 :  forall i : I, P i && (i \in r) -> F i = idx.
+    move=>i /andP[Hi1 Hi2].
+    have  := Hcontra i.
+    rewrite !negb_and=>/orP// ; case=>[|/orP] ; last case.
+    + by rewrite Hi2.
+    + by rewrite Hi1.
+    + by move/negPn/eqP->.
+  - by rewrite (big1_seq _ _ _ Hcontra2) eqxx in H.
+  Qed.    
+
+  (* Devrait être simplement big_distrl *)
   Lemma sum_div {X} (P : pred X) (cst : R) (f : X -> R) :
     \sum_(x : X | P x) f x / cst = (\sum_(x : X | P x) f x) / cst.
   Proof. by rewrite big_distrl.
   Qed.
 
-  Lemma sum_div_eq1 {X} (P : pred X) (cst : R) (Hcst : cst != 0) (f : X -> R) :
-    (\sum_(x : X | P x) f x / cst == 1) = (\sum_(x : X | P x) f x == cst).
+  (* TODO algebra/ssrnum -> où? *)
+  Lemma sum_div_eq1 {X} r (P : pred X) (cst : R) (Hcst : cst != 0) (f : X -> R) :
+    (\sum_(x <- r | P x) f x / cst == 1) = (\sum_(x <- r | P x) f x == cst).
   Proof.
-  rewrite -(divr1 1) sum_div eqr_div //.
+  rewrite -mulr_suml -(divr1 1) eqr_div //.
   - by rewrite mulr1 mul1r.
-  - by rewrite eq_sym neq01.
+  - by rewrite oner_eq0.
   Qed.
 
 
-
+  (* Ajouté ssreflect/bigop *)
   (* Lemma big_partitionS {X} (f : {set X} -> X -> R) : *)
   Lemma big_partitionS [Y] (idx : Y) (op : Monoid.com_law idx) [X] (f : {set X} -> X -> Y) :
     \big[op/idx]_(A : {set X}) (\big[op/idx]_(x in A) f A x) = \big[op/idx]_(x : X) \big[op/idx]_(A : {set X} | x \in A) f A x.
@@ -523,7 +575,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (A, y) Hy).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop bool_eqType)).
+            exact: eq_irrelevance.
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra Hy in Hx.
@@ -548,7 +600,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (B, x) HB).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop bool_eqType)).
+            exact: eq_irrelevance.
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra HB in HA.
@@ -563,7 +615,7 @@ Section NumLemmas.
     rewrite -[RHS](partition_big f2 (P:=predT) predT) => //.  
   Qed.
 
-
+  (* Ajouté ssreflect/finset -- passé en big[op/idx] -- TODO nommage *)
   Lemma sum_of_sumE {X : finType} (f : {set X} -> R) (P : pred {set X}):
     \sum_(x : X) \sum_(A : {set X} | P A && (x \in A)) f A = \sum_(A | P A) \sum_(w in A) f A.
   Proof.
@@ -572,7 +624,7 @@ Section NumLemmas.
   exists (fun p => (p.2,p.1)) ; by case.
   Qed.
 
-  Lemma sum_cardiv {X : finType} (A : {set X}) (H : (#|A| > 0)%N):
+  Lemma sum_cardiv {X : finType} (A : pred X) (H : (#|A| > 0)%N):
     \sum_(w in A) #|A|%:R^-1 = (1 : R).
   Proof.
   rewrite big_const iter_addr addr0 /=.

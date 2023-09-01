@@ -1,16 +1,18 @@
 (******************************************************************************)
-(** This file provide a theory for simultaneous games
+(** OLD COMMENT VERSION
+
+    This file provide a theory for simultaneous games
 
    1. Profiles
-   A profile assign a strategy (ai : A i) to each player (i : I)
+   A profile assign a strategy (ai : A i) to each player (i : X)
    We distinguish:
    - Profiles for complete games : forall i, A i
    - Profiles for incomplete games : forall i, T i -> A i
    - Local profiles for HG games: forall i, P i -> A i
 
-   cprofile A          == {dffun forall i : I, A i}
-   iprofile A T        == cprofile (fun i => {ffun T i -> A i})
-   local_cprofile P A  == {ffun forall (s : {i : I | P i}), A (val s)}
+   cprofile A          == {dffun forall i : X, A i}
+   iprofile T A        == cprofile (fun i => {ffun T i -> A i})
+   local_cprofile P A  == {ffun forall (s : {i : X | P i}), A (val s)}
 
    We then define:
    change_strategy A p i ai       == the cprofile p where (p i) has changed to ai
@@ -21,7 +23,7 @@
 
    Finally, we cast/project profiles with:
    iprofile_flatten T A p          == flatten (p : iprofile T A) to a cprofile
-                                      {dffun forall s : {i : I & T i}, A i}
+                                      {dffun forall s : {i : X & T i}, A i}
    proj_iprofile T A p t :         == project (p : iprofile T A) according to (t : cprofile T)
                                       i.e. proj_iprofile T A p t i = p (t i) i
    proj_flatprofile T A p :        == project the flat profile p according to (t : cprofile T)
@@ -37,16 +39,16 @@
 
    2. Games
    2.1. Complete games -- they are fully specified by their utility functions
-   cgame R A                       == cprofile A -> I -> R (the type of complete games)
-   Nash_equilibrium_bool G p       == true iff there is no (i : I) such as there is no (ai : A i)
+   cgame R A                       == cprofile A -> X -> R (the type of complete games)
+   Nash_equilibrium G p            == true iff there is no (i : X) such as there is no (ai : A i)
                                       such that (G p i) < (G p (change_strategy p i ai))
-   Nash_equilibrium G p            == True iff there is no (i : I) such as there is no (ai : A i)
+   Nash_equilibrium_prop G p       == True iff there is no (i : X) such as there is no (ai : A i)
                                       such that (G p i) < (G p (change_strategy p i ai))
-   Nash_equilibriumP G p           == reflect (Nash_equilibrium G p) (Nash_equilibrium_bool G p)
+   Nash_equilibriumP G p           == reflect (Nash_equilibrium_prop G p) (Nash_equilibrium G p)
 
    2.2. Hypergraphical games -- Particular sort of complete game where utility functions are
         decomposed into several local games. We index local games with (local_game : finType)
-        and check whether (i : I) plays in (lg : local_game) using (plays_in : lg -> pred I).
+        and check whether (i : X) plays in (lg : local_game) using (plays_in : lg -> pred X).
         let localprof := (fun lg : localgame => local_cprofile action (plays_in lg))
         and localagent := (fun lg => {i | plays_in lg i}) in
 
@@ -64,20 +66,17 @@
 
    3. BelGames -- Incomplete games where the knowledge is captured by a belief function.
    belgame R T                == ((bpa R (cprofile T)) * (profile -> (cprofile T) -> i -> R))
-   proper_belgame G cond      == One can condition given (ti : T i) for all agent (i : I)
-                                 according to (cond : conditioning (cprofile T))
-   belgame_utility G cond xeu H p i == utility of p for i, according to the scoring function xeu,
-                                 given that (H : proper_belgame G cond)
-   BelG_Nash_equilibrium_bool G cond xeu H p
-                              == true iff p is a Nash equilibrium according to (belgame_utility G cond xeu H p)
-                                 i.e. there is no (i : I) such that there is no (ti : T i) such
-                                 that there is no (ai : A i) such that (belgame_utility G cond xeu H p i)
-                                 < (belgame_utility G cond xeu H (change_istrategy T A p i ti ai) i)
-  BelG_Nash_equilibrium G cond xeu H p
-  BelG_Nash_equilibriumP G cond xeu H p
-
-  4. Mixed strategy profiles
-  We show that they are descriptible by their mixed-extension
+   proper_belgame G bb        == One can condition given (ti : T i) for all agent (i : X)
+                                 according to (bb : belbox (cprofile T))
+   belgame_utility G bb H p i == utility of p for i, according to the scoring function given in
+                                 (bb : belbox (cprofile T)), given that (H : proper_belgame G bb)
+   belgame_Nash_equilibrium G bb H p
+                              == true iff p is a Nash equilibrium according to (belgame_utility G bb H p)
+                                 i.e. there is no (i : X) such that there is no (ti : T i) such
+                                 that there is no (ai : A i) such that (belgame_utility G bb H p i)
+                                 < (belgame_utility G bb H (change_istrategy T A p i ti ai) i)
+  belgame_Nash_equilibrium_prop G bb H p
+  belgame_Nash_equilibriumP G bb H p
  *)
 (******************************************************************************)
 From Coq Require Import ssreflect.
@@ -94,25 +93,29 @@ Import Num.Theory.
 
 Require Import general_lemmas capacity.
 
-Local Open Scope ring_scope.
+Open Scope ring_scope.
+
 
 Section Profile.
 
-  Implicit Types I : finType.
+  Implicit Type X : finType.
 
-  Definition cprofile I (A : I -> eqType)
-    := {dffun forall i : I, A i}.
-
-  Definition iprofile I (A : I -> eqType) (T : I -> finType)
+  Definition cprofile X (A : X -> eqType)
+    := {dffun forall i : X, A i}.
+  (*
+  Definition iprofile X (T : X -> finType) (A : X -> eqType)
+    := {dffun forall i : X, {ffun T i -> A i}}.
+   *)
+  Definition iprofile X (T : X -> finType) (A : X -> eqType)
     := cprofile (fun i => [eqType of {ffun T i -> A i}]).
 
-  Definition change_strategy I A (p : cprofile A) (i : I) (a'_i : A i) : cprofile A
+  Definition change_strategy X A (p : cprofile A) (i : X) (ai : A i) : cprofile A
     := [ffun j => match boolP (i == j) with
-                  | AltTrue h => eq_rect _ A a'_i _ (eqP h)
+                  | AltTrue h => eq_rect _ A ai _ (eqP h)
                   | AltFalse _ => p j
                   end].
 
-  Lemma change_strategy_id I A (p : cprofile A) (i : I) :
+  Lemma change_strategy_id X A (p : cprofile A) (i : X) :
     p = change_strategy p (p i).
   Proof.
   apply ffunP => j ; rewrite ffunE.
@@ -120,43 +123,43 @@ Section Profile.
   by rewrite f_equal_dep.
   Qed.
 
-  Definition local_cprofile I (A : I -> eqType) (P : pred I) :=
-    {ffun forall (s : {x : I | P x}), A (val s)}.
+  Definition local_cprofile X (A : X -> eqType) (P : pred X) :=
+    {ffun forall (s : {x : X | P x}), A (val s)}.
 
   (*| Transform an iprofile to a profile such as support is the set of dependent pairs (i,t_i) |*)
-  Definition iprofile_flatten I (T : I -> finType) A (p : iprofile A T)
+  Definition iprofile_flatten X (T : X -> finType) A (p : iprofile T A)
     : cprofile (fun i_ti => A (projT1 i_ti)) :=
     [ffun i_ti => p (projT1 i_ti) (projT2 i_ti)].
 
   (*| Profile that will be played if player's types are known |*)
-  Definition proj_iprofile I (T : I -> finType) A (p : iprofile A T)
+  Definition proj_iprofile X (T : X -> finType) A (p : iprofile T A)
     : cprofile T -> cprofile A :=
     fun theta => [ffun i => p i (theta i)].
 
-  Definition proj_flatprofile I (T : I -> finType) A
+  Definition proj_flatprofile X (T : X -> finType) A
              (p : cprofile (fun i_ti => A (projT1 i_ti)))
     : cprofile T -> cprofile A :=
     fun theta => [ffun i => p (existT _ i (theta i))].
 
   Definition proj_flatlocalprofile
-             I (T : I -> finType) (A : I -> eqType) (P : pred {i : I & T i})
-             (HP : forall i : I, {ti : T i | P (existT _ i ti)})
+             X (T : X -> finType) (A : X -> eqType) (P : pred {i : X & T i})
+             (HP : forall i : X, {ti : T i | P (existT _ i ti)})
              (p : local_cprofile (fun i_ti => A (projT1 i_ti)) P) : cprofile A
-    := [ffun i : I =>
+    := [ffun i : X =>
         let (ti, Hi_ti) := HP i in
         let x : sig_finType P := (exist P (existT T i ti) Hi_ti) in
         let ai : A i := p x in
         ai
        ].
 
-  Lemma proj_iprof_flatprof I (T : I -> finType) A (p : iprofile A T) theta :
+  Lemma proj_iprof_flatprof X (T : X -> finType) A (p : iprofile T A) theta :
     (proj_iprofile p theta) = (proj_flatprofile (iprofile_flatten p) theta).
   Proof.
     by apply: eq_dffun => i; rewrite ffunE.
   Qed.
 
-  Definition change_istrategy I T A (p : iprofile A T) (i : I) ti ai
-    : iprofile A T :=
+  Definition change_istrategy X T A (p : iprofile T A) (i : X) ti ai
+    : iprofile T A :=
     [ffun j => [ffun tj => match boolP (i == j) with
                          | AltTrue h =>
                            let ti' := eq_rect _ T ti _ (eqP h) in
@@ -167,7 +170,7 @@ Section Profile.
                          end]].
 
 
-  Lemma change_istrategy_id I T A (p : iprofile A T) (i : I) (ti : T i) :
+  Lemma change_istrategy_id X T A (p : iprofile T A) (i : X) (ti : T i) :
     p = change_istrategy p ti (p i ti).
   Proof.
   apply ffunP => j ; rewrite ffunE.
@@ -177,7 +180,7 @@ Section Profile.
   by rewrite (map_subst (fun j tj => p j tj)) (eqP Htj).
   Qed.
 
-  Lemma change_strat_istrat I T A (p : iprofile A T) (i_ti : {i : I & T i})
+  Lemma change_strat_istrat X T A (p : iprofile T A) (i_ti : {i : X & T i})
         (ai : A (projT1 i_ti)) :
     (change_strategy (iprofile_flatten p) ai)
     = (iprofile_flatten (change_istrategy p (projT2 i_ti) ai)).
@@ -187,18 +190,18 @@ Section Profile.
   case (boolP (@eq_op (Finite.eqType (tag_finType T)) i_ti j_tj)) => H1;
                    case (boolP (projT1 i_ti == projT1 j_tj)) => H2 //=.
   - case (boolP ((eq_rect _ _ (projT2 i_ti) (projT1 j_tj)  (@elimT
-      (@eq (Finite.sort I) _ _) _ eqP H2)) == (projT2 j_tj))) => H3.
+      (@eq (Finite.sort X) _ _) _ eqP H2)) == (projT2 j_tj))) => H3.
     + rewrite (rew_map A _ (eqP H1) ai).
       by rewrite (Eqdep_dec.eq_proofs_unicity
-                    (@eqType_dec_prop I) (f_equal _ (eqP H1))(eqP H2)).
+                    (@eqType_dec_prop X) (f_equal _ (eqP H1))(eqP H2)).
     + move/eqP in H3.
       have Hcontra := projT2_eq (eqP H1).
-      by rewrite (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop I)
+      by rewrite (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop X)
            (projT1_eq (eqP H1)) (eqP H2)) in Hcontra.
   - move/eqP in H2.
     by rewrite (eqP H1) in H2.
   - case (boolP ((eq_rect _ _ (projT2 i_ti) (projT1 j_tj)  (@elimT
-        (@eq (Finite.sort I) _ _) _ eqP H2)) == (projT2 j_tj))) => H3 //.
+        (@eq (Finite.sort X) _ _) _ eqP H2)) == (projT2 j_tj))) => H3 //.
     have Hcontra := eq_sigT i_ti j_tj (eqP H2) (eqP H3).
     by move/eqP in H1.
   Qed.
@@ -210,22 +213,22 @@ End Profile.
 Section Games.
 
   Variable R : realFieldType.
-  Variable I : finType. (* agents *)
-  Implicit Type A : forall i : I, eqType.
-  Implicit Type fA T : forall i : I, finType.
+  Variable agent : finType.
+  Implicit Type A : forall i : agent, eqType.
+  Implicit Type fA T : forall i : agent, finType.
 
-  Definition cgame A := cprofile A -> I -> R.
+  Definition cgame A := cprofile A -> agent -> R.
 
-  Definition best_response_bool fA (G : cgame fA) (a : cprofile fA) (i : I) : bool
+  Definition best_response fA (G : cgame fA) (a : cprofile fA) (i : agent) : bool
     := [forall ai : fA i, ~~ (G a i < G (change_strategy a ai) i)].
 
-  Definition best_response A (G : cgame A) (a : cprofile A) (i : I) : Prop
+  Definition best_response_prop A (G : cgame A) (a : cprofile A) (i : agent) : Prop
     := forall ai : A i, ~ (G a i < G (change_strategy a ai) i).
 
   Lemma best_responseP fA (G : cgame fA) a i :
-    reflect (best_response G a i) (best_response_bool G a i).
+    reflect (best_response_prop G a i) (best_response G a i).
   Proof.
-  case (boolP (best_response_bool G a i)) => H ; constructor.
+  case (boolP (best_response G a i)) => H ; constructor.
   - move=> ai.
     move/forallP in H.
     exact: negP (H ai).
@@ -236,44 +239,46 @@ Section Games.
     contradiction (Hcontra h).
   Qed.
 
-  Definition Nash_equilibrium_bool fA (G : cgame fA) (a : cprofile fA) : bool :=
-    [forall i : I,
+  Definition Nash_equilibrium fA (G : cgame fA) (a : cprofile fA) : bool :=
+    [forall i : agent,
       [forall ai : fA i,
         ~~ (G a i < G (change_strategy a ai) i)]].
 
 
-  Definition Nash_equilibrium A (G : cgame A) (a : cprofile A) : Prop :=
-    forall i : I, forall ai : A i, ~ (G a i < G (change_strategy a ai) i).
+  Definition Nash_equilibrium_prop A (G : cgame A) (a : cprofile A) : Prop :=
+    forall i : agent, forall ai : A i, ~ (G a i < G (change_strategy a ai) i).
 
   Lemma Nash_equilibriumP fA G (a : cprofile fA) :
-    reflect (Nash_equilibrium G a) (Nash_equilibrium_bool G a).
+    reflect (Nash_equilibrium_prop G a) (Nash_equilibrium G a).
   Proof.
-  case (boolP (Nash_equilibrium_bool G a)) => H ; constructor.
+  case (boolP (Nash_equilibrium G a)) => H ; constructor.
   - move => i ai.
     exact: negP (forallP (forallP H i) ai).
-  - rewrite /Nash_equilibrium => Hcontra.
+  - rewrite /Nash_equilibrium_prop => Hcontra.
     destruct (forallPn H) as [i Hi].
     destruct (forallPn Hi) as [ai Hai].
     move /negPn in Hai.
     have Hcontra' := Hcontra i ai ; contradiction.
   Qed.
 
-  Lemma Nash_equilibrium_best_response A G (a : cprofile A) :
-    Nash_equilibrium G a <-> forall i, best_response G a i.
+  Lemma Nash_equilibrium_best_response_prop A G (a : cprofile A) :
+    Nash_equilibrium_prop G a <-> forall i, best_response_prop G a i.
   Proof.
-  by rewrite /Nash_equilibrium /best_response.
+  by rewrite /Nash_equilibrium_prop /best_response.
   Qed.
 
-  Lemma Nash_equilibrium_best_response_bool fA G (a : cprofile fA) :
-    Nash_equilibrium_bool G a = [forall i, best_response_bool G a i].
-  Proof. by []. Qed.
+  Lemma Nash_equilibrium_best_response fA G (a : cprofile fA) :
+    Nash_equilibrium G a = [forall i, best_response G a i].
+  Proof.
+  by [].
+  Qed.
 
 
   Section HypergraphicalGame.
 
-    Variable A : I -> eqType.
+    Variable A : agent -> eqType.
     Variable localgame : finType.
-    Variable plays_in : localgame -> pred I.
+    Variable plays_in : localgame -> pred agent.
     Notation localprof := (fun lg : localgame => local_cprofile A (plays_in lg)).
     Notation localagent := (fun lg => {i | plays_in lg i}).
 
@@ -293,103 +298,93 @@ Section Games.
   End HypergraphicalGame.
 
 
-  Section BelGame.
+  Section IGame.
 
-    Variable A : forall i : I, eqType.
-    Variable T : forall i : I, finType.
 
-    Notation Tn := [finType of {dffun forall i : I, T i}].
+    Notation Tconfig := (fun T => [finType of {dffun forall i : agent, T i}]).
 
-    Notation xeu_function W := ({ffun W -> R} -> {ffun {set W} -> R}) (only parsing).
+    Definition igame A T :=
+      (massfun R (Tconfig T) * (cprofile A -> Tconfig T -> agent -> R))%type.
 
-    Definition belgame :=
-      (bpa R Tn * (cprofile A -> Tn -> I -> R))%type.
+    (*
+    Definition belgame A T :=
+      (bpa R (Tconfig T) * (cprofile A -> Tconfig T -> agent -> R))%type.
+     *)
+    
+    Definition proper_igame A T (G : igame A T) (cond : conditioning R (Tconfig T)) : bool :=
+      [forall i : agent, [forall ti : T i, revisable cond G.1 (event_ti ti)]].
 
-    Definition proper_belgame (G : belgame) (cond : conditioning R Tn) : bool :=
-      [forall i : I, [forall ti : T i, revisable cond G.1 (event_ti ti)]].
-
-    Definition is_revisable (G : belgame) (cond : conditioning R Tn) (HG : proper_belgame G cond) i (ti : T i) :
+    Definition is_revisable A T (G : igame A T) (cond : conditioning R (Tconfig T)) (HG : proper_igame G cond) i (ti : T i) :
       revisable cond G.1 (event_ti ti)
       := (forallP ((forallP HG) i)) ti.
 
-    Definition belgame_utility (G : belgame) (cond : conditioning R Tn) (fXEU : xeu_function _) (HG : proper_belgame G cond) (p : iprofile A T) (i : I) (ti : T i) : R :=
+    Definition igame_utility A T (G : igame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R (Tconfig T)) (HG : proper_igame G cond) (p : iprofile T A) (i : agent) (ti : T i) : R
+      :=
         let kn := cond G.1 (event_ti ti) (is_revisable HG ti) in
-        XEU kn (fXEU [ffun t => G.2 (proj_iprofile p t) t i]).
+        XEU kn (xeu (fun t => G.2 (proj_iprofile p t) t i)).
 
-    Definition BelG_Nash_equilibrium (G : belgame) (cond : conditioning R Tn) fXEU (HG : proper_belgame G cond) (p : iprofile A T) : Prop :=
-      forall i : I,
-      forall ti : T i,
-      forall ai : A i,
-        ~ (belgame_utility fXEU HG p ti < belgame_utility fXEU HG (change_istrategy p ti ai) ti).
-
-  End BelGame.
-
-  Section BelGame2. (* assuming finite sets of actions *)
-
-    Variable fA : forall i : I, finType.
-    Variable T : forall i : I, finType.
-
-    Notation Tn := [finType of {dffun forall i : I, T i}].
-
-    Definition BelG_Nash_equilibrium_bool (G : belgame fA T) (cond : conditioning R Tn) fXEU (HG : proper_belgame G cond) (p : iprofile fA T) : bool :=
-      [forall i : I,
+    Definition BelG_Nash_equilibrium fA T (G : igame fA T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R _) (HG : proper_igame G cond) (p : iprofile T fA) : bool :=
+      [forall i : agent,
         [forall ti : T i,
           [forall ai : fA i,
-            ~~ (belgame_utility fXEU HG p ti < belgame_utility fXEU HG (change_istrategy p ti ai) ti)]]].
+            ~~ (igame_utility xeu HG p ti < igame_utility xeu HG (change_istrategy p ti ai) ti)]]].
 
-    Lemma BelG_Nash_equilibriumP (G : belgame fA T) cond fXEU (HG : proper_belgame G cond) p :
-      reflect (BelG_Nash_equilibrium fXEU HG p) (BelG_Nash_equilibrium_bool fXEU HG p).
+    Definition BelG_Nash_equilibrium_prop A T (G : igame A T) (cond : conditioning R (Tconfig T)) (xeu : xeu_box R _) (HG : proper_igame G cond) (p : iprofile T A) : Prop :=
+      forall i : agent,
+      forall ti : T i,
+      forall ai : A i, ~ (igame_utility xeu HG p ti < igame_utility xeu HG (change_istrategy p ti ai) ti).
+
+    Lemma BelG_Nash_equilibriumP fA T (G : igame fA T) cond xeu (HG : proper_igame G cond) p :
+      reflect (BelG_Nash_equilibrium_prop xeu HG p)  (BelG_Nash_equilibrium xeu HG p).
     Proof.
-      case (boolP (BelG_Nash_equilibrium_bool fXEU HG p)) => H ; constructor.
-      - move => i ti ai.
-        exact: negP (forallP (forallP (forallP H i) ti) ai).
-      - rewrite /BelG_Nash_equilibrium => Hcontra.
-        destruct (forallPn H) as [i Hi].
-        destruct (forallPn Hi) as [ti Hti].
-        destruct (forallPn Hti) as [ai Hai].
-        move /negPn in Hai.
-        have Hcontra' := Hcontra i ti ai ; contradiction.
+    case (boolP (BelG_Nash_equilibrium xeu HG p)) => H ; constructor.
+    - move => i ti ai.
+      exact: negP (forallP (forallP (forallP H i) ti) ai).
+    - rewrite /BelG_Nash_equilibrium_prop => Hcontra.
+      destruct (forallPn H) as [i Hi].
+      destruct (forallPn Hi) as [ti Hti].
+      destruct (forallPn Hti) as [ai Hai].
+      move /negPn in Hai.
+      have Hcontra' := Hcontra i ti ai ; contradiction.
     Qed.
 
-  End BelGame2.
+
+  End IGame.
 
   Section BGame.
 
-    Notation Tconfig := (fun T => [finType of {ffun forall i : I, T i}]).
+    Notation Tconfig := (fun T => [finType of {dffun forall i : agent, T i}]).
 
-    Variable A : forall i : I, eqType.
-    Variable T : forall i : I, finType.
+    Definition bgame A T :=
+      (proba R (Tconfig T) * (cprofile A -> Tconfig T -> agent -> R))%type.
 
-    Notation Tn := [finType of {dffun forall i : I, T i}].
+    Definition proper_bgame A T (G : bgame A T) : bool :=
+      [forall i : agent, [forall ti : T i, Pr_revisable G.1 (event_ti ti)]].
 
-    Definition bgame :=
-      (proba R Tn * (cprofile A -> Tn -> I -> R))%type.
-
-    Definition proper_bgame (G : bgame) : bool :=
-      [forall i : I, [forall ti : T i, Pr_revisable G.1 (event_ti ti)]].
-
-    Definition is_Pr_revisable (G : bgame) (HG : proper_bgame G) i (ti : T i) :
+    Definition is_Pr_revisable A T (G : bgame A T) (HG : proper_bgame G) i (ti : T i) :
       Pr_revisable G.1 (event_ti ti)
       := (forallP ((forallP HG) i)) ti.
 
-    Definition belgame_of_bgame (G : bgame) : {G' : belgame A T | 1%N.-additive G'.1}
-      := let (p,u) := G in match p with {| proba_val := m ; proba_ax := H|} => exist _ (m,u) H end.
+    Definition igame_of_bgame A T (G : bgame A T) : {G' : igame A T | 1%N.-additive G'.1}
+      := let (p,u) := G in match p with {| proba_val := m ; proba_ax := H|} => exist _ (bpa_val m,u) H end.
 
-    Definition bgame_of_belgame (sG : {G : belgame A T | 1%N.-additive G.1}) : bgame
+    (*
+    Definition bgame_of_igame A T (sG : {G : igame A T | 1%N.-additive G.1}) : bgame A T
       := let (G,H) := sG in let (m,u) := G in ({|proba_ax:=H|}, u).
 
-    Lemma bgame_of_belgame_cancel :
-      cancel bgame_of_belgame belgame_of_bgame.
+    Lemma bgame_of_igame_cancel A T :
+      cancel (@bgame_of_igame A T) (@igame_of_bgame A T).
     Proof. by do 2 case. Qed.
-
-    Lemma belgame_of_bgame_cancel :
-      cancel belgame_of_bgame bgame_of_belgame.
+        
+    Lemma igame_of_bgame_cancel A T :
+      cancel (@igame_of_bgame A T) (@bgame_of_igame A T).
     Proof. by do 2 case. Qed.
-
-    Definition bgame_utility (G : bgame) (HG : proper_bgame G) (p : iprofile A T) (i : I) (ti : T i) : R
+     *)
+    
+    Definition bgame_utility A T (G : bgame A T) (HG : proper_bgame G) (p : iprofile T A) (i : agent) (ti : T i) : R
       :=
-      let kn := Pr_conditioning (is_Pr_revisable HG ti) in
-      [EU of [ffun t => G.2 (proj_iprofile p t) t i] wrt kn].
+        let kn := Pr_conditioning (is_Pr_revisable HG ti) in
+        \sum_t dist kn t * G.2 (proj_iprofile p t) t i.
 
   End BGame.
 End Games.
@@ -398,29 +393,32 @@ End Games.
 Section MixedStrategies.
 
   Variable R : realFieldType.
-  Variable I : finType.
-  Variable A : I -> finType.
+  Variable X : finType.
+  Variable A : X -> finType.
 
-  Variable witnessI : I.
+  Variable witnessX : X.
 
-  Definition mixed_cprofile := cprofile (fun i => [eqType of proba R (A i)]).
 
-  Definition ms_util (G : cgame R A) (mp : mixed_cprofile) (i : I) : R :=
-    let pr := prod_proba mp witnessI in
-    [EU of [ffun p => G p i] wrt pr].
+  Definition mixed_cprofile := cprofile (fun i => proba_eqType R (A i)).
 
-  Definition ms_Nash_equilibrium (G : cgame R A) (mp : mixed_cprofile) : Prop :=
-    forall i (si : proba R (A i)),
-      ~ ms_util G mp i < ms_util G (change_strategy mp si) i.
+  Definition ms_utility (G : cgame R A) (mp : mixed_cprofile) (i : X) : R
+    := let pr := prod_proba mp witnessX in
+       \sum_(p : cprofile A) (dist pr p) * (G p i).
 
-  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => [eqType of proba R (A i)])
-    := fun mp i => ms_util G mp i.
+  Definition ms_Nash_equilibrium (G : cgame R A) (mp : mixed_cprofile) : Prop
+    := forall i : X,
+      forall si : proba R (A i),
+      ~ ms_utility G mp i < ms_utility G (change_strategy mp si) i.
 
-  Lemma mixed_cgameE G mp i : ms_util G mp i = (mixed_cgame G) mp i.
+  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => proba_eqType R (A i))
+    := fun mp i => ms_utility G mp i.
+
+  Lemma mixed_cgameE (G : cgame R A) (mp : mixed_cprofile) (i : X) :
+    ms_utility G mp i = (mixed_cgame G) mp i.
   Proof. by []. Qed.
 
   Lemma ms_NashE (G : cgame R A) (mp : mixed_cprofile) :
-    ms_Nash_equilibrium G mp <-> Nash_equilibrium (mixed_cgame G) mp.
+    ms_Nash_equilibrium G mp <-> Nash_equilibrium_prop (mixed_cgame G) mp.
   Proof.
   split => H i si.
   - by rewrite -!mixed_cgameE.
@@ -428,3 +426,14 @@ Section MixedStrategies.
   Qed.
 
 End MixedStrategies.
+
+
+Close Scope ring_scope.
+
+
+#[deprecated(since="belgames2", note="Use igame instead.")]
+Notation belgame := igame.
+#[deprecated(since="belgames2", note="Use proper_igame instead.")]
+Notation proper_belgame := proper_igame.
+#[deprecated(since="belgames2", note="Use igame_utility instead.")]
+Notation belgame_utility := igame_utility.
