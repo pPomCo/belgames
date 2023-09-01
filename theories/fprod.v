@@ -1,3 +1,4 @@
+From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.
 From mathcomp Require Import prime binomial ssralg finset ssrint matrix ssrnum.
@@ -42,41 +43,29 @@ Notation fprod_type := (forall i : I, T_ i) (only parsing).
 
 (** Definition and cardinal of [fprod] := dependent product of finTypes *)
 
-Record fprod : predArgType :=
-  { fprod_fun : {ffun I -> {i : I & T_ i}} ;
-    fprod_prop : [forall i : I, tag (fprod_fun i) == i] }.
+Definition fprod : predArgType :=
+  {fprod_fun : {ffun I -> {i : I & T_ i}} | [forall i : I, tag (fprod_fun i) == i] }.
 
 Program Definition fprod_type_of_fprod (f : fprod) : fprod_type :=
-  fun i => ecast j (T_ j) _ (tagged (fprod_fun f i)).
+  fun i => ecast j (T_ j) _ (tagged (val f i)).
 Next Obligation.
 case => f p i /= ; apply/eqP.
 by move/forallP in p.
 Defined.
 
-Program Definition fprod_of_fprod_type (f : fprod_type) : fprod :=
-  @Build_fprod (finfun (fun i => @existT _ _ i (f i))) _.
-Next Obligation.
-move=>f.
-by apply/forallP => i; rewrite ffunE.
-Defined.
+Lemma fprod_of_fprod_type_ax (f : fprod_type) :
+  [forall i : I, tag ([ffun i => existT T_ i (f i)] i) == i].
+Proof.
+by apply/forallP =>i ; rewrite ffunE.
+Qed.
+  
+Definition fprod_of_fprod_type (f : fprod_type) : fprod :=
+  exist _ [ffun i => existT _ i (f i)] (fprod_of_fprod_type_ax f). 
 
 Coercion fprod_type_of_fprod : fprod >-> Funclass.
 
 (* Canonical fprod_fun_finType := [finType of {ffun I -> {i : I & T_ i}}]. *)
 (** TODO: fix canonical projections **)
-
-Canonical fprod_subType := Eval hnf in [subType for fprod_fun].
-Definition fprod_eqm := Eval hnf in [eqMixin of fprod by <:].
-Canonical fprod_eqType := Eval hnf in EqType fprod fprod_eqm.
-Definition fprod_chm := [choiceMixin of fprod by <:].
-Canonical fprod_choiceType := Eval hnf in ChoiceType fprod fprod_chm.
-Definition fprod_cntm := [countMixin of fprod by <:].
-Canonical fprod_countType := Eval hnf in CountType fprod fprod_cntm.
-Canonical fprod_subCountType := Eval hnf in [subCountType of fprod].
-Definition fprod_finm := [finMixin of fprod by <:].
-Canonical fprod_finType := Eval hnf in FinType fprod fprod_finm.
-Canonical fprod_subFinType := Eval hnf in [subFinType of fprod_finType].
-(* Print Canonical Projections. Print fprod_finm. Print fprod_cntm. *)
 
 
 Lemma fprodK : cancel fprod_type_of_fprod fprod_of_fprod_type.
@@ -98,7 +87,7 @@ Proof.
 move=> i.
 rewrite /fprod_of_fprod_type /fprod_type_of_fprod /=.
 rewrite -/(eq_rect _ _ _ _ _).
-set Ej := (eqP (elimTF forallP (fprod_of_fprod_type_obligation_1 g) i)).
+set Ej := (eqP (elimTF forallP (fprod_of_fprod_type_ax g) i)).
 rewrite -[g i](rew_opp_r T_ Ej).
 f_equal.
 apply: TaggedE.
@@ -133,12 +122,14 @@ rewrite card_sub.
 rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | tag j == i])|.
 rewrite card_family.
 set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
-by rewrite /image_mem foldr_map BigOp.bigopE /reducebig; f_equal; rewrite enumT.
+Search "bigop".
+Search reducebig.
+by rewrite /image_mem foldr_map bigop.unlock /reducebig; f_equal; rewrite enumT.
 f_equal; apply eq_map => i.
 rewrite -sum1_card ; (under eq_bigr => i0 do rewrite inE).
 rewrite -sum1_card.
-pose IT := tag_finType T_.
-pose h : T_ i -> IT := @Tagged I _ _.
+(* pose IT := tag_finType T_. *)
+pose h : T_ i -> _ := @Tagged I i T_.
 pose h'0 := @tagged' i.
 case Ecard: #|T_ i|.
 { rewrite !big_pred0 // => x.
@@ -196,11 +187,11 @@ case: pickP @x; first done.
 by move/eq_card0 => H0; rewrite H0 in top.
 Qed.
 
-Lemma tagged'E (a : fprod) (i : I) (E : tag ((fprod_fun a) i) == i) :
+Lemma tagged'E (a : fprod) (i : I) (E : tag ((val a) i) == i) :
   tagged' E = a i.
 Proof.
 rewrite /tagged'.
-rewrite /eq_rect -/(ecast y (T_ y) (eqP E) (tagged ((fprod_fun a) i))).
+rewrite /eq_rect -/(ecast y (T_ y) (eqP E) (tagged ((val a) i))).
 case: a E => f p /= E.
 rewrite /fprod_type_of_fprod /=.
 rewrite [eqP E]eq_irrelevance; first exact/eqP.
@@ -210,23 +201,26 @@ Qed.
 Definition ftagged (H : (0 < #|fprod|)%N) (f : {ffun I -> {i : I & T_ i}}) (i : I) :=
   @otagged (T_ i) i id (pick_notemp H i) (f i).
 
-Lemma ftaggedE t H i : ftagged H (fprod_fun t) i = t i.
+Lemma ftaggedE (t : fprod) H i : ftagged H (val t) i = t i.
 Proof.
 rewrite /ftagged /otagged.
 case: sumb.
 { by move=> E; rewrite tagged'E. }
 move=> /negbT /negP K; exfalso; apply: K.
-move: i; apply/forallP/fprod_prop. (* might be refactor(iz)ed *)
+move: i; apply/forallP/(tagged t). (* might be refactor(iz)ed *)
 Qed.
 
 Definition dffun_of_fprod (f : fprod) : {dffun forall i : I, T_ i} :=
   [ffun x => f x].
 
-Program Definition fprod_of_dffun (f : {dffun forall i : I, T_ i}) : fprod :=
-  @Build_fprod (finfun (fun i => @existT _ _ i (f i))) _.
-Next Obligation.
-by apply/forallP => i; rewrite ffunE.
-Defined.
+Lemma fprod_of_dffun_ax (f : {dffun forall i : I, T_ i}) : 
+  [forall i : I, tag ([ffun i => existT T_ i (f i)] i) == i].
+Proof.
+by apply/forallP=>i ; rewrite ffunE.
+Qed.
+
+Definition fprod_of_dffun (f : {dffun forall i : I, T_ i}) : fprod :=
+  exist _ [ffun i => existT _ i (f i)] (fprod_of_dffun_ax _).
 
 Lemma dffun_of_fprodK : cancel dffun_of_fprod fprod_of_dffun.
 Proof.
@@ -244,9 +238,11 @@ Qed.
 Lemma fprod_of_dffunK : cancel fprod_of_dffun dffun_of_fprod.
 Proof.
 move=> x.
-apply/ffunP => i; rewrite !ffunE.
-by rewrite fprodE.
-Qed.
+apply/ffunP => i ; rewrite !ffunE.
+rewrite /fprod_of_dffun/=.
+(* by rewrite fprodE.
+Qed. *)
+Admitted.
 
 End Finite_product_structure.
 
@@ -268,8 +264,8 @@ Lemma big_tag_cond (R : Type) (idx : R) (op : Monoid.com_law idx)
   \big[op/idx]_(j in [finType of {i0 : I & T_ i0}] | (tag j == i) && (otagged id (pick_notemp E i) j \in Q_ i)) otagged (P_ i) idx j =
   \big[op/idx]_(j in Q_ i) P_ i j.
 Proof.
-pose IT := tag_finType T_.
-pose h : T_ i -> IT := @Tagged I _ _.
+(* pose IT := tag_finType T_. *)
+pose h : T_ i -> _ := @Tagged I i T_.
 pose h'0 := @tagged' _ _ i.
 case Ecard: #|T_ i|.
 { rewrite !big_pred0 // => x.
@@ -323,8 +319,8 @@ Lemma big_tag (R : Type) (idx : R) (op : Monoid.com_law idx)
   \big[op/idx]_(j in [finType of {i0 : I & T_ i0}] | tag j == i) otagged (P_ i) idx j =
   \big[op/idx]_(j in T_ i) P_ i j.
 Proof.
-pose IT := tag_finType T_.
-pose h : T_ i -> IT := @Tagged I _ _.
+(* pose IT := tag_finType T_. *)
+pose h : T_ i -> _ := @Tagged I i T_.
 pose h'0 := @tagged' _ _ i.
 case Ecard: #|T_ i|.
 { rewrite !big_pred0 // => x.
@@ -369,16 +365,21 @@ Section big_fprod.
   Variable P_ : forall i : I, {ffun T_ i -> R}.
   Let T := fprod T_.
 
-  Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) :=
+  Print fprod.
+  Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) : fprod T_.
+    (*
+:=
     match sumb ([forall i : I, tag (f i) == i]) with
-    | left prf => @Build_fprod I T_ f prf
+    | left prf => (* @Build_fprod I T_ f prf *) exist _ [ffun i => f i] (_)
     | right _ => idx
     end.
+     *)
+  Admitted.
 
   Local Open Scope ring_scope.
 
   Lemma big_fprod_dep (Q : pred {ffun I -> {i : I &  (T_ i)}}) :
-      \big[+%R/0]_(t : T | Q (fprod_fun t)) \big[*%R/1%R]_(i in I) P_ i (t i) =
+      \big[+%R/0]_(t : fprod _ | Q (val t)) \big[*%R/1%R]_(i in I) P_ i (t i) =
         \big[+%R/0%R]_(g in family (fun i : I => [pred j : {i : I &  (T_ i)} | tag j == i]) | g \in Q)
          \big[*%R/1%R]_(i : I) (otagged (P_ i) 0%R (g i)).
     Proof.
@@ -389,7 +390,7 @@ Section big_fprod.
         move/eqP: Ecard; apply: contraTF; rewrite -leqn0 -ltnNge => H.
         apply/card_gt0P.
         have /andP [H1 H2] := H.
-        by exists (@Build_fprod _ _ x H1). }
+        by exists (exist (fun x => x \in family (fun i : I => [pred j | tag j == i])) x H1). }
       have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard.
       pose h := @fprod_fun I T_.
       pose h' := ofprod it0.
