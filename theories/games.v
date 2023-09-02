@@ -92,7 +92,7 @@ Import GRing GRing.Theory.
 Import Num.Theory.
 
 
-Require Import general_lemmas bel.
+Require Import general_lemmas capacity.
 
 Local Open Scope ring_scope.
 

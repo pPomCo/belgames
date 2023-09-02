@@ -15,7 +15,7 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Require Import general_lemmas bel games.
+Require Import general_lemmas capacity games.
 
 Local Open Scope ring_scope.
 
