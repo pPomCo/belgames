@@ -89,9 +89,7 @@ Import Num.Theory.
 
 Local Open Scope ring_scope.
 
-(** TODO: uncomment when fprod is fixed *)
-(* Require Import general_lemmas fprod. *)
-Require Import general_lemmas.
+Require Import general_lemmas fprod.
 
 Section BelPl.
 
@@ -1278,8 +1276,6 @@ Section BelOnFFuns.
 
   Lemma mk_prod_proba_dist p (witnessI : I) : is_dist (mk_prod_proba p).
   Proof.
-  (** TODO: fix when fprod is fixed **)
-  (*
   apply/andP ; split.
   - under eq_bigr do rewrite /mk_prod_proba ffunE.
     set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
@@ -1309,13 +1305,10 @@ Section BelOnFFuns.
     exact: proba_set1.
   - apply/forallP => t.
     rewrite ffunE.
-    apply big_ind => // [||i _] ; first by rewrite ler01.
-    apply mulr_ge0.
+    apply big_ind => // [|i _] ; first exact: mulr_ge0.
     have [_ _ Hm3] := and3P (bpa_ax (p i)).
     exact: (forallP Hm3).
   Qed.
-   *)
-  Admitted.
 
   
   Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tn

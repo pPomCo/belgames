@@ -122,8 +122,6 @@ rewrite card_sub.
 rewrite -[LHS]/#|family (fun i : I => [pred j : {i : I & T_ i} | tag j == i])|.
 rewrite card_family.
 set lhs := LHS; suff->: lhs = foldr muln 1%N [seq #|T_ i| | i : I]; rewrite {}/lhs.
-Search "bigop".
-Search reducebig.
 by rewrite /image_mem foldr_map bigop.unlock /reducebig; f_equal; rewrite enumT.
 f_equal; apply eq_map => i.
 rewrite -sum1_card ; (under eq_bigr => i0 do rewrite inE).
@@ -239,10 +237,20 @@ Lemma fprod_of_dffunK : cancel fprod_of_dffun dffun_of_fprod.
 Proof.
 move=> x.
 apply/ffunP => i ; rewrite !ffunE.
-rewrite /fprod_of_dffun/=.
-(* by rewrite fprodE.
-Qed. *)
-Admitted.
+rewrite /fprod_of_dffun .
+rewrite/fprod_type_of_fprod/=.
+
+rewrite -/(eq_rect _ _ _ _ _).
+set Ej := (eqP (elimTF forallP (fprod_of_dffun_ax x) i)).
+rewrite -[x i](rew_opp_r T_ Ej).
+f_equal.
+apply: TaggedE.
+rewrite -!Tagged_eta {1}ffunE /Tagged.
+apply EqdepFacts.eq_dep_eq_sigT.
+apply EqdepFacts.eq_dep1_dep.
+apply: EqdepFacts.eq_dep1_intro.
+by rewrite rew_opp_r.
+Qed.
 
 End Finite_product_structure.
 
@@ -366,20 +374,16 @@ Section big_fprod.
   Let T := fprod T_.
 
   Print fprod.
-  Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) : fprod T_.
-    (*
-:=
-    match sumb ([forall i : I, tag (f i) == i]) with
-    | left prf => (* @Build_fprod I T_ f prf *) exist _ [ffun i => f i] (_)
+  Definition ofprod (idx : fprod T_) (f : {ffun I -> {i : I & T_ i}}) : fprod T_ :=
+  match sumb ([forall i : I, tag (f i) == i]) with
+    | left H => exist _ _ H
     | right _ => idx
     end.
-     *)
-  Admitted.
 
   Local Open Scope ring_scope.
 
   Lemma big_fprod_dep (Q : pred {ffun I -> {i : I &  (T_ i)}}) :
-      \big[+%R/0]_(t : fprod _ | Q (val t)) \big[*%R/1%R]_(i in I) P_ i (t i) =
+      \big[+%R/0]_(t : fprod _ | Q (val t)) \big[*%R/1%R]_(i : I) P_ i (t i) =
         \big[+%R/0%R]_(g in family (fun i : I => [pred j : {i : I &  (T_ i)} | tag j == i]) | g \in Q)
          \big[*%R/1%R]_(i : I) (otagged (P_ i) 0%R (g i)).
     Proof.
@@ -392,7 +396,7 @@ Section big_fprod.
         have /andP [H1 H2] := H.
         by exists (exist (fun x => x \in family (fun i : I => [pred j | tag j == i])) x H1). }
       have {Ecard} /card_gt0P [it0 _] : (0 < #|T|)%N by rewrite Ecard.
-      pose h := @fprod_fun I T_.
+      pose h : fprod T_ -> {ffun I -> {i : I & T_ i}} := sval.
       pose h' := ofprod it0.
       rewrite (reindex h); last first.
       { exists h'.
@@ -420,9 +424,9 @@ Section big_fprod.
     Qed.
 
     Lemma big_fprod :
-      \big[+%R/0%R]_(t : T) \big[*%R/1%R]_(i in I) P_ i (t i) =
-        \big[+%R/0%R]_(g in family (fun i : I => [pred j : {i : I & (T_ i)} | tag j == i]))
-         \big[*%R/1%R]_(i : I) (otagged (P_ i) 0%R (g i)).
+      \sum_(t : fprod T_) \prod_(i : I) P_ i (t i) =
+        \sum_(g in family (fun i : I => [pred j : {i : I & (T_ i)} | tag j == i]))
+         \prod_(i : I) (otagged (P_ i) 0%R (g i)).
     Proof.
       rewrite (big_fprod_dep predT).
       by apply: eq_bigl => g; rewrite inE andbC.
