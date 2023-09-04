@@ -292,7 +292,7 @@ Section Games.
   End HypergraphicalGame.
 
 
-  Section BelGame.
+  Section Igame.
 
     Variable A : forall i : I, eqType.
     Variable T : forall i : I, finType.
@@ -301,48 +301,48 @@ Section Games.
 
     Notation xeu_function W := ({ffun W -> R} -> {ffun {set W} -> R}) (only parsing).
 
-    Definition belgame :=
-      (bpa R Tn * (cprofile A -> Tn -> I -> R))%type.
+    Definition igame :=
+      (massfun R Tn * (cprofile A -> Tn -> I -> R))%type.
 
-    Definition proper_belgame (G : belgame) (cond : conditioning R Tn) : bool :=
+    Definition proper_igame (G : igame) (cond : conditioning R Tn) : bool :=
       [forall i : I, [forall ti : T i, revisable cond G.1 (event_ti ti)]].
 
-    Definition is_revisable (G : belgame) (cond : conditioning R Tn) (HG : proper_belgame G cond) i (ti : T i) :
+    Definition is_revisable (G : igame) (cond : conditioning R Tn) (HG : proper_igame G cond) i (ti : T i) :
       revisable cond G.1 (event_ti ti)
       := (forallP ((forallP HG) i)) ti.
 
-    Definition belgame_utility (G : belgame) (cond : conditioning R Tn) (fXEU : xeu_function _) (HG : proper_belgame G cond) (p : iprofile A T) (i : I) (ti : T i) : R :=
+    Definition igame_utility (G : igame) (cond : conditioning R Tn) (fXEU : xeu_function _) (HG : proper_igame G cond) (p : iprofile A T) (i : I) (ti : T i) : R :=
         let kn := cond G.1 (event_ti ti) (is_revisable HG ti) in
         XEU kn (fXEU [ffun t => G.2 (proj_iprofile p t) t i]).
 
-    Definition BelG_Nash_equilibrium (G : belgame) (cond : conditioning R Tn) fXEU (HG : proper_belgame G cond) (p : iprofile A T) : Prop :=
+    Definition Igame_Nash_equilibrium (G : igame) (cond : conditioning R Tn) fXEU (HG : proper_igame G cond) (p : iprofile A T) : Prop :=
       forall i : I,
       forall ti : T i,
       forall ai : A i,
-        ~ (belgame_utility fXEU HG p ti < belgame_utility fXEU HG (change_istrategy p ti ai) ti).
+        ~ (igame_utility fXEU HG p ti < igame_utility fXEU HG (change_istrategy p ti ai) ti).
 
-  End BelGame.
+  End Igame.
 
-  Section BelGame2. (* assuming finite sets of actions *)
+  Section FiniteIGame. (* assuming finite sets of actions *)
 
     Variable fA : forall i : I, finType.
     Variable T : forall i : I, finType.
 
     Notation Tn := {dffun forall i : I, T i}.
 
-    Definition BelG_Nash_equilibrium_bool (G : belgame fA T) (cond : conditioning R Tn) fXEU (HG : proper_belgame G cond) (p : iprofile fA T) : bool :=
+    Definition Igame_Nash_equilibrium_bool (G : igame fA T) (cond : conditioning R Tn) fXEU (HG : proper_igame G cond) (p : iprofile fA T) : bool :=
       [forall i : I,
         [forall ti : T i,
           [forall ai : fA i,
-            ~~ (belgame_utility fXEU HG p ti < belgame_utility fXEU HG (change_istrategy p ti ai) ti)]]].
+            ~~ (igame_utility fXEU HG p ti < igame_utility fXEU HG (change_istrategy p ti ai) ti)]]].
 
-    Lemma BelG_Nash_equilibriumP (G : belgame fA T) cond fXEU (HG : proper_belgame G cond) p :
-      reflect (BelG_Nash_equilibrium fXEU HG p) (BelG_Nash_equilibrium_bool fXEU HG p).
+    Lemma Igame_Nash_equilibriumP (G : igame fA T) cond fXEU (HG : proper_igame G cond) p :
+      reflect (Igame_Nash_equilibrium fXEU HG p) (Igame_Nash_equilibrium_bool fXEU HG p).
     Proof.
-      case (boolP (BelG_Nash_equilibrium_bool fXEU HG p)) => H ; constructor.
+      case (boolP (Igame_Nash_equilibrium_bool fXEU HG p)) => H ; constructor.
       - move => i ti ai.
         exact: negP (forallP (forallP (forallP H i) ti) ai).
-      - rewrite /BelG_Nash_equilibrium => Hcontra.
+      - rewrite /Igame_Nash_equilibrium => Hcontra.
         destruct (forallPn H) as [i Hi].
         destruct (forallPn Hi) as [ti Hti].
         destruct (forallPn Hti) as [ai Hai].
@@ -350,7 +350,7 @@ Section Games.
         have Hcontra' := Hcontra i ti ai ; contradiction.
     Qed.
 
-  End BelGame2.
+  End FiniteIGame.
 
   Section BGame.
 
@@ -371,20 +371,45 @@ Section Games.
       Pr_revisable G.1 (event_ti ti)
       := (forallP ((forallP HG) i)) ti.
 
-    Definition belgame_of_bgame (G : bgame) : {G' : belgame A T | 1%N.-additive G'.1}
-      := let (p,u) := G in match p with {| proba_val := m ; proba_ax := H|} => exist _ (m,u) H end.
+    Definition igame_of_bgame_ax (G : bgame)
+      : [forall B : {set Tn}, (G.1 : massfun R Tn) B >= 0] && (1%N.-additive (G.1 : massfun R Tn)).
+    exact: (introTF (c:=true) andP (conj (bpa_ax G.1) (proba_ax G.1))).
+    Defined.
+    
+    Definition igame_of_bgame (G : bgame)
+      : {G' : igame A T | [forall B : {set Tn}, G'.1 B >= 0] && (1%N.-additive G'.1)} :=
+      exist _ (G.1 : massfun R Tn, G.2) (igame_of_bgame_ax G).
 
-    Definition bgame_of_belgame (sG : {G : belgame A T | 1%N.-additive G.1}) : bgame
-      := let (G,H) := sG in let (m,u) := G in ({|proba_ax:=H|}, u).
+    Definition bgame_of_igame_bpa_ax (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : bpa_axiom ((tag sG).1 : massfun R Tn).
+    exact: match elimTF andP (tagged sG) with conj Hge0 H1add => Hge0 end.
+    Defined.
 
-    Lemma bgame_of_belgame_cancel :
-      cancel bgame_of_belgame belgame_of_bgame.
-    Proof. by do 2 case. Qed.
+    Definition bgame_of_igame_proba_ax (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : proba_axiom ((tag sG).1 : massfun R Tn).
+    exact: match elimTF andP (tagged sG) with conj Hge0 H1add => H1add end.
+    Defined.
 
-    Lemma belgame_of_bgame_cancel :
-      cancel belgame_of_bgame bgame_of_belgame.
-    Proof. by do 2 case. Qed.
+    Definition bgame_of_igame (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : bgame :=
+      ({| proba_val := {| bpa_ax := bgame_of_igame_bpa_ax sG |} ; proba_ax := bgame_of_igame_proba_ax sG |}, (tag sG).2).
 
+    Lemma bgame_of_igame_cancel :
+      cancel bgame_of_igame igame_of_bgame.
+    Proof.
+    case ; case=> p u HG.
+    rewrite /igame_of_bgame/=.
+    rewrite (eq_irrelevance (igame_of_bgame_ax
+                             (bgame_of_igame (exist (fun G0 : igame A T => [forall B, 0 <= G0.1 B] && ( 1%N.-additive G0.1 )) _ HG))) HG).
+    exact: eq_exist_curried=>//=.
+    Qed.
+    
+    Lemma igame_of_bgame_cancel :
+      cancel igame_of_bgame bgame_of_igame.
+    Proof.
+    case=>p u.
+    congr (_,u).
+    apply: proba_eqE=>/=.
+    by apply: bpa_eqE=>/=.
+    Qed.
+    
     Definition bgame_utility (G : bgame) (HG : proper_bgame G) (p : iprofile A T) (i : I) (ti : T i) : R
       :=
       let kn := Pr_conditioning (is_Pr_revisable HG ti) in

@@ -486,6 +486,20 @@ Section NumLemmas.
   by rewrite lt0r Hx1 Hx2 Hge0.
   Qed.
 
+  Lemma big_eq1 (R0 : eqType) (idx : R0) (op : Monoid.law idx) (I : finType) (r : seq I) (P : pred I) (F : I -> R0) :
+    \big[op/idx]_(i <- r | P i) F i != idx -> exists i, [&& i \in r, P i & F i != idx].
+  Proof.
+  move=>H ; apply/existsP/negbNE/existsPn=>Hcontra.
+  - have Hcontra2 :  forall i : I, P i && (i \in r) -> F i = idx.
+    move=>i /andP[Hi1 Hi2].
+    have  := Hcontra i.
+    rewrite !negb_and=>/orP// ; case=>[|/orP] ; last case.
+    + by rewrite Hi2.
+    + by rewrite Hi1.
+    + by move/negPn/eqP->.
+  - by rewrite (big1_seq _ _ _ Hcontra2) eqxx in H.
+  Qed.
+  
   Lemma sum_div {X} (P : pred X) (cst : R) (f : X -> R) :
     \sum_(x : X | P x) f x / cst = (\sum_(x : X | P x) f x) / cst.
   Proof. by rewrite big_distrl.

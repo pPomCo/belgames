@@ -1,5 +1,7 @@
 (******************************************************************************)
-(** This file provide a theory for Dempster-Shafer belief functions
+(** OLD COMMENT VERSION
+
+    This file provide a theory for Dempster-Shafer belief functions
 
    1. A belief function (and its dual plausibility function) are defined from
       a bpa (aka mass function).
@@ -12,24 +14,11 @@
    focalset m        == Set of focal elements
 
    We then prove several lemmas, eg:
-   BelE m: forall A, Bel m A = 1 - Pl m (~:A).
-   PlE m:  forall A, Pl m A = 1 - Bel m (~:A).
-   Bel_super m A B : [disjoint A & B] -> Bel m (A :|: B) >= Bel m A + Bel m B.
-   Pl_sub m A B : [disjoint A & B] -> Pl m (A :|: B) <= Pl m A + Pl m B.
-   Bel_monotone m A B : Bel m (A :|: B) >= Bel m A.
-   Pl_monotone m A B : Pl m (A :|: B) >= Pl m A.
-   Bel0 m: Bel m set0 = 0.
-   Pl0 m : Pl m set0 = 0.
-   Bel1 m : Bel m setT = 1.
-   Pl1 m : Pl m setT = 1.
-   Bel_ge0 m A : Bel m A >= 0.
-   Bel_le1 m A : Bel m A <= 1.
-   Pl_ge0 m A : Pl m A >= 0.
-   Pl_le1 m A : Pl m A <= 1.
-   etc.
+   BelE m: forall A, Bel m A = 1 - Pl m (~:A)
+   PlE m:  forall A, Pl m A = 1 - Bel m (~:A)
 
 
-   2. k-additivity describes the max-cardinality of focal elements.
+   2. k-additivity describe the max-cardinality of focal elements.
 
    If k=1, then Bel = Pl is a proba
    k.-additive m     == (\max_(A in focalset m) #|A| == k)
@@ -54,22 +43,14 @@
 
   4. XEU scoring functions, as weighted sums over focalsets
 
-  xeu m f           == \sum_(A in focalset m) m A * f A
+  xeu f m           == \sum_(A in focalset m) m A * f A
+  xeu_box           == the structure for xeu computations, which coerce to
+                       (W -> R) -> {set W} -> R
 
-  We then define several xeu-functions from utility-function
-  f_CEU u             == fun A -> \min_(w in A) u w
-  f_JEU alpha u       == fun A -> alpha * \min_(w in A) u w + (1-alpha) * \max_(w in A) u w
-  f_TBEU u            == fun A -> \sum_(w in A) u w / #|A|
-
-  Their value wrt a bpa m and an unitlity function u is given by:
-  [CEU of u wrt m]       = CEU m u = XEU m (f_CEU u)
-  [JEU alpha of u wrt m] = JEU alpha m u = XEU m (f_JEU alpha u)
-  [TBEU of u wrt m]      = TBEU m u = XEU m (f_TBEU u)
-
-  For any 1-additive bpa p (i.e. p is a proba) and utility function u, we show that:
-  [CEU of u wrt p] = [EU of u wrt p]
-  [JEU alpha of u wrt p] = [EU of u wrt p]
-  [TBEU of u wrt p] = [EU of u wrt p]
+  We then define:
+  CEU : xeu_box. (Min-value for each focal set)
+  JEU: xeu_box. (Linear combination of min-value and max-value)
+  TBEU: xeu_box. (Equiprobability hypothesis)
 
  *)
 
@@ -87,46 +68,70 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Local Open Scope ring_scope.
+Open Scope ring_scope.
 
 Require Import general_lemmas fprod.
 
-Section BelPl.
+Section Capacity.
 
-  Variable R : realFieldType.
-  Variable W : finType.
+  Context (R : realFieldType).
+  Variable (W : finType).
 
+  Section CapaDefs.
+    
+    (* WARNING: monotony is missing -> massfun's assumptions are weaker than those of capacities *)
+    Definition massfun_axiom (m : {ffun {set W} -> R}) :=
+      [&& m set0 == 0 & \sum_A m A == 1].
 
-  Section BelDefs.
+    Structure massfun :=
+      { massfun_val :> {ffun {set W} -> R} ;
+        massfun_ax : massfun_axiom massfun_val }.
 
-    (** A bpa is a distribution over 2^X which assigns a zero-mass to set0 **)
     Definition bpa_axiom (m : {ffun {set W} -> R})
-      := [&& m set0 == 0 , \sum_A m A == 1 & [forall A, m A >= 0]].
+      := [forall A, m A >= 0].
 
     Structure bpa :=
-      { bpa_val :> {ffun {set W} -> R} ;
+      { bpa_val :> massfun ;
         bpa_ax : bpa_axiom bpa_val }.
 
 
     (** Focal elements are elements with non-zero mass
         The set of focal elements is called focalset **)
-    Definition focal_element (m : bpa) : pred {set W}
-      := fun A => m A > 0.
+    Definition focal_element (m : massfun) : pred {set W}
+      := fun A => m A != 0.
 
-    Definition focalset (m : bpa) : {set {set W}}
+    Definition focalset (m : massfun) : {set {set W}}
       := [set A : {set W} | focal_element m A].
 
     (** The Belief function and its dual Plausibility function are defined directly from the bpa.
         The Bel, Pl and bpa contains the same information -- given one of those, we have the two other **)
-    Definition Bel (m : bpa) : {set W} -> R :=
+    Definition Pinf (m : massfun) : {set W} -> R :=
       fun A => \sum_(B : {set W} | B \subset A) m B.
 
-    Definition Pl (m : bpa) : {set W} -> R :=
+    Definition Psup (m : massfun) : {set W} -> R :=
       fun A => \sum_(B | B :&: A != set0) m B.
 
-  End BelDefs.
+  End CapaDefs.
 
-  Section BelTypes.
+  #[deprecated(since="belgames2", note="Use Pinf instead.")]
+  Notation Bel := Pinf.
+  #[deprecated(since="belgames2", note="Use Psup instead.")]
+  Notation Pl := Psup.
+
+  Section CapaTypes.
+
+    Definition massfun_eq : rel massfun :=
+      fun m1 m2 => massfun_val m1 == massfun_val m2.
+
+    Lemma massfun_eqP : Equality.axiom massfun_eq.
+    Proof.
+    move => m1 m2 ; apply (iffP eqP) ; last by move ->.
+    case: m1; case: m2 => f1 Hf1 f2 Hf2 /= E.
+    rewrite E in Hf2 *.
+    by rewrite (eq_irrelevance Hf1 Hf2).
+    Qed.
+
+    HB.instance Definition massfun_eqType : hasDecEq massfun := hasDecEq.Build massfun massfun_eqP.
 
     Definition bpa_eq : rel bpa := fun m1 m2 => bpa_val m1 == bpa_val m2.
 
@@ -138,84 +143,176 @@ Section BelPl.
     by rewrite (eq_irrelevance Hf1 Hf2).
     Qed.
 
-    HB.instance Definition _ : hasDecEq bpa := hasDecEq.Build bpa bpa_eqP.
+    Lemma bpa_eqE (m1 m2 : bpa) :
+      bpa_val m1 = bpa_val m2 -> m1 = m2.
+    Proof.
+    case: m1=>m1 Hm1 ; case: m2 => m2 Hm2 /= Heq.
+    move: Hm1 Hm2.
+    rewrite Heq=>Hm1 Hm2.
+    by rewrite (eq_irrelevance Hm1 Hm2).
+    Qed.
 
-  End BelTypes.
+    HB.instance Definition bpa_eqType : hasDecEq bpa := hasDecEq.Build bpa bpa_eqP.
 
+  End CapaTypes.
 
-  (** If a bpa is given, then there is (at least) one (x : X) **)
-  Lemma bpa_nonempty (m : bpa) :
-    (#|W| > 0)%N.
+  
+  (*
+  Lemma Pinf_ge0 (m : massfun) :
+    forall C, Pinf m C >= 0.
   Proof.
-  have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
-  apply /card_gt0P.
-  have := (sum_ge0_neq0E (R:=R) (X:={set W}) (P:=predT)) => //= H.
-  edestruct H as [A HA].
-  - move => A HA. exact: forallP Hm3 A.
-  - rewrite (eqP Hm2) eq_sym ; exact: neq01.
-  - have Hcard : (#|A| > 0)%N.
-    rewrite card_gt0. apply/negP => /eqP Hcontra.
-    rewrite -Hcontra in Hm1.
-    move: HA; by rewrite (eqP Hm1) lt0r eqxx andFb.
-    destruct (eq_bigmax_cond (fun=>0%N) Hcard).
-    by exists x.
+  have [Hm0 _ HmM] := and3P (massfun_ax m).
+  move => C.
+  have := forallP (forallP HmM set0) C.
+  under [E in _<=E->_]eq_bigl do rewrite set0U.
+  rewrite big1=>//i. 
+  rewrite subset0=>/eqP->.
+  exact/eqP.
+  Qed.
+   *)
+
+  (*
+  Lemma Pinf_le1 (m : massfun) :
+    forall C, Pinf m C <= 1.
+  Proof.
+  have [_ Hm1 HmM] := and3P (massfun_ax m).
+  move => C.
+  have := forallP (forallP HmM C) setT.
+  under [E in _<=E->_]eq_bigl do rewrite setUT subsetT.
+  by rewrite (eqP Hm1).
+  Qed.
+   *)
+  
+  (** Ensure definitions **)
+  Lemma PsupE (m : massfun) (A : {set W}) :
+    Psup m A = 1 - Pinf m (~:A).
+  Proof.
+  have [Hm0 Hm1] := andP (massfun_ax m).
+  apply/eqP ; rewrite -subr_eq opprK.
+  have H (B : {set W}) : (B \subset ~: A) = ~~ (B :&: A != set0)
+    by rewrite setI_eq0 disjoints_subset Bool.negb_involutive //=.
+  by rewrite [E in _+E==_](eq_bigl _ _ H) -(split_big predT).
+  Qed.
+  #[deprecated(since="belgames2", note="Use PsupE instead.")]
+  Notation PlE := PsupE.
+
+  Lemma PinfE (m : massfun) (A : {set W}) :
+    Pinf m A = 1 - Psup m (~:A).
+  Proof.
+  by rewrite -(add0r 1) PsupE addrKA opprK add0r setCK.
+  Qed.
+  #[deprecated(since="belgames2", note="Use PinfE instead.")]
+  Notation BelE := PinfE.
+
+  
+  Lemma Pl_ge0 (m : bpa) :
+    forall C, Psup m C >= 0.
+  Proof.
+  have /forallP Hm_ge0 := bpa_ax m.
+  move=>C.
+  exact: sumr_ge0.
   Qed.
 
-  Definition bpa_nonemptyW (m : bpa) : W
-    := let (w,_) := (eq_bigmax (fun=>0%N) (bpa_nonempty m)) in w.
-
-
-  Lemma mass_set0 (m : bpa) :
+  (*
+  Lemma Psup_ge0 (m : massfun) :
+    forall C, Psup m C >= 0.
+  Proof.
+  move=>C.
+  rewrite PsupE subr_ge0.
+  exact: Pinf_le1.
+  Qed.
+  #[deprecated(since="belgames2", note="Use Psup_ge0 instead.")]
+  Notation Pl_ge0 := Psup_ge0.
+   *)
+  
+  (*
+  Lemma Psup_le1 (m : bpa) :
+    forall C, Psup m C <= 1.
+  Proof.
+  move=>C.
+  rewrite PsupE.
+  have H11 : 1 <= (1 : R) by [].
+  Check lerB H11 (Pinf_ge0 m (~:C)).
+  rewrite -[E in _<=E]subr0.
+  exact: lerB H11 (Pinf_ge0 m (~:C)).
+  Qed.  
+   *)
+  
+  Lemma mass_set0 (m : massfun) :
     m set0 = 0.
   Proof.
-  have [Hm1 _ _] := and3P (bpa_ax m).
-  exact: (eqP Hm1).
+  have [Hm0 _] := andP (massfun_ax m).
+  exact: (eqP Hm0).
   Qed.
 
-  Lemma focal_neq_set0 (m : bpa) B :
+  Lemma focal_neq_set0 (m : massfun) B :
     focal_element m B -> B != set0.
   Proof.
   case (boolP (B == set0)) => [/eqP ->| //].
   rewrite /focal_element.
-  have [Hm1 _ _] := and3P (bpa_ax m).
-  by rewrite (eqP Hm1) lt0r eqxx andFb.
+  have [Hm0 _] := andP (massfun_ax m).
+  by rewrite (eqP Hm0) eqxx.
   Qed.
 
-  Lemma notin_focalset (m : bpa) B :
+  Lemma notin_focalset (m : massfun) B :
     (B \notin focalset m) = (m B == 0).
   Proof.
-  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
-  rewrite inE /focal_element lt0r.
-  case (boolP (m B == 0)) => -> // ; by rewrite H3.
+  by rewrite !inE Bool.negb_involutive.
   Qed.
 
-  Lemma in_focalset_focalelement (m : bpa) B :
+  Lemma in_focalset_focalelement (m : massfun) B :
     (B \in focalset m) = focal_element m B.
   Proof. by rewrite inE. Qed.
 
   Lemma in_focalset_mass (m : bpa) B :
     (B \in focalset m) = (m B > 0).
   Proof.
-  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
-  by rewrite inE /focal_element lt0r.
+  have /forallP Hm := bpa_ax m.
+  by rewrite inE /focal_element lt0r Hm andbT.
   Qed.
 
-
-  Lemma focalset_nonempty (m : bpa) :
+  
+  Lemma focalelement_card (m : massfun) A :
+    focal_element m A -> (#|A| > 0)%N.
+  Proof.
+  rewrite card_gt0.
+  exact: focal_neq_set0.
+  Qed.
+  
+  Lemma focalset_nonempty (m : massfun) :
     (#|focalset m| > 0)%N.
   Proof.
-  have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
-  apply /card_gt0P.
-  have := (sum_ge0_neq0E (R:=R) (X:={set W}) (P:=predT)) => //= H.
-  edestruct H as [A HA].
-  - move => A HA. exact: forallP Hm3 A.
-  - rewrite (eqP Hm2) eq_sym ; exact: neq01.
-  - exists A ; by rewrite in_focalset_mass.
+  have [Hm0 Hm1] := andP (massfun_ax m).
+  apply /card_gt0P=>/=.
+  have Hm1' : \sum_A m A != 0 by rewrite (eqP Hm1) ; exact: oner_neq0.
+  destruct (big_eq1 Hm1') as [A HA] ; move: HA=>/and3P[_ _ HA0].
+  have HA0F : A != set0 by apply/eqP=>Hcontra ; rewrite Hcontra (eqP Hm0) eqxx in HA0.
+  by exists A ; rewrite inE.
   Qed.
+
+  (** If a bpa is given, then there is (at least) one (x : X) **)
+  Lemma massfun_nonempty (m : massfun) :
+    (#|W| > 0)%N.
+  Proof.
+  apply /card_gt0P.
+  have [A HA] := eq_bigmax_cond (fun=>1%N) (focalset_nonempty m).
+  rewrite inE in HA.
+  have [w _] := eq_bigmax_cond (fun=>1%N) (focalelement_card HA).
+  by exists w.
+  Qed.  
+  #[deprecated(since="belgames2", note="Use massfun_nonempty instead.")]
+  Notation bpa_nonempty := massfun_nonempty.
+
+  
+  Definition massfun_nonemptyW (m : massfun) : W
+    := let (w,_) := (eq_bigmax (fun=>0%N) (massfun_nonempty m)) in w.
+  #[deprecated(since="belgames2", note="Use massfun_nonemptyW instead.")]
+  Notation bpa_nonemptyW := massfun_nonemptyW.
+
 
 
   (** A sum over the focalset, weighted using the mass function, is equal to the same sum over X *)
-  Lemma sum_fun_focalset_cond (P : pred {set W}) (m : bpa) (f : {set W} -> R) :
+  Lemma sum_fun_focalset_cond (P : pred {set W}) (m : massfun) (f : {set W} -> R) :
     \sum_(B in focalset m | P B) m B * f B = \sum_(B : {set W} | P B) m B * f B.
   Proof.
   rewrite big_mkcond [in RHS]big_mkcond.
@@ -225,195 +322,93 @@ Section BelPl.
   - rewrite andFb notin_focalset => /eqP -> ; case (P B) => // ; by rewrite mul0r.
   Qed.
 
-  Lemma sum_fun_focalset (m : bpa) (f : {set W} -> R) :
+  Lemma sum_fun_focalset (m : massfun) (f : {set W} -> R) :
     \sum_(B in focalset m) m B * f B = \sum_(B : {set W}) m B * f B.
   Proof.
-  have := sum_fun_focalset_cond predT m f ; by under eq_bigl do rewrite andbT.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focalset m)) => [_//|].
+  rewrite notin_focalset => /eqP -> ; by rewrite mul0r.
   Qed.
 
-  Lemma sum_mass_focalset_cond (P : pred {set W}) (m : bpa) :
+  Lemma sum_mass_focalset_cond (P : pred {set W}) (m : massfun) :
     \sum_(B in focalset m | P B) m B = \sum_(B : {set W} | P B) m B.
   Proof.
-  have := sum_fun_focalset_cond P m (fun=>1).
-  by under eq_bigr do rewrite mulr1 ; under [RHS]eq_bigr do rewrite mulr1.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focalset m)) => [_|].
+  - by rewrite andTb.
+  - rewrite andFb notin_focalset => /eqP -> ; by case (P B).
   Qed.
 
-  Lemma sum_mass_focalset (m : bpa) :
+  Lemma sum_mass_focalset (m : massfun) :
     \sum_(B in focalset m) m B = \sum_(B : {set W}) m B.
   Proof.
-  have := sum_mass_focalset_cond predT m ; by under eq_bigl do rewrite andbT.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focalset m)) => [_//|].
+  by rewrite notin_focalset => /eqP ->.
   Qed.
 
-  Lemma Bel_focalsetE (m : bpa) A :
-    Bel m A = \sum_(B in focalset m | B \subset A) m B.
+  Lemma Pinf_focalsetE (m : massfun) A :
+    Pinf m A = \sum_(B in focalset m | B \subset A) m B.
   Proof. by rewrite sum_mass_focalset_cond. Qed.
+  #[deprecated(since="belgames2", note="Use Pinf_focalsetE instead.")]
+  Notation Bel_focalsetE := Pinf_focalsetE.
 
-  Lemma Pl_focalsetE (m : bpa) A :
-    Pl m A = \sum_(B in focalset m | B :&: A != set0) m B.
+  Lemma Psup_focalsetE (m : massfun) A :
+    Psup m A = \sum_(B in focalset m | B :&: A != set0) m B.
   Proof. by rewrite sum_mass_focalset_cond. Qed.
+  #[deprecated(since="belgames2", note="Use Psup_focalsetE instead.")]
+  Notation Pl_focalsetE := Psup_focalsetE.
 
-  Lemma Bel0 (m : bpa) :
-    Bel m set0 = 0.
+  Lemma Pinf0 (m : massfun) :
+    Pinf m set0 = 0.
   Proof.
-  rewrite Bel_focalsetE big_pred0 // => A.
+  rewrite Pinf_focalsetE big_pred0 // => A.
   rewrite subset0 in_focalset_focalelement.
   case (boolP (focal_element m A)) => H ; last by rewrite andFb.
   by rewrite (negbTE (focal_neq_set0 H)) andbF.
   Qed.
+  #[deprecated(since="belgames2", note="Use inf0 instead.")]
+  Notation Bel_set0 := Pinf0.
 
-  Lemma Pl0 (m : bpa) :
-    Pl m set0 = 0.
+
+  Lemma Psup0 (m : massfun) :
+    Psup m set0 = 0.
   Proof.
-  rewrite Pl_focalsetE big_pred0 // => A.
+  rewrite Psup_focalsetE big_pred0 // => A.
   by rewrite setI0 eqxx andbF.
   Qed.
+  #[deprecated(since="belgames2", note="Use Psup0 instead.")]
+  Notation Pl_set0 := Psup0.
 
-  Lemma Bel1 (m : bpa) :
-    Bel m setT = 1.
+  Lemma Pinf1 (m : massfun) w :
+    Pinf m [set w] = m [set w].
   Proof.
-  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
-  rewrite /Bel ; under eq_bigl do rewrite subsetT //.
-  exact: (eqP H2).
+  have [Hm0 _] := andP (massfun_ax m).
+  rewrite /Pinf (bigD1 [set w])//= big1 ?addr0=>//A.
+  rewrite subset1=>/andP[/orP [HA1|HA0]HA1F]//.
+  - by rewrite (eqP HA1) eqxx in HA1F.
+  - by rewrite (eqP HA0) ; exact: (eqP Hm0).
   Qed.
 
-  Lemma Pl1 (m : bpa) :
-    Pl m setT = 1.
+  (*
+  Lemma Psup_set1 (m : massfun) w :
+    Psup m [set w] = m [set w].
   Proof.
-  have [H1 H2 /forallP H3] := and3P (bpa_ax m).
-  rewrite /Pl.
-  under eq_bigl do rewrite setIT.
-  rewrite -(eqP H2).
-  rewrite [RHS](bigD1 set0) //=.
-  by rewrite (eqP H1) add0r.
+  have [Hm0 _ _] := and3P (massfun_ax m).
+  rewrite /Psup (bigD1 [set w]) /= ; last by rewrite setIid set1_neq_set0.
+  rewrite //= big1 ?addr0=>//A.
+  case (setI1 A w). =>->.
+  Search set1 setI.
+  About set1_neq_set0.
+  rewrite subset1=>/andP[/orP [HA1|HA0]HA1F]//.
+  - by rewrite (eqP HA1) eqxx in HA1F.
+  - by rewrite (eqP HA0) ; exact: (eqP Hm0).
   Qed.
+  *)
 
-  (** Ensure definitions **)
-  Lemma PlE (m : bpa) (A : {set W}) :
-    Pl m A = 1 - Bel m (~:A).
-  Proof.
-  have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
-  rewrite /Bel/Pl.
-  apply/eqP ; rewrite -subr_eq opprK.
-  have H : forall B : {set W}, (B \subset ~: A) = ~~ (B :&: A != set0).
-  move => B ; by rewrite setI_eq0 disjoints_subset Bool.negb_involutive //=.
-  by rewrite (eq_bigl _ _ H) -(split_big predT) -(eqP Hm2).
-  Qed.
-
-  Lemma BelE (m : bpa) (A : {set W}) :
-    Bel m A = 1 - Pl m (~:A).
-  Proof.
-  by rewrite -(add0r 1) PlE addrKA opprK add0r setCK.
-  Qed.
-
-  
-  Definition superadditive (f : {set W} -> R) :=
-    forall A B : {set W}, [disjoint A & B] -> f (A :|: B) >= f A + f B.
-
-  Definition subadditive (f : {set W} -> R) :=
-    forall A B : {set W}, [disjoint A & B] -> f (A :|: B) <= f A + f B.
-
-  Lemma Bel_super m : superadditive (Bel m).
-  Proof.
-  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
-  rewrite /Bel => A B HAB.  
-  rewrite (bigD1 set0 (sub0set A : (fun _ : {set W} => _) set0)) /=.
-  rewrite (bigD1 set0 (sub0set B : (fun _ : {set W} => _) set0)) /=.
-  rewrite (bigD1 set0 (sub0set (A :|: B) : (fun _ : {set W} => _) set0)) /=.
-  rewrite !(eqP Hm1) !add0r.
-  rewrite [s in _ <= s](bigID (fun X : {set W} => X \subset A)) => /=.
-  rewrite [s in _ <= _ + s](bigID (fun X : {set W} => X \subset B)) => /=.
-  - have H1 (X : {set W}) : (X \subset A) && (X != set0)
-                            = (X \subset A :|: B) && (X != set0) && (X \subset A).
-    case (X != set0) ; last by rewrite !andbF andFb.
-    case (boolP (X \subset A)) => H ; last by rewrite andbF.
-    symmetry ; rewrite !andbT ; apply subsetU ; by rewrite H orTb.
-  - have H2 (X : {set W}) : (X \subset B) && (X != set0)
-                            = (X \subset A :|: B) && (X != set0) && ~~(X \subset A) && (X \subset B).
-    case (boolP (X != set0)) => H0 ; last by rewrite !andbF andFb.
-    case (boolP (X \subset B)) => H ; last by rewrite andbF.
-    symmetry ; rewrite !andbT ; apply/andP ; split.
-    + apply: subsetU ; by rewrite H orbT.
-    + rewrite disjoint_sym in HAB ; by apply: (subset_disjoint HAB).
-  - by rewrite -(eq_bigl _ _ H1)  -(eq_bigl _ _ H2) addrA lerDl sum_ge0.
-  Qed.
-
-  Lemma Pl_sub m : subadditive (Pl m).
-  Proof.
-  rewrite /Pl => A B HAB.
-  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).  
-  set PA0 : pred {set W} := fun X => X :&: A == set0.
-  set PB0 : pred {set W} := fun X => X :&: B == set0.
-  rewrite [s in _ <= _ + s](bigID PA0) /=.
-  rewrite [s in _ <= s + _](bigID PB0) /=.
-  rewrite (bigID PA0) /=.
-  rewrite [s in _ + s <= _](bigID PB0) /= !addrA.
-  rewrite (bigID PB0) /=.
-  rewrite big_pred0 => [|X] ; first rewrite add0r.
-  rewrite (eq_bigl [predD PA0 & PB0])  => [|X] /=.
-  rewrite [s in _ + s + _ <= _](eq_bigl [predD PB0 & PA0]) => [|X].
-  rewrite [s in _ + _ + s <= _](eq_bigl [predI [predC PA0] & [predC PB0]]) => [|X].
-  rewrite [s in _ <= s + _ + _ + _](eq_bigl [predD PB0 & PA0]) => //.
-  rewrite [s in _ <= _ + s + _ + _](eq_bigl [predI [predC PA0] & [predC PB0]]) => //.
-  rewrite [s in _ <= _ + _ + s + _](eq_bigl [predD PA0 &  PB0]) => //.
-  rewrite [s in _ <= _ + _ + _ + s](eq_bigl [predI [predC PB0] & [predC PA0]]) => //.
-  rewrite [s in s + _ <= _]addrC.
-  by rewrite -addrA [s in _ + (s) <= _]addrC addrA lerDl sum_ge0.
-  - rewrite !inE setIUr !/(_ \in _) !/mem /=.
-    case (boolP (PA0 X)) => [/eqP ->|HA0] ; first by rewrite andbF.
-    case (boolP (PB0 X)) => [/eqP ->|/set0Pn [x Hx]] ; first by rewrite andbF.
-    rewrite !andbT /= ; apply/set0Pn.
-    by exists x ; rewrite in_setU Hx orbT.
-  - rewrite setIUr !inE !/(_ \in _) !/mem /=.
-    case (boolP (PA0 X)) => [/eqP ->|HA0] ; first by rewrite andbF.
-    case (boolP (PB0 X)) => [/eqP -> |HB0] ; first by rewrite setU0 HA0.
-    by rewrite andbF.
-  - rewrite setIUr !/(_ \in _) !/mem /=.
-    case (boolP (PA0 X)) => [/eqP ->|HA0].
-    rewrite set0U andbT.
-    by case (boolP (PB0 X)) => [/eqP -> |HB0] ; try rewrite eqxx ; try rewrite andbT.
-  - by case (boolP (PB0 X)) => [/eqP -> |HB0] ; rewrite !andbF.
-  - case (boolP (PA0 X)) => /eqP HA ; last by rewrite andbF.
-    case (boolP (PB0 X)) => /eqP HB ; last by rewrite andbF.
-    by rewrite setIUr !andbT HA HB set0U eqxx.
-  Qed.
-
-  Lemma Bel_monotone m A B : Bel m (A :|: B) >= Bel m A.
-  Proof.
-  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
-  rewrite [s in _ <= s](bigID [pred X : {set W} | X \subset A]) => /=.
-  rewrite [s in s + _](eq_bigl [pred X : {set W} | X \subset A]) => /=.
-  - rewrite lerDl ; apply: sumr_ge0 => X _ ; exact: Hm3 X.
-  - move => X /= ; case (boolP (X \subset A)) => H ; last by rewrite andbF.
-    by rewrite subsetU // H orTb.
-  Qed.
-
-  Lemma Bel_ge0 (m : bpa) A : Bel m A >= 0.
-  Proof. rewrite -(set0U A) -(Bel0 m) ; exact: Bel_monotone. Qed.
-
-  Lemma Bel_le1 (m : bpa) A : Bel m A <= 1.
-  Proof.  rewrite -(Bel1 m)  -(setUCr A) ; exact: Bel_monotone. Qed.
-
-  Lemma Pl_monotone m A B : Pl m (A :|: B) >= Pl m A.
-  Proof.
-  have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
-  rewrite /Pl.
-  rewrite [s in _ <= s](bigID [pred X : {set W} | X :&: A != set0]) => /=.
-  rewrite [s in s + _](eq_bigl [pred X : {set W} | X :&: A != set0]) => /=.
-  - rewrite lerDl.
-    apply: sumr_ge0 => X _.
-    exact: Hm3 X.
-  - move => X /=.
-    case (boolP (X :&: A != set0)) => [/set0Pn [x Hx]|_] ; last by rewrite andbF.
-    rewrite setIUr andbT.
-    apply/set0Pn ; exists x.
-    by rewrite in_setU Hx orTb.
-  Qed.
-
-  Lemma Pl_ge0 (m : bpa) A : Pl m A >= 0.
-  Proof. rewrite -(set0U A) -(Pl0 m) ; exact: Pl_monotone. Qed.
-
-  Lemma Pl_le1 (m : bpa) A : Pl m A <= 1.
-  Proof.  rewrite -(Pl1 m)  -(setUCr A) ; exact: Pl_monotone. Qed.
 
   Section KAdditivity.
     (**
@@ -431,7 +426,7 @@ Section BelPl.
     Lemma k_additive1E m :
       1%N.-additive m <-> (forall B, B \in focalset m -> (#|B| == 1)%N).
     Proof.
-    have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
+    have [Hm0 Hm1] := andP (massfun_ax m).
     rewrite /k_additivity ; split => /= [Hkadd B Hfocal | H].
     - have := leq_bigmax_cond (P:=fun B => B \in focalset m) (F:=fun B : {set W} => #|B|) B Hfocal.
       rewrite (eqP Hkadd).
@@ -445,10 +440,13 @@ Section BelPl.
       rewrite HA2.
       exact: (eqP (H A HA1)).
     Qed.
+    
+
+    Notation proba_axiom p := (1%N.-additive p) (only parsing).
 
     Structure proba :=
       { proba_val :> bpa ;
-        proba_ax : 1%N.-additive proba_val }.
+        proba_ax : proba_axiom proba_val }.
 
     Definition proba_eq : rel proba := fun p1 p2 => proba_val p1 == proba_val p2.
 
@@ -459,25 +457,27 @@ Section BelPl.
     by rewrite (eq_irrelevance Hm1 Hm2).
     Qed.
 
-    HB.instance Definition _ : hasDecEq proba := hasDecEq.Build proba proba_eqP.
+    Lemma proba_eqE (p1 p2 : proba) :
+      proba_val p1 = proba_val p2 -> p1 = p2.
+    Proof.
+    case: p1=>m1 Hm1 ; case: p2 => m2 Hm2 /= Heq.
+    move: Hm1 Hm2.
+    rewrite Heq=>Hm1 Hm2.
+    by rewrite (eq_irrelevance Hm1 Hm2).
+    Qed.
+
+    HB.instance Definition proba_eqType : hasDecEq proba := hasDecEq.Build proba proba_eqP.
+    
 
     Lemma proba_set1_eq0 (p : proba) (s : {set W}) : #|s| != 1%N -> p s = 0.
     Proof.
       move=> Hneq1.
-      have H1 := proba_ax p.
-      rewrite k_additive1E in H1.
+      have := proba_ax p.
+      rewrite k_additive1E => H1.
       move/(_ s) in H1.
       apply/eqP; rewrite -[_ == 0]negbK.
       apply/negP=> K0.
-      have Hfocal : s \in focalset p.
-      { rewrite in_focalset_focalelement /focal_element.
-        case: p {H1} K0 => [b Hb] K0 /=.
-        case: b Hb K0 => [m Hm] /= Hb K0.
-        clear Hb.
-        rewrite /bpa_axiom in Hm.
-        have /and3P [_ _ /forallP Hpos] := Hm.
-        move/(_ s) in Hpos.
-        by rewrite lt0r Hpos K0. }
+      have Hfocal : s \in focalset p by rewrite in_focalset_focalelement.
       by rewrite (eqP (H1 Hfocal)) in Hneq1.
     Qed.
 
@@ -488,9 +488,10 @@ Section BelPl.
     Lemma is_dist_dist (p : proba) : is_dist (dist p).
     Proof.
     destruct p as [m Hp].
-    have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
+    have [Hm0 Hm1] := andP (massfun_ax m).
+    have Hm_ge0 := bpa_ax m.
     rewrite /dist ; apply/andP ; split => /=.
-    - rewrite -(eqP Hm2).
+    - rewrite -(eqP Hm1).
       rewrite (split_big _ (fun w => [set w] \in focalset m)) /= addrC big1 => [|w] ; last by rewrite notin_focalset => /eqP ->.
       apply/eqP ; symmetry.
       rewrite add0r -sum_mass_focalset.
@@ -500,16 +501,16 @@ Section BelPl.
       + apply set1_oinv_omap.
         by apply (k_additive1E m).
     - apply/forallP => w.
-      exact: (forallP Hm3).
+      exact: (forallP Hm_ge0).
     Qed.
 
     Definition Pr (p : proba) := fun A : {set W} => \sum_(w in A) dist p w.
 
-    Lemma Pr_BelE (p : proba) :
-      Pr p =1 Bel p.
+    Lemma Pr_PinfE (p : proba) :
+      Pr p =1 Pinf p.
     Proof.
     move => A.
-    rewrite /Pr Bel_focalsetE.
+    rewrite /Pr Pinf_focalsetE.
     rewrite (split_big _ (fun w => [set w] \in focalset p)) /=.
     rewrite addrC big1 => [|w /andP [Hw1 Hw2]].
     - rewrite add0r.
@@ -521,14 +522,17 @@ Section BelPl.
     - rewrite notin_focalset in Hw2.
       exact: eqP Hw2.
     Qed.
+    #[deprecated(since="belgames2", note="Use Pr_PinfE instead.")]
+    Notation Pr_BelE := Pr_PinfE.
 
-    Lemma Pr_PlE (p : proba) :
-      Pr p =1 Pl p.
+  
+    Lemma Pr_PsupE (p : proba) :
+      Pr p =1 Psup p.
     Proof.
-    move => B ; rewrite Pr_BelE.
+    move => B ; rewrite Pr_PinfE.
     destruct p as [m Hp].
     have := Hp ;  rewrite k_additive1E => Hkadd.
-    rewrite Bel_focalsetE Pl_focalsetE /=.
+    rewrite Pinf_focalsetE Psup_focalsetE /=.
     rewrite (split_big _ (fun B : {set W} => #|B|==1%N )) ;
       rewrite [in RHS](split_big _ (fun B : {set W} => #|B|==1%N )) /=.
     have Hpred0 P (A : {set W}) : (A \in focalset m) && (P A) && (#|A| != 1%N) = false.
@@ -543,24 +547,21 @@ Section BelPl.
     destruct (cards1P (Hkadd A Hfocal)) as [w Hw] ; rewrite Hw sub1set.
     by rewrite setI_eq0 disjoints1 Bool.negb_involutive.
     Qed.
-
-    Lemma PrE (m : proba) (A : {set W}) : Bel m A = Pl m A.
-    Proof. by rewrite -Pr_BelE Pr_PlE. Qed.
-
-    Lemma Pr_distE (m : proba) A : Bel m A = \sum_(w in A) dist m w.
-    Proof. by rewrite -Pr_BelE. Qed.
+    #[deprecated(since="belgames2", note="Use Pr_PsupE instead.")]
+    Notation Pr_PlE := Pr_PsupE.
 
     Lemma proba_sum_dist_eq1 (p : proba) :
       \sum_w dist p w = 1.
     Proof.
-    have [Hm1 Hm2 Hm3] := and3P (bpa_ax p).
-    have H : Pr p setT = 1.
-    rewrite Pr_BelE /Bel ; under eq_bigl do rewrite subsetT ; exact: (eqP Hm2).
+    have [Hm0 Hm1] := andP (massfun_ax p).
+    have H : Pr p setT = 1
+      by rewrite Pr_PinfE /Pinf ; under eq_bigl do rewrite subsetT ; rewrite (eqP Hm1).
     move: H => /=. rewrite /Pr.
     by under eq_bigl do rewrite in_setT.
     Qed.
 
-    Definition bpa_of_dist_fun (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : {ffun {set W} -> R}
+    (** For TBEU correctness -- to do LATER! *)
+    Definition massfun_of_dist_fun (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : {ffun {set W} -> R}
       := [ffun A : {set W} => if #|A| == 1%N
                               then match boolP (A != set0) with
                                    | AltTrue h => f (pick_nonemptyset h)
@@ -568,12 +569,43 @@ Section BelPl.
                                    end
                               else 0].
 
-    Lemma bpa_of_dist_ax (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
-      bpa_axiom (bpa_of_dist_fun Hf).
+    (*
+    Lemma massfun_of_dist_monotone (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
+      monotonic_massfun (massfun_of_dist_fun Hf).
     Proof.
-    rewrite /bpa_of_dist_fun.
+    have [Hf1 /forallP Hf0] := andP Hf.
+    apply/forallP=>A ; apply/forallP=>B.
+    rewrite [E in _<=E](bigID (fun i : {set W} => i \subset A)) /=.
+    rewrite [E in _<=E+_](eq_bigl (fun i : {set W} => i \subset A)).
+    rewrite (bigID (fun i : {set W} => #|i|==1)%N)
+    [E in _<=_+E](bigID (fun i : {set W} => #|i|==1)%N) /=.
+    rewrite [E in _+E<=_]big1 ;
+      rewrite ?[E in _<=_+_+(_+E)]big1 ;
+      rewrite ?[E in _<=_+E+_]big1 ?addr0.
+    + rewrite big_mkcondl big_card1 -big_mkcond/=.
+      rewrite [E in _<=_+E]big_mkcondl big_card1 -[E in _<=_+E]big_mkcond/=.
+      rewrite lerDl sumr_ge0=>//w H.
+      rewrite ffunE cards1 /=.
+      by case (boolP ([set w] != set0)).
+    + move=>C/andP[_ H].
+      by rewrite ffunE (negbTE H).
+    + move=>C/andP[_ H].
+      by rewrite ffunE (negbTE H).
+    + move=>C/andP[_ H].
+      by rewrite ffunE (negbTE H).
+    + move=>C.
+      Search subset setU.
+      case (boolP (C \subset A))=>H.
+      * by rewrite subsetU // H.
+      * by rewrite andbF.
+    Qed.
+     *)
+    
+    Lemma massfun_of_dist_ax (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
+      massfun_axiom (massfun_of_dist_fun Hf).
+    Proof.
     have [Hf1 Hf2] := (andP Hf).
-    apply/and3P ; split.
+    apply/andP ; split.
     - by rewrite ffunE cards0.
     - under eq_bigr do rewrite ffunE.
       rewrite -big_mkcond.
@@ -587,6 +619,17 @@ Section BelPl.
           by rewrite (pick_set1 (x:=w)).
         * exact: set1_oinv_omap.
       + case (boolP (w != set0)) => // H ; by rewrite H in Hw2.
+        (* - exact: massfun_of_dist_monotone. *)
+    Qed.
+
+    Definition massfun_of_dist (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : massfun
+      := {| massfun_ax := massfun_of_dist_ax Hf |}.
+
+    Lemma bpa_of_dist_ax (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
+      bpa_axiom (massfun_of_dist Hf).
+    Proof.
+    have [Hf1 Hf2] := (andP Hf).
+    rewrite /bpa_axiom.
     - apply/forallP => A ; rewrite ffunE.
       case (#|A|==1%N) ; last by rewrite le0r eqxx orTb.
       case (boolP ((A : {set W}) != set0)) => H ; last by rewrite le0r eqxx orTb.
@@ -596,14 +639,20 @@ Section BelPl.
     Definition bpa_of_dist (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : bpa
       := {| bpa_ax := bpa_of_dist_ax Hf |}.
 
+    Lemma massfun_of_dist_1add (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
+      1%N.-additive massfun_of_dist Hf.
+    Proof.
+    apply k_additive1E => B ; rewrite inE/focal_element ffunE.
+    case (boolP (#|B| == 1)%N) => H /=.
+    - case (boolP ((B : {set W}) != set0)) => [HB //|/negPn/eqP HB].
+      by rewrite HB cards0 in H.
+    - by rewrite eqxx.
+    Qed.
+
     Lemma bpa_of_dist_1add (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) :
       1%N.-additive bpa_of_dist Hf.
     Proof.
-    apply k_additive1E => B ; rewrite /bpa_of_dist in_focalset_mass /bpa_of_dist_fun ffunE => /=.
-    case (boolP (#|B| == 1)%N) => H /=.
-    - case (boolP (negb (@eq_op (_ W) B (@set0 W)))) => [HB //|/negPn/eqP HB].
-      by rewrite HB cards0 in H.
-    - by rewrite lt0r eqxx andFb.
+    exact: massfun_of_dist_1add.
     Qed.
 
     Definition proba_of_dist (f : W -> R) (Hf : [&& \sum_w f w == 1 & [forall w, f w >= 0]]) : proba
@@ -612,7 +661,7 @@ Section BelPl.
     Lemma proba_of_distE f (Hf :[&& \sum_w f w == 1 & [forall w, f w >= 0]]) w :
       dist (proba_of_dist Hf) w = f w.
     Proof.
-    rewrite /dist/proba_of_dist/=/bpa_of_dist_fun ffunE cards1 eqxx.
+    rewrite /dist/proba_of_dist/=/massfun_of_dist_fun ffunE cards1 eqxx.
     case (boolP ([set w] != set0)) => [H|/negPn /eqP H].
       by rewrite (pick_set1 (x:=w)).
       have : (0 = 1)%N. by rewrite -(cards1 w) -(cards0 W) H.
@@ -630,47 +679,41 @@ Section BelPl.
     Section ConditioningDefs.
       (** A conditioning transform Bel to Bel(.|C):
           - C should verify some predicate 'revisable'
-          - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0)
+          - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0 for belief function)
        **)
-
-      Definition conditioning_axiom
-          (revisable : bpa -> pred {set W})
-          (cond : forall m C, revisable m C -> bpa)
-        := forall m C (HC : revisable m C), Bel (cond m C HC) (~:C) = 0.
+      (*
+      Definition conditioning_axiom (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
+        := forall m C (HC : revisable m C), Pinf (cond m C HC) (~:C) = 0.
+       *)
+      Definition conditioning_axiom (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
+        := forall m C (HC : revisable m C) (A : {set W}), A \subset ~:C -> cond m C HC A = 0.
 
       Structure conditioning
-        := { revisable : bpa -> pred {set W} ;
-             cond_val m C :>  revisable m C -> bpa ;
+        := { revisable : massfun -> pred {set W} ;
+             cond_val m C :>  revisable m C -> massfun ;
              cond_ax : @conditioning_axiom revisable cond_val }.
 
-      Lemma conditioning_axiomE (revisable : bpa -> pred {set W}) (cond : forall m C, revisable m C -> bpa)
+
+      Lemma conditioning_axiomE (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
         : conditioning_axiom cond ->
-          forall (m : bpa) (C : {set W}) (HC : revisable m C),
+          forall (m : massfun) (C : {set W}) (HC : revisable m C),
           forall B : {set W},
           (B \subset ~: C) -> B \notin focalset (cond m C HC).
       Proof.
-      rewrite /conditioning_axiom => Hcond m C HC B HB /=.
-      rewrite notin_focalset.
-      apply/eqP.
-      apply (sum_ge0_eq0E (R:=R) (P:=fun B : {set W} => B \subset ~:C)) => //.
-      - move => A HA.
-        have [_ _ /forallP H] := and3P (bpa_ax (cond m C HC)).
-        exact: H A.
-      - by rewrite -[in RHS](Hcond m C HC).
+      move=>Hcond m C HC B HB /=.
+      rewrite inE Bool.negb_involutive.
+      by apply/eqP/Hcond.
       Qed.
 
-      Lemma conditioning_axiomE2 (revisable : bpa -> pred {set W}) (cond : forall m C, revisable m C -> bpa)
-        : (forall (m : bpa) (C : {set W}) (HC : revisable m C),
+      Lemma conditioning_axiomE2 (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
+        : (forall (m : massfun) (C : {set W}) (HC : revisable m C),
               forall B : {set W}, (B \subset ~: C) -> B \notin focalset (cond m C HC))
         -> conditioning_axiom cond.
       Proof.
-      rewrite /conditioning_axiom => H m C HC /=.
-      rewrite Bel_focalsetE (eq_bigl pred0).
-      - exact: big_pred0.
-      - move => A.
-        case (boolP (A \subset ~:C)) => [HA|].
-        + by rewrite (negbTE (H m C HC A HA)) andFb.
-        + by rewrite andbF.
+      move=>H m C HC A HA /=.
+      have HcondE : A \notin focalset (cond m C HC) -> cond m C HC A = 0
+        by rewrite inE=>/negbNE/eqP->.
+      apply HcondE ; exact: H.
       Qed.
 
     End ConditioningDefs.
@@ -679,45 +722,53 @@ Section BelPl.
 
     Section DempsterConditioning.
 
-      Definition Dempster_revisable m C := Pl m C != 0.
+      Definition Dempster_cond_revisable m C := Psup m C != 0.
 
-      Definition Dempster_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
-        if A == set0 then 0
-        else \sum_(B : {set W} | (B \in focalset m) && (B :&: C == A)) m B / Pl m C].
+      Definition Dempster_cond_fun (m : massfun) (C : {set W}) :=
+       [ffun A : {set W} => if A == set0 then 0
+                           else \sum_(B : {set W} | (B :&: C == A)) m B / Psup m C].
 
-      Program Definition Dempster_cond m C (HC : Dempster_revisable m C) : bpa :=
-        {| bpa_val := Dempster_fun m C ; bpa_ax := _ |}.
-      Next Obligation.
+      
+      Lemma Dempster_cond_massfun_ax (m : massfun) (C : {set W}) (HC : Dempster_cond_revisable m C) :
+        massfun_axiom (Dempster_cond_fun m C).
       Proof.
-      move=>m C HC.
-      apply/and3P ; split.
+      apply/andP ; split.
       - by rewrite ffunE eqxx.
       - under eq_bigr do rewrite ffunE -if_neg.
         rewrite -big_mkcond /=.
         under eq_bigr do rewrite sum_div.
-        rewrite sum_div_eq1.
-        under eq_bigr do rewrite sum_mass_focalset_cond.
+        rewrite sum_div_eq1 ; last exact: HC.
         rewrite (eq_bigr (fun A => (\sum_(B | B :&: C == A) m B) * 1)) ; last by move => B ; rewrite mulr1.
-        rewrite -big_setI_distrl /= /Pl.
+        rewrite -big_setI_distrl /=.
         apply/eqP ; apply eq_bigr => B ; by rewrite mulr1.
-        - exact : HC.
-        - apply/forallP => B ; rewrite ffunE.
-          case: ifP => _.
-          + auto with *.
-          + apply: sum_ge0 => A /andP [HA HA2].
-            have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
-            apply divr_ge0 ; first by rewrite Hm3.
-            exact: Pl_ge0.
       Qed.
 
-      Lemma Dempster_cond_sumE m C (HC : Dempster_revisable m C) f :
+      Definition Dempster_cond (m : massfun) (C : {set W}) (HC : Dempster_cond_revisable m C) : massfun
+        := {| massfun_ax := Dempster_cond_massfun_ax HC |}.
+      
+      Lemma Dempster_cond_bpa_ax (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) :
+        bpa_axiom (Dempster_cond HC).
+      Proof.
+      apply/forallP => B ; rewrite ffunE.
+      case: ifP => _.
+      + auto with *.
+      + apply: sumr_ge0 => A HA.
+        have /forallP Hm3 := bpa_ax m.
+        apply divr_ge0 ; first by rewrite Hm3.
+        exact: Pl_ge0.
+      Qed.
+
+      Definition Dempster_cond_bpa (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) : bpa
+        := {| bpa_ax := Dempster_cond_bpa_ax HC |}.
+
+      Lemma Dempster_cond_sumE m C (HC : Dempster_cond_revisable m C) f :
         \sum_(B in focalset (Dempster_cond HC))
          Dempster_cond HC B * f B
         =
         (\sum_(A in focalset m)
           if A :&: C != set0
           then m A * f (A :&: C)
-          else 0) / Pl m C.
+          else 0) / Psup m C.
       Proof.
       rewrite -[in RHS]big_mkcondr sum_fun_focalset_cond.
       Opaque Dempster_cond.
@@ -727,74 +778,49 @@ Section BelPl.
       rewrite big_distrl /=.
       under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
       apply eq_big => // B HB.
-      by rewrite ffunE (negbTE HB) sum_fun_focalset_cond.
+      Transparent Dempster_cond.
+      by rewrite ffunE (negbTE HB).
       Qed.
 
-      Program Definition Dempster_conditioning : conditioning :=
-        {| cond_val := Dempster_cond ; cond_ax := _ |}.
-      Next Obligation.
+      Lemma Dempster_cond_axiom : @conditioning_axiom Dempster_cond_revisable Dempster_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B HB.
       rewrite notin_focalset ffunE => //=.
       case (boolP (B == set0)) => // /set0Pn [w Hw].
       rewrite big_pred0 => // A.
-      case (boolP (A :&: C == B)) => HA ; last by rewrite andbF.
+      case (boolP (A :&: C == B)) => //HA.
       rewrite -(eqP HA) in HB ; rewrite -(eqP HA) in Hw.
       contradiction (subsetF (subsetIr A C) HB Hw).
       Qed.
 
-      Lemma Dempster_condE m C HC :
-        forall A, Pl (Dempster_conditioning m C HC) A = Pl m (A :&: C) / Pl m C.
-      Proof.
-      move => A /=.
-      rewrite {1}/Pl {1}/Pl /Dempster_fun  big_distrl /=.
-      under eq_bigr do rewrite ffunE -if_neg sum_fun_focalset_cond.
-      rewrite -big_mkcondr /=.
-      rewrite (eq_bigl (fun X => X :&: A != set0)) ;
-        last by move => X ; case (boolP (X == set0)) => /eqP H ; try rewrite H set0I eqxx; try rewrite andbT.
-      set Q := [pred B : {set W} | B :&: A != set0].
-      have H (B : {set W}) : B :&: (A :&: C) != set0 -> Q (B :&: C) by rewrite [i in _ :&: (i)]setIC setIA.
-      have := partition_big (fun B => B :&: C) [pred B | B :&: A != set0] H => //= th.
-      rewrite th /=.
-      apply: eq_bigr => B HB.
-      apply: eq_big => // B0.
-      have Bneq0 : B != set0 by apply/negP => Hcontra ; rewrite (eqP Hcontra) set0I eqxx in HB.
-      case (boolP (B0 :&: C == B)) => HB0; last by rewrite (negbTE HB0) andbF.
-      by rewrite HB0 setIC -setIA [i in _ :&: i]setIC (eqP HB0) setIC HB.
-      Qed.
+      Definition Dempster_conditioning : conditioning
+        := {| cond_val := Dempster_cond ;
+              cond_ax := Dempster_cond_axiom |}.
+
     End DempsterConditioning.
+
 
 
     Section StrongConditioning.
 
 
-      Definition Strong_revisable (m : bpa) := fun C : {set W} => Bel m C != 0.
+      Definition Strong_cond_revisable (m : massfun) := fun C : {set W} => Pinf m C != 0.
 
-      Definition Strong_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
-        if (A != set0) && (A \subset C) then m A / Bel m C else 0].
-
-      Program Definition Strong_cond m C (HC : Strong_revisable m C) : bpa :=
-        {| bpa_val := Strong_fun m C ; bpa_ax := _ |}.
-      Next Obligation.
-      Proof.
-      move=>m C HC.
-      have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
-      apply/and3P ; split.
+      Definition Strong_cond (m : massfun) (C : {set W}) (HC : Strong_cond_revisable m C) : massfun.
+      exists [ffun A : {set W} => if (A != set0) && (A \subset C)
+                                  then m A / Pinf m C
+                                  else 0].
+      have [/eqP Hm0 /eqP Hm1] := andP (massfun_ax m).
+      apply/andP ; split.
       - by rewrite ffunE eqxx.
       - under eq_bigr do rewrite ffunE.
-        rewrite -big_mkcond sum_div_eq1 /Bel ; last exact: HC.
+        rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
         apply/eqP.
         rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
-        by rewrite Hm1 add0r ; under eq_bigl do rewrite andbC.
-        - apply/forallP=>B ; rewrite ffunE.
-          case (boolP ((B != set0) && (B \subset C))) => [->|H].
-          + exact: divr_ge0 (Hm3 B) (Bel_ge0 m C).
-          + by rewrite (negbTE H) le0r eqxx.
-      Qed.
+        by rewrite Hm0 add0r ; under eq_bigl do rewrite andbC.
+      Defined.
 
-      Program Definition Strong_conditioning : conditioning :=
-        {| cond_val := Strong_cond ; cond_ax := _ |}.
-      Next Obligation.
+      Lemma Strong_cond_axiom : @conditioning_axiom Strong_cond_revisable Strong_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
       rewrite notin_focalset ffunE => //=.
@@ -803,50 +829,29 @@ Section BelPl.
       contradiction (subsetF HB H Hw).
       Qed.
 
-      Lemma Strong_condE m C HC :
-        forall A, Bel (Strong_conditioning m C HC) A = Bel m (A :&: C) / Bel m C.
-      Proof.
-      move => A /=.
-      rewrite /Strong_cond /Bel big_distrl /=.
-      under eq_bigr do rewrite ffunE.
-      rewrite -big_mkcondr /=.
-      rewrite [RHS](bigD1 set0) /= ; last exact: sub0set.
-      have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
-      rewrite Hm1 mul0r add0r.
-      apply eq_big => [B| //].
-      case (boolP (B \subset A :&: C)).
-      - by rewrite subsetI => /andP [-> ->] ; rewrite !andTb andbT.
-      - by rewrite subsetI negb_and => /orP ; case => H ; rewrite (negbTE H) !andFb // !andbF.
-      Qed.
+      Definition Strong_conditioning : conditioning
+        := {| cond_val := Strong_cond ;
+              cond_ax := Strong_cond_axiom |}.
 
     End StrongConditioning.
 
 
     Section WeakConditioning.
 
-      Definition Weak_revisable (m : bpa) := fun C : {set W} => Pl m C != 0.
+      Definition Weak_cond_revisable (m : massfun) := fun C : {set W} => Psup m C != 0.
 
-      Definition Weak_fun (m : bpa) (C : {set W}) := [ffun A : {set W} =>
-        if A :&: C != set0 then m A / Pl m C else 0].
-
-      Program Definition Weak_cond m C (HC : Weak_revisable m C) : bpa :=
-        {| bpa_val := Weak_fun m C ; bpa_ax := _ |}.
-      Next Obligation.
-      Proof.
-      move=>m C HC.
-      have [/eqP Hm1 /eqP Hm2 /forallP Hm3] := and3P (bpa_ax m).
-      apply/and3P ; split.
+      Definition Weak_cond (m : massfun) (C : {set W}) (HC : Weak_cond_revisable m C) : massfun.
+      exists [ffun A : {set W} => if A :&: C != set0
+                                  then m A / Psup m C
+                                  else 0].
+      have [/eqP Hm1 /eqP Hm2] := andP (massfun_ax m).
+      apply/andP ; split.
       - by rewrite ffunE set0I eqxx.
       - under eq_bigr do rewrite ffunE.
-        rewrite -big_mkcond sum_div_eq1 /Pl // ; by rewrite sum_mass_focalset_cond.
-      - apply/forallP => B ; rewrite ffunE.
-        case (boolP (B :&: C == set0)) => //= H.
-        by rewrite divr_ge0 // Pl_ge0.
-      Qed.
+                         rewrite -big_mkcond sum_div_eq1 // ; by rewrite sum_mass_focalset_cond.
+      Defined.
 
-      Program Definition Weak_conditioning : conditioning :=
-        {| cond_val := Weak_cond ; cond_ax := _ |}.
-      Next Obligation.
+      Lemma Weak_cond_axiom : @conditioning_axiom Weak_cond_revisable Weak_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
       rewrite notin_focalset ffunE => //=.
@@ -856,23 +861,16 @@ Section BelPl.
       have := H w => /= ; rewrite Hw1 andbT => /negP/negP.
       by rewrite in_setC Hw2.
       Qed.
-
-      Lemma Weak_condE m C HC :
-        forall A, Bel (Weak_conditioning m C HC) A = (Bel m A - Bel m (A :\: C)) / Pl m C.
-      Proof.
-        move=> A /=.
-        rewrite /Weak_cond /Pr /Bel /=.
-        under eq_bigr => B do rewrite ffunE.
-        under [X in _ = (_ - X) / _]eq_bigl => B do rewrite subsetD.
-        rewrite big_mkcondr -GRing.sumrB big_distrl.
-        apply: eq_bigr => B Hsub /=.
-        rewrite -setI_eq0 if_neg.
-        case: ifP => _.
-        - by rewrite subrr mul0r.
-        - by rewrite subr0.
-      Qed.
+      
+      Definition Weak_conditioning : conditioning
+        := {| cond_val := Weak_cond ;
+              cond_ax := Weak_cond_axiom |}.
 
     End WeakConditioning.
+
+
+
+
 
 
     Section ProbaConditioning.
@@ -883,7 +881,7 @@ Section BelPl.
       Definition Pr_conditioning_dist (p : proba) C (HC : Pr_revisable p C) :=
         fun w => (if w \in C then dist p w else 0) / Pr p C.
 
-      Lemma Pr_conditioning_dist_is_dist p C (HC : Pr_revisable p C) :
+      Lemma Pr_conditinoing_dist_is_dist p C (HC : Pr_revisable p C) :
         is_dist (Pr_conditioning_dist HC).
       Proof.
       apply/andP ; split.
@@ -891,22 +889,24 @@ Section BelPl.
       - apply/forallP => w.
         rewrite /Pr_conditioning_dist/Pr/dist.
         destruct p as [m Hm] => /=.
-        have [Hm1 Hm2 /forallP Hm3] := and3P (bpa_ax m).
+        have /forallP Hm3 := bpa_ax m.
         case (w \in C).
         + apply: divr_ge0 => //=.
-          by apply: sum_ge0 => w' _.
+          by apply: sumr_ge0 => w' _.
         + by rewrite mul0r le0r eqxx orTb.
       Qed.
 
       Definition Pr_conditioning (p : proba) C (HC : Pr_revisable p C) : proba
-        := proba_of_dist (Pr_conditioning_dist_is_dist HC).
+        := proba_of_dist (Pr_conditinoing_dist_is_dist HC).
 
-      Lemma Pr_revisable_of_Dempster_revisable (p : proba) C (HC : Dempster_revisable p C) :
+      Lemma Pr_revisable_of_Dempster_revisable (p : proba) C (HC : Dempster_cond_revisable p C) :
         Pr_revisable p C.
-      Proof. by rewrite /Pr_revisable Pr_PlE. Qed.
+      Proof. by rewrite /Pr_revisable Pr_PsupE. Qed.
 
     End ProbaConditioning.
   End Conditioning.
+
+
 
 
   Section ScoringFunctions.
@@ -1008,13 +1008,13 @@ Section BelPl.
     by rewrite in_set1.
     Qed.
 
-    Definition ChoquetIntg (u : W -> R) (m : bpa) :=
+    Definition ChoquetIntg (u : W -> R) (m : massfun) :=
       \sum_(B in focalset m) m B * match minS u B with
                                    | Some r => r
                                    | None => 0
                                    end.
 
-    Lemma Bfocal_minS_Some (m : bpa) (u : W -> R) :
+    Lemma Bfocal_minS_Some (m : massfun) (u : W -> R) :
       forall B, focal_element m B -> minS u B != None.
     Proof.
     rewrite /minS => B HB.
@@ -1036,7 +1036,7 @@ Section BelPl.
       forall (u1 u2 : utility_function W),
       forall B : {set W}, {in B, u1 =1 u2} -> f_xeu u1 B = f_xeu u2 B.
 
-    Definition XEU (m : bpa) (phi_u_a : {ffun {set W} -> R}) : R
+    Definition XEU (m : massfun) (phi_u_a : {ffun {set W} -> R}) : R
       := \sum_(B in focalset m) m B * phi_u_a B.
 
     Definition fCEU : xeu_function W
@@ -1054,7 +1054,7 @@ Section BelPl.
     by rewrite !ffunE (minSE H).
     Qed.
 
-    Lemma ceuE (m : bpa) (u : utility_function W) :
+    Lemma ceuE (m : massfun) (u : utility_function W) :
       [CEU of u wrt m] = ChoquetIntg u m.
     Proof.
     apply eq_bigr => B HB ; by rewrite ffunE.
@@ -1139,13 +1139,15 @@ Section BelPl.
   (* It could be nice to prove TBEU correctness, but not now :-) *)
   Section TBM.
 
-    Definition BetP_fun (m : bpa) : W -> R
+    Definition BetP_fun (m : massfun) : W -> R
       := (fun w => \sum_(A in focalset m | w \in A) m A / #|A|%:R).
 
+    (* TODO: actually only for bpa *)
     Lemma is_dist_BetP (m : bpa) :
       is_dist (BetP_fun m).
     Proof.
-    have [Hm1 Hm2 Hm3] := and3P (bpa_ax m).
+    have [Hm1 Hm2] := andP (massfun_ax m).
+    have Hm3 := bpa_ax m.
     rewrite /BetP_fun ; apply/andP ; split.
     - rewrite sum_of_sumE.
       under eq_bigr do rewrite -big_distrr /=.
@@ -1164,13 +1166,13 @@ Section BelPl.
     Definition BetP (m : bpa) : proba
       := proba_of_dist (is_dist_BetP m).
 
-    Lemma TBEU_EUBetP (m : bpa) u :
-      [TBEU of u wrt m] = [EU of u wrt BetP m].
+    Lemma TBEU_EUBetP (m : massfun) u :
+      [TBEU of u wrt m] = \sum_w BetP_fun m w * u w.
     Proof.
     rewrite /TBEU/XEU.
     under eq_bigr do rewrite ffunE.
     rewrite sum_fun_focalset.
-    under [RHS]eq_bigr do rewrite proba_of_distE /BetP_fun sum_fun_focalset_cond.
+    under [RHS]eq_bigr do rewrite /BetP_fun sum_fun_focalset_cond.
     have Hl B : m B * (\sum_(w in B) u w / #|B|%:R) = (\sum_(w in B) m B * u w / #|B|%:R).
     by rewrite big_distrr /= ; under eq_bigr do rewrite mulrA.
     have Hr w : (\sum_(B : {set W} | w \in B) m B / #|B|%:R) * u w =  (\sum_(B : {set W} | w \in B) m B * u w / #|B|%:R).
@@ -1180,34 +1182,66 @@ Section BelPl.
     exact: big_partitionS.
     Qed.
 
+    Lemma TBEU_EUBetP_bpa (m : bpa) u :
+      [TBEU of u wrt m] = [EU of u wrt BetP m].
+    Proof.
+    under [RHS]eq_bigr do rewrite proba_of_distE.
+    exact: TBEU_EUBetP.
+    Qed.
+
   End TBM.
 
-End BelPl.
+End Capacity.
 
-Arguments fCEU {R W} _.
-Arguments fJEU {R W} _.
-Arguments fTBEU {R W} _.
+
+#[deprecated(since="belgames2", note="Use Pinf instead.")]
+Notation Bel := Pinf.
+#[deprecated(since="belgames2", note="Use Psup instead.")]
+Notation Pl := Psup.
+#[deprecated(since="belgames2", note="Use massfun_nonempty instead.")]
+Notation bpa_nonempty := massfun_nonempty.
+#[deprecated(since="belgames2", note="Use massfun_nonemptyW instead.")]
+Notation bpa_nonemptyW := massfun_nonemptyW.
+#[deprecated(since="belgames2", note="Use Pinf_focalset instead.")]
+Notation Bel_focalsetE := Pinf_focalsetE.
+#[deprecated(since="belgames2", note="Use Psup_focalset instead.")]
+Notation Pl_focalsetE := Psup_focalsetE.
+#[deprecated(since="belgames2", note="Use Pinf0 instead.")]
+Notation Bel_set0 := Pinf0.
+#[deprecated(since="belgames2", note="Use Psup0 instead.")]
+Notation Pl_set0 := Psup0.
+#[deprecated(since="belgames2", note="Use PinfE instead.")]
+Notation BelE := PinfE.
+#[deprecated(since="belgames2", note="Use PsupE instead.")]
+Notation PlE := PsupE.
+#[deprecated(since="belgames2", note="Use Pr_PinfE instead.")]
+Notation Pr_BelE := Pr_PinfE.
+#[deprecated(since="belgames2", note="Use Pr_PsupE instead.")]
+Notation Pr_PlE := Pr_PsupE.
 
 Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
+Notation proba_axiom p := (1%N.-additive p) (only parsing).
 Notation "[ 'EU' 'of' u 'wrt' p ]" := (EU p u) (at level 80).
 Notation "[ 'CEU' 'of' u 'wrt' m ]" := (XEU m (fCEU u)) (at level 80).
 Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (XEU m (fJEU alpha u)) (at level 80).
 Notation "[ 'TBEU' 'of' u 'wrt' m ]" := (XEU m (fTBEU u)) (at level 80).
 
+
+
+
 Section BelOnFFuns.
 
   Variable R : realFieldType.
-  Variable I : finType.
-  Variable T : I -> finType.
+  Variable X : finType.
+  Variable T : X -> finType.
 
-  (*Notation Tn := (Finite.clone _ {dffun forall i : I, T i}).*)
-  Notation Tn := {dffun forall i : I, T i}.
+  Notation Tconfig := [finType of {dffun forall i : X, T i}].
 
   (* NOTE :: conditioning event "given t i == ti" *)
-  Definition event_ti i (ti : T i) := [set t : Tn | t i == ti].
+  Definition event_ti i (ti : T i) := [set t : Tconfig | t i == ti].
 
-  Lemma negb_focal_revise (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
-    forall A : {set Tn},
+  Lemma negb_focal_revise (m : massfun R Tconfig) (cond : conditioning R Tconfig) i ti (H : revisable cond m (event_ti ti)) :
+    forall A : {set Tconfig},
     (forall t, t \in A -> ti != t i) -> A \notin focalset (cond m (event_ti ti) H).
   Proof.
   move => A HA.
@@ -1219,41 +1253,18 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
-  Lemma negb_focal_reviseb (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
-    forall A : {set Tn},
-    [forall t, (t \in A) ==> (ti != t i)] -> A \notin focalset (cond m (event_ti ti) H).
-  Proof.
-  move => A /forallP HA.
-  apply: negb_focal_revise => t.
-  exact: implyP (HA t).
-  Qed.
-
-  Lemma focal_revise (m : bpa R Tn) (cond : conditioning R Tn) i ti (H : revisable cond m (event_ti ti)) :
-    forall A : {set Tn},
-      A \in focalset (cond m (event_ti ti) H) -> exists t, (t \in A) && (ti == t i).
-  Proof.
-  move => A Ha.
-  have H2 := (negb_focal_reviseb H (A:=A)).
-  move/negPn in Ha.
-  have := contraFN H2 (negbTE Ha) => /=.
-  rewrite negb_forall => /existsP ; case => t.
-  rewrite negb_imply => /andP [Ht1 /negPn Ht2].
-  by exists t ; rewrite Ht1 Ht2.
-  Qed.
-  
-  
-  Definition ffun_of_proba (p : forall i : I, proba R (T i)) :
-    (forall i : I, {ffun {set T i} -> R}).
+  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
+    (forall i : X, {ffun {set T i} -> R}).
   Proof. move=> i; apply p. Defined.
 
-  Lemma proba_set1 (p : forall i : I, proba R (T i)) :
-    forall i : I, \sum_(k in T i) p i [set k] = \sum_A p i A.
+   Lemma proba_set1 (p : forall i : X, proba R (T i)) :
+    forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
   Proof.
     move=> i.
     have x0 : T i.
     { have P_i := p i.
       have [b _] := P_i.
-      apply: bpa_nonemptyW b. }
+      apply: massfun_nonemptyW b. }
     set h' : {set (T i)} -> T i :=
       fun s =>
         match [pick x | x \in s] with
@@ -1271,47 +1282,48 @@ Section BelOnFFuns.
     exact: eq_bigr.
   Qed.
 
-  Definition mk_prod_proba (p : forall i : I, proba R (T i)) : {ffun Tn -> R}
-    := [ffun t : Tn => \prod_i dist (p i) (t i)].
+  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tconfig -> R}
+    := [ffun t : Tconfig => \prod_i dist (p i) (t i)].
 
-  Lemma mk_prod_proba_dist p (witnessI : I) : is_dist (mk_prod_proba p).
+  Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
   Proof.
   apply/andP ; split.
   - under eq_bigr do rewrite /mk_prod_proba ffunE.
     set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
-    have L := (@big_fprod R I (fun i => T i) pp).
+    have L := (@big_fprod R X (fun i => T i) pp).
     do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
     do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
     erewrite (reindex).
-    2: exists (@fprod_of_dffun I _).
+    2: exists (@fprod_of_dffun X _).
     2: move=> *; apply: dffun_of_fprodK.
     2: move => *; apply: fprod_of_dffunK.
     under (* Improve PG indentation *)
       eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
     rewrite L.
     under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
-    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in I) 1)%R; last by rewrite big1.
+    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
     rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
     apply eq_bigr => i _ /=.
     rewrite (big_tag pp).
-    have := fun i => @bpa_ax R (T i)  => H.
+    have := fun i => @massfun_ax R (T i)  => H.
     have Hi := H i (p i).
-    rewrite /bpa_axiom in Hi.
-    have/and3P [H1 H2 H3] := Hi.
-    rewrite /pp /= in H2; move/eqP in H2.
-    apply/eqP; rewrite -H2 /pp.
+    have/andP [Hm0 Hm1] := Hi.
+    move/eqP in Hm1.
+    apply/eqP; rewrite -Hm1.
     under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
     apply/eqP.
     exact: proba_set1.
   - apply/forallP => t.
     rewrite ffunE.
-    apply big_ind => // [|i _] ; first exact: mulr_ge0.
-    have [_ _ Hm3] := and3P (bpa_ax (p i)).
-    exact: (forallP Hm3).
+    apply: prodr_ge0=>x _.
+    rewrite /dist.
+    exact: (forallP (bpa_ax (p x))) [set t x].
   Qed.
-
   
-  Definition prod_proba (p : forall i : I, proba R (T i)) (witnessI : I)  : proba R Tn
-    := proba_of_dist (mk_prod_proba_dist p witnessI).
+  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tconfig
+    := proba_of_dist (mk_prod_proba_dist p witnessX).
 
 End BelOnFFuns.
+
+Close Scope ring_scope.
+
