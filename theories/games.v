@@ -188,12 +188,10 @@ Section Profile.
   - case (boolP ((eq_rect _ _ (projT2 i_ti) (projT1 j_tj)  (@elimT
       (@eq (Finite.sort I) _ _) _ eqP H2)) == (projT2 j_tj))) => H3.
     + rewrite (rew_map A _ (eqP H1) ai).
-      by rewrite (Eqdep_dec.eq_proofs_unicity
-                    (@eqType_dec_prop I) (f_equal _ (eqP H1))(eqP H2)).
+      by rewrite (eq_irrelevance (f_equal (projT1 (P:=fun i : I => T i)) (eqP H1)) (eqP _)).
     + move/eqP in H3.
       have Hcontra := projT2_eq (eqP H1).
-      by rewrite (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop I)
-           (projT1_eq (eqP H1)) (eqP H2)) in Hcontra.
+      by rewrite (eq_irrelevance (projT1_eq (eqP H1)) (eqP H2)) in Hcontra.
   - move/eqP in H2.
     by rewrite (eqP H1) in H2.
   - case (boolP ((eq_rect _ _ (projT2 i_ti) (projT1 j_tj)  (@elimT

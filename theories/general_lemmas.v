@@ -295,10 +295,9 @@ Section SomeLemmas.
     rewrite (reindex_omap (op:=op) (sval) (osig P) (@osig_bij _ P)).
     apply eq_big => [[x Hx]|[x Hx] _] /=.
     - rewrite /osig ; case (boolP (P x)) => [Hx'|] ; last by rewrite Hx.
-        by rewrite (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _ ) Hx Hx') eqxx.
+      by rewrite (eq_irrelevance Hx Hx') eqxx.
     - case (boolP (P x)) => [Hx'|] ; last by rewrite Hx.
-        by rewrite (Eqdep_dec.eq_proofs_unicity
-                    (@eqType_dec_prop _ ) ((ssrfun.svalP (exist (fun x0 : X => P x0) x Hx)))).
+        by rewrite (eq_irrelevance ((ssrfun.svalP (exist (fun x0 : X => P x0) x Hx)))).
     Qed.
 
     (* Not used *)
@@ -537,7 +536,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (A, y) Hy).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _)).
+            exact: eq_irrelevance.
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra Hy in Hx.
@@ -562,7 +561,7 @@ Section NumLemmas.
                       (@sval) ({set X} * X) (fun a : {set X} * X => a.2 \in a.1) (exist (fun p : {set X} * X => p.2 \in p.1) (B, x) HB).
             by simpl ; rewrite (eqP H0).
             apply (eq_sig _ _ H) => //=.
-            exact: (Eqdep_dec.eq_proofs_unicity (@eqType_dec_prop _)).
+            exact: eq_irrelevance.
           + by apply/eqP ; case => /eqP ; rewrite eq_sym (negbTE H0).
         - symmetry ; apply/eqP => Hcontra.
           by rewrite -Hcontra HB in HA.
