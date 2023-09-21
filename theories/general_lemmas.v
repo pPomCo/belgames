@@ -273,6 +273,20 @@ Section SomeLemmas.
   by rewrite (negbTE H).
   Qed.
 
+  (** Alterative definition of "proper" **)
+  Lemma properEbis {X : finType} (A B : {set X}) :
+    A \proper B = (A \subset B) && (A != B).
+  Proof.
+  rewrite properE.
+  case (boolP (A \subset B)) => H1 // ; case (boolP (B \subset A)) => H2 ; by rewrite eqEsubset H1 H2.
+  Qed.
+
+  (** set0 has no proper subsets **)
+  Lemma proper0E  {X : finType} (A : {set X}) :
+    A \proper set0 = false.
+  Proof. by rewrite properE sub0set andbF. Qed.
+
+
 
 
   Section SigBigDep2.
@@ -596,3 +610,28 @@ Section NumLemmas.
 
 
 End NumLemmas.
+
+
+From Coq Require Import Program.Wf.
+
+Section SubsetInduction.
+
+  Context {T : finType}.
+  Implicit Type t : T.
+  Implicit Type A B C : {set T}.
+
+  Section SubsetRectDef.
+    Context {P : {set T} -> Type}.
+    Variable HA : forall A : {set T}, (forall B : {set T}, (B \proper A)%coq_nat -> P B) -> P A.
+
+    Program Fixpoint subset_rect (A : {set T}) {measure #|A|} : P A
+      := HA (fun B HB => subset_rect B (recproof:= ltP (proper_card HB))).
+    Next Obligation.
+    by apply measure_wf ; exact: Wf_nat.lt_wf.
+    Qed.
+    
+  End SubsetRectDef.
+  Definition subset_ind {P : _ -> Prop} := @subset_rect P.
+  Definition subset_rec {P : _ -> Set} := @subset_rect P.
+
+End SubsetInduction.

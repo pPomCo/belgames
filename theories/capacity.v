@@ -57,6 +57,7 @@
 
 (******************************************************************************)
 From HB Require Import structures.
+From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
 From mathcomp Require Import all_algebra. (* .none *)
@@ -673,6 +674,56 @@ Section Capacity.
   Notation "k '.-additive' m" := (k_additivity m == k) (at level 80, format " k '.-additive'  m ").
 
 
+
+  Section Moebius.
+
+    Program Fixpoint moebius_wf mu (A : {set W}) {measure #|A|} : R :=
+      mu A - \sum_(B : {B0: {set W} | B0 \proper A}) moebius_wf mu B.
+    Next Obligation.
+    move=>mu A H [B HB].
+    exact: ltP (proper_card HB).
+    Defined.
+    Next Obligation.
+    apply: measure_wf.
+    exact: Wf_nat.lt_wf.
+    Defined.
+
+    Definition moebius mu : {set W} -> R := fun A : {set W} => moebius_wf mu A.
+
+    Lemma moebius_def mu A :
+      moebius mu A = mu A - \sum_(B : {set W} | B \proper A) moebius mu B.
+    Proof.
+    rewrite -sig_big/moebius.
+    rewrite/moebius_wf/moebius_wf_func Fix_eq //=.
+    move => [mu' A'] /= y z Hyz.
+    congr (_ - _).
+    apply:eq_bigr => [B _] /=.
+    by rewrite Hyz.
+    Qed.
+
+    Lemma moebiusE mu (A : {set W}) :
+      mu A = \sum_(B : {set W} | B \subset A) moebius mu B.
+    Proof.
+    rewrite (bigD1 A) ?subxx // moebius_def -Monoid.mulmA /=.
+    under [E in _ = _ + (-_ + E)]eq_bigl do rewrite -properEbis.
+    by rewrite addNr addr0.
+    Qed.
+
+    Lemma massfun_moebiusE (m : massfun) (A : {set W}) :
+      moebius (Pinf m) A = m A.
+    Proof.
+    move: A.
+    apply: subset_ind=>A IH.
+    rewrite moebius_def.
+    rewrite [E in E-_=_]/Pinf (bigD1 A)//= -addrA.
+    under eq_bigl do rewrite -properEbis.
+    have Heq : \sum_(B: {set W} | B \proper A) moebius (Bel m) B = \sum_(B : {set W} | B \proper A) m B
+      by apply: eq_bigr=>/=B HB ; rewrite IH=>//=.
+    by rewrite Heq subrr addr0.
+    Qed.
+
+  End Moebius.
+      
   Section Conditioning.
     (** Conditionings (aka knowledge revision) **)
 
@@ -798,6 +849,68 @@ Section Capacity.
               cond_ax := Dempster_cond_axiom |}.
 
     End DempsterConditioning.
+
+    Section FHConditioning.
+
+      Definition FH_cond_revisable m C := Pinf m C != 0.
+
+      Definition FH_Pinf m C A :=
+        Pinf m (A :&: C) / ( Pinf m (A :&: C) + Psup m ((~:A) :&: C)).
+
+      Lemma FH_PinfT m C :
+        FH_cond_revisable m C
+        -> FH_Pinf m C setT = 1.
+      Proof.
+      rewrite /FH_Pinf=>H.
+      by rewrite setTI setCT set0I Psup0 addr0 divff.
+      Qed.
+
+      Definition FH_cond_fun (m : massfun) (C : {set W}) :=
+       [ffun A : {set W} => moebius (FH_Pinf m C) A].
+
+      
+      Lemma FH_cond_massfun_ax (m : massfun) (C : {set W}) (HC : FH_cond_revisable m C) :
+        massfun_axiom (FH_cond_fun m C).
+      Proof.
+      apply/andP ; split.
+      - rewrite ffunE.
+        rewrite moebius_def big1=>/=[|A] ;
+          last by rewrite proper0E.
+        by rewrite /FH_Pinf set0I Pinf0 mul0r subr0.
+      - apply/eqP.
+        under eq_bigr do rewrite ffunE.
+        have :=  moebiusE (FH_Pinf m C) setT.
+        rewrite FH_PinfT=>//->.
+        by apply: eq_big=>/=[B|//] ; rewrite subsetT.
+      Qed.
+
+      Definition FH_cond (m : massfun) (C : {set W}) (HC : FH_cond_revisable m C) : massfun
+        := {| massfun_ax := FH_cond_massfun_ax HC |}.
+
+
+      
+      Lemma FH_cond_axiom : @conditioning_axiom FH_cond_revisable FH_cond.
+      Proof.
+      rewrite /conditioning_axiom/=/FH_cond_fun.
+      move=>m C HC.
+      apply: subset_ind=>A IH HA.
+      rewrite ffunE moebius_def.
+      apply/eqP ; rewrite subr_eq0 ; apply/eqP.
+      rewrite {1}/FH_Pinf.
+      have HAC : (A :&: C) = set0
+        by apply: disjoint_setI0 ; rewrite disjoints_subset.
+      rewrite HAC Pinf0 mul0r big1=>//B HB.
+      rewrite -ffunE.
+      apply: IH=>//.
+      apply: (subset_trans _ HA).
+      exact: proper_sub.
+      Qed.
+
+      Definition FH_conditioning : conditioning
+        := {| cond_val := FH_cond ;
+              cond_ax := FH_cond_axiom |}.
+
+    End FHConditioning.
 
 
 
