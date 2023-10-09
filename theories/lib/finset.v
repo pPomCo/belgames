@@ -588,7 +588,7 @@ Section Bigops.
     case (boolP (P t)) => [Ht' //|] ; by rewrite Ht.
     Qed.
 
-    Lemma sig_big_dep2 {R} {idx : R} {op : Monoid.com_law idx} (P : pred T) f :
+    Lemma sig_big_dep2 {R} {idx : R} {op : SemiGroup.com_law R} (P : pred T) f :
       \big[op/idx]_(s : {t : T | P t}) f (tag s) (tagged s) = \big[op/idx]_(t : T | P t) match boolP (P t) with AltTrue h => f t h | _ => idx end.
     Proof.
     rewrite (reindex_omap (op:=op) (sval) (osig P) (@osig_bij P)).
@@ -600,7 +600,7 @@ Section Bigops.
     Qed.
 
     (** Non-dependent version of sig_big_dep2 **)
-    Lemma sig_big {R} {idx : R} {op : Monoid.com_law idx} (P : pred T) f :
+    Lemma sig_big {R} {idx : R} {op : SemiGroup.com_law R} (P : pred T) f :
       \big[op/idx]_(s : {t : T | P t}) f (tag s) = \big[op/idx]_(t : T | P t) f t.
     Proof.
     rewrite (sig_big_dep2 (fun t _ => f t)).

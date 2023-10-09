@@ -88,3 +88,4 @@ case (boolP (A == set0))=>[/eqP->|HA].
     last by rewrite !inE ; case (t \in A) ; case (t \in B).
   by rewrite !maxA [E in _=E]maxC !maxA maxxx.
 Qed.
+  

@@ -18,10 +18,9 @@ Import Order Order.POrderTheory Order.TotalTheory.
 From HB Require Import structures.
 
 
-Implicit Type R : numFieldType.
+Implicit Type R : numDomainType.
 Implicit Type T : finType.
 Local Open Scope ring_scope.
-
 
 (** Pointed Function *)
 Check "Pointed Function".
@@ -39,7 +38,7 @@ HB.instance Definition _ R T (m : rmassfun R T) :=
 
 Section PointedFunTheory.
   
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
   Variable mu : pointed_function R T.
   Implicit Type A B C : {set T}.
@@ -54,7 +53,10 @@ Section PointedFunTheory.
   Qed.
 
   HB.instance
-  Definition _ := AddMassFun_of_Ffun.Build _ _ (moebius mu) capa_massfun0 capa_massfun1.
+  Definition _ := MassFun_of_Ffun.Build R T 0 +%R (moebius mu).
+
+  HB.instance
+  Definition _ := AddMassFun_of_MassFun.Build R T (moebius mu) capa_massfun0 capa_massfun1.
 
   Lemma Pinf_moebiusE :
     Pinf (moebius mu : rmassfun R T) = mu.
@@ -83,25 +85,67 @@ HB.structure
 Definition Capacity R T := {mu of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu}.
 
 Section CapacityTheory.
-  
-  Variable R : numFieldType.
-  Variable T : finType.
-  Variable mu : capacity R T.
-  Implicit Type A B C : {set T}.
+
+  Section OnNumDomain.
+    
+    Variable R : numDomainType.
+    Variable T : finType.
+    Variable mu : capacity R T.
+    Implicit Type A B C : {set T}.
 
 
-  (** Dual capacities *)
-  Lemma dual_capaM : monotonic (setfun.dual mu).
-  Proof. apply: dual_monotonic ; exact: capaM. Qed.
+    (** Dual capacities *)
+    Lemma dual_capaM : monotonic (setfun.dual mu).
+    Proof. apply: dual_monotonic ; exact: capaM. Qed.
 
-  HB.instance
-  Definition _ := Capacity_of_PointedFun.Build R T (setfun.dual mu) dual_capaM.
+    HB.instance
+    Definition _ := Capacity_of_PointedFun.Build R T (setfun.dual mu) dual_capaM.
+
+  End OnNumDomain.
+
+  Section OnRealDomain.
+    Variable R : realDomainType.
+    Variable T : finType.
+    Variable mu : capacity R T.
+    Implicit Type A B C : {set T}.
+
+    Lemma qmassfun_trivial :
+      is_mass_function 0 max mu mu.
+    Proof.
+    move=>A.
+    apply/eqP ; rewrite eq_le ; apply/andP ; split.
+    - exact: le_bigmax_cond.
+    - apply: bigmax_le=>[|/=B HB] ; last exact: (monotonicS capaM HB).
+      rewrite -(pointed0 (capa01 (s:=mu))).
+      exact: (monotonic0 capaM).
+    Qed.
+
+    Check qmoebius.
+    Check qmoebius mu.
+
+
+    (** qmoebius *)
+
+    HB.instance Definition _ :=
+      MassFun_of_Ffun.Build R T 0 max (qmoebius mu).
+
+    Lemma capa_qmoebius0 : qmoebius mu set0 = 0.
+    Proof. by rewrite qmoebius0 (pointed0 capa01). Qed.
+    Lemma capa_qmoebius1 : \big[max/0]_(A : {set T}) qmoebius mu A = 1.
+    Proof.
+    have := qmoebiusE (capaM (s:=mu)) setT.
+    under eq_bigl do rewrite subsetT.
+    rewrite (pointed0 capa01) ; move=><-.
+    exact: (pointedT capa01).
+    Qed.
+    HB.about MaxMassFun_of_MassFun.Build.
+    
+    HB.instance Definition _ :=
+      MaxMassFun_of_MassFun.Build R T (qmoebius mu) capa_qmoebius0 capa_qmoebius1.
+
+  End OnRealDomain.
 
 End CapacityTheory.
-(*
-Check fun (mu : capacity _ _) => (moebius mu : massfun _ _).
-Check fun (mu : capacity _ _) => (setfun.dual mu : capacity _ _).
-*)
 
 
 (** 2-monotone capacities *)
@@ -129,7 +173,7 @@ Definition Capa2sup R T := {mu of Capa2sup_of_Capacity R T mu
 
 Section Capa2Theory.
   
-  Variable R : realFieldType.
+  Variable R : realDomainType.
   Variable T : finType.
   Variable Pinf : capa2inf R T.
   Variable Psup : capa2sup R T.
@@ -156,11 +200,11 @@ Check fun (mu : capa2sup _ _) => (setfun.dual mu : capa2inf _ _).
 
 (** Probability intervals distributions *)
 (*
-Definition reachable (R : realFieldType) T (p : T -> R * R) :=
+Definition reachable (R : realDomainType) T (p : T -> R * R) :=
   [forall t, [&& (p t).2 + \sum_(t' | t' != t) (p t').1 <= 1
          &  (p t).1 + \sum_(t' | t' != t) (p t').2 >= 1 ]].
 HB.mixin
-Record PrIntvDist_of_Ffun (R : realFieldType) T (p : {ffun T -> R * R}) :=
+Record PrIntvDist_of_Ffun (R : realDomainType) T (p : {ffun T -> R * R}) :=
   { printvdist_0le1 : forall t : T, 0 <= (p t).1 ;
     printvdist_1le2 : forall t : T, (p t).1 <= (p t).2 ;
     printvdist1 : \sum_t (p t).1 <= 1 <= \sum_t (p t).2 ;
@@ -168,15 +212,15 @@ Record PrIntvDist_of_Ffun (R : realFieldType) T (p : {ffun T -> R * R}) :=
   }.
 #[short(type="printvdist")]
 HB.structure
-Definition PrintvDist (R : realFieldType) T := {mu of PrIntvDist_of_Ffun R T mu}.
+Definition PrintvDist (R : realDomainType) T := {mu of PrIntvDist_of_Ffun R T mu}.
 
 HB.mixin
-Record ProbaIntervalsInf_of_Ffun (R : realFieldType) T (mu : {ffun {set T} -> R}) :=
+Record ProbaIntervalsInf_of_Ffun (R : realDomainType) T (mu : {ffun {set T} -> R}) :=
   { printv_dist :  printvdist R T ;
     printv_distE : forall A, mu A = min (\sum_(t in A) (printv_dist t).1) (1 - \sum_(t in ~:A) (printv_dist t).2) ;
     }.
 HB.builders
-Context (R : realFieldType) T mu of ProbaIntervalsInf_of_Ffun R T mu.
+Context (R : realDomainType) T mu of ProbaIntervalsInf_of_Ffun R T mu.
 Lemma capaM : monotonic mu.
 Proof.
 move=>A B.
@@ -280,7 +324,7 @@ HB.instance Definition _ R T (m : bpa R T) :=
 
 Section BeliefFunctionTheory.
   
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
   Variable Bel : belief_function R T.
   Variable Pl : plausibility R T.
@@ -296,16 +340,7 @@ Section BeliefFunctionTheory.
     BeliefFunction_of_Capacity.Build R T (setfun.dual Pl) massfunD_ge0.
 
 
-  (** Belief function -> mass function **)
-  Lemma bel_massfun0 : moebius Bel set0 = 0.
-  Proof. by rewrite moebius0 pointed0//capa01. Qed.
-
-  Lemma bel_massfun1 : \sum_(B : {set T}) moebius Bel B = 1.
-  Proof. by rewrite -moebiusT pointedT//capa01. Qed.
-
-  HB.instance Definition _ :=
-    AddMassFun_of_Ffun.Build R T (moebius Bel) bel_massfun0 bel_massfun1.
-
+  (** Belief function -> bpa **)
   HB.instance Definition _ :=
     Bpa_of_AddMassFun.Build R T (moebius Bel) massfun_ge0.
 
@@ -375,7 +410,7 @@ HB.structure Definition Probability R T := {mu of Proba_of_Capacity R T mu
 
 Section ProbabilityTheory.
 
-  Variable (R : numFieldType) (T : finType).
+  Variable (R : numDomainType) (T : finType).
 
   Section LetPrBeAProbability.
 
@@ -474,11 +509,11 @@ End ProbabilityTheory.
 (** Possibility measure *)
 Check "Possibility".
 
-HB.mixin Record Possibility_of_Ffun (R : realFieldType) T (mu : {ffun {set T} -> R}) :=
+HB.mixin Record Possibility_of_Ffun (R : realDomainType) T (mu : {ffun {set T} -> R}) :=
   { poss_pidist : pidist R T ;
     poss_pidistE : mu = [ffun A : {set T} => \big[Order.max/0%R]_(t in A) poss_pidist t] }.
 
-HB.builders Context (R : realFieldType) T mu of Possibility_of_Ffun R T mu.
+HB.builders Context (R : realDomainType) T mu of Possibility_of_Ffun R T mu.
 
 Lemma capaM : monotonic mu.
 Proof. by rewrite poss_pidistE ; exact: pidist_PiM. Qed.
@@ -496,18 +531,18 @@ HB.instance Definition _ := Capa2sup_of_Capacity.Build R T mu capa2alt.
 HB.end.
 
 #[short(type="possibility")]
-HB.structure Definition Possibility (R : realFieldType) T := {mu of Possibility_of_Ffun R T mu}.
+HB.structure Definition Possibility (R : realDomainType) T := {mu of Possibility_of_Ffun R T mu}.
 
 
 
 (** Necessity measures *)
 Check "Necessity".
 
-HB.mixin Record Necessity_of_Ffun (R : realFieldType) T (mu : {ffun {set T} -> R}) :=
+HB.mixin Record Necessity_of_Ffun (R : realDomainType) T (mu : {ffun {set T} -> R}) :=
   { nec_pidist : pidist R T ;
     nec_pidistE : mu = [ffun A : {set T} => 1 - \big[Order.max/0%R]_(t in ~:A) nec_pidist t] }.
 
-HB.builders Context (R : realFieldType) T mu of Necessity_of_Ffun R T mu.
+HB.builders Context (R : realDomainType) T mu of Necessity_of_Ffun R T mu.
 
 Lemma capaM : monotonic mu.
 Proof. by rewrite nec_pidistE ; exact: pidist_NM. Qed.
@@ -525,7 +560,7 @@ HB.instance Definition _ := Capa2inf_of_Capacity.Build R T mu capa2mon.
 HB.end.
 
 #[short(type="necessity")]
-HB.structure Definition Necessity (R : realFieldType) T := {mu of Necessity_of_Ffun R T mu}.
+HB.structure Definition Necessity (R : realDomainType) T := {mu of Necessity_of_Ffun R T mu}.
 
 
 
@@ -543,7 +578,7 @@ Record Categorical_of_Ffun R  T (mu : {ffun {set T} -> R}) :=
 
 (*
 HB.mixin
-Record Categorical_of_Necessity (R : realFieldType)  T (mu : {ffun {set T} -> R})
+Record Categorical_of_Necessity (R : realDomainType)  T (mu : {ffun {set T} -> R})
   of Necessity_of_Ffun R T mu :=
   { categorical_nec_pidistE : forall t : T, [|| nec_pidist (s:=mu) t == 0 | nec_pidist (s:=mu) t == 1] }.
  *)
@@ -562,7 +597,7 @@ apply/andP ; split ; rewrite categoricalE.
 Qed.
 
 Lemma cat_massfunE :
-  is_mass_function +%R mu [ffun A : {set T} => if A == [set t | categorical_dist t] then 1 else 0].
+  is_mass_function 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist t] then 1 else 0].
 Proof.
 move=>/=A.
 case (boolP ([set t | categorical_dist t] \subset A))=>H.
@@ -672,13 +707,13 @@ HB.structure Definition Categorical R T := {mu of Categorical_of_Ffun R T mu & }
 
 Section CategoricalCapacityTheory.
 
-  Variable R : realFieldType.
+  Variable R : realDomainType.
   Variable T : finType.
   Variable mu : categorical_capacity R T.
 
 
   Lemma categorical_massfunE : 
-    is_mass_function +%R mu [ffun A : {set T} => if A == [set t | categorical_dist (s:=mu) t] then 1 else 0].
+    is_mass_function 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist (s:=mu) t] then 1 else 0].
   Proof.
   move=>/=A.
   case (boolP ([set t | categorical_dist (s:=mu) t] \subset A))=>H.
@@ -720,7 +755,7 @@ End CategoricalCapacityTheory.
 
 
   
-Lemma cat_nec_pidistE (R : realFieldType) T (mu : categorical_capacity R T) :
+Lemma cat_nec_pidistE (R : realDomainType) T (mu : categorical_capacity R T) :
   (mu : {ffun {set T} -> R}) = [ffun A : {set T} => 1 - \big[Num.max/0]_(t in ~:A) cat_pidist mu t].
 Proof.
 apply/ffunP=>/=A.
@@ -751,7 +786,7 @@ case (boolP ([set t | categorical_dist (s:=mu) t] \subset A))=>H.
   + by rewrite H1 subrr.
 Qed.
 
-HB.instance Definition _  (R : realFieldType) T (mu : categorical_capacity R T) :=
+HB.instance Definition _  (R : realDomainType) T (mu : categorical_capacity R T) :=
   Necessity_of_Ffun.Build R T mu (cat_nec_pidistE mu).
 
 
@@ -760,7 +795,7 @@ HB.instance Definition _  (R : realFieldType) T (mu : categorical_capacity R T) 
 (*
 Definition eq_capacity R T (c1 c2 : capacity R T) : bool :=
   Capacity.sort c1 == Capacity.sort c2.
-Lemma eq_capacityP [R T] : Equality.axiom (@eq_capacity R T).
+Lemma eq_capacityP [R T] : Equality+-ba.axiom (@eq_capacity R T).
 move=>c1 c2 ; apply (iffP eqP)=>[|->//] ; move: c1 c2.
 case=>mu1 ; do 2 case ; move => axM ax01.
 case=>mu2 ; do 2 case ; move => axM' ax01'/= H.

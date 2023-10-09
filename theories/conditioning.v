@@ -97,6 +97,8 @@ Section Conditioning.
 
   Section DempsterConditioning.
 
+    Check "Dempster conditioning".
+
     Definition Dempster_precond mu C := dual mu C != 0.
     Definition Dempster_mprecond m C := Psup m C != 0.
 
@@ -175,8 +177,12 @@ Section Conditioning.
     Qed.
 
     HB.instance
-    Definition AddMassFun_of_DempsterMCond m C (HC : Dempster_mprecond m C) :=
-      AddMassFun_of_Ffun.Build R T (Dempster_mcond_fun HC) (Dempster_mcond_massfun0 HC) (Dempster_mcond_massfun1 HC).
+    Definition _ m C (HC : Dempster_mprecond m C) :=
+      MassFun_of_Ffun.Build R T 0 +%R (Dempster_mcond_fun HC).
+
+    HB.instance
+    Definition _ m C (HC : Dempster_mprecond m C) :=
+      AddMassFun_of_MassFun.Build R T (Dempster_mcond_fun HC) (Dempster_mcond_massfun0 HC) (Dempster_mcond_massfun1 HC).
 
     Definition Dempster_mcond m C (HC : Dempster_mprecond m C) : rmassfun R T :=
       Dempster_mcond_fun HC.
@@ -238,6 +244,8 @@ Section Conditioning.
 
   Section FHConditioning.
 
+    Check "FH conditioning".
+    
     Definition FH_precondisable m C := Pinf m C != 0.
 
     Definition FH_Pinf m C :=
@@ -270,7 +278,11 @@ Section Conditioning.
 
     HB.instance
     Definition _ m C (HC : FH_precondisable m C) :=
-      AddMassFun_of_Ffun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
+      MassFun_of_Ffun.Build R T 0 +%R (FH_cond_fun HC).
+
+    HB.instance
+    Definition _ m C (HC : FH_precondisable m C) :=
+      AddMassFun_of_MassFun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
     
     Definition FH_cond m C (HC : FH_precondisable m C) : rmassfun R T :=
       FH_cond_fun HC.
@@ -302,6 +314,7 @@ Section Conditioning.
 
   Section StrongConditioning.
 
+    Check "Strong conditioning".
 
     Definition Strong_precondisable (m : rmassfun R T) := fun C : {set T} => Pinf m C != 0.
 
@@ -327,8 +340,12 @@ Section Conditioning.
     Qed.
 
     HB.instance
-    Definition AddMassFun_of_StrongCond m C (HC : Strong_precondisable m C) :=
-      AddMassFun_of_Ffun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
+    Definition _ m C (HC : Strong_precondisable m C) :=
+      MassFun_of_Ffun.Build R T 0 +%R (Strong_cond_fun HC).
+
+    HB.instance
+    Definition _ m C (HC : Strong_precondisable m C) :=
+      AddMassFun_of_MassFun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
 
     Definition Strong_cond m C (HC : Strong_precondisable m C) : rmassfun R T :=
       Strong_cond_fun HC.
@@ -351,6 +368,8 @@ Section Conditioning.
 
   Section WeakConditioning.
 
+    Check "Weak conditioning".
+    
     Definition Weak_precondisable (m : rmassfun R T) := fun C : {set T} => Psup m C != 0.
     
     Definition Weak_cond_fun (m : rmassfun R T) (C : {set T}) (HC : Weak_precondisable m C) :=
@@ -372,8 +391,12 @@ Section Conditioning.
     Qed.
 
     HB.instance
-    Definition AddMassFun_of_WeakCond m C (HC : Weak_precondisable m C) :=
-      AddMassFun_of_Ffun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
+    Definition _ m C (HC : Weak_precondisable m C) :=
+      MassFun_of_Ffun.Build R T 0 +%R (Weak_cond_fun HC).
+
+    HB.instance
+    Definition _ m C (HC : Weak_precondisable m C) :=
+      AddMassFun_of_MassFun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
 
     Definition Weak_cond m C (HC : Weak_precondisable m C) : rmassfun R T :=
       Weak_cond_fun HC.

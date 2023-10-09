@@ -558,7 +558,10 @@ Section HRTBMWeakConditioningLocalGames.
   Qed.
 
   HB.instance Definition _ :=
-    AddMassFun_of_Ffun.Build R Tn m_example HRTBM_Weak_example_massfun0 HRTBM_Weak_example_massfun1.
+    MassFun_of_Ffun.Build R Tn 0 +%R m_example.
+
+  HB.instance Definition _ :=
+    AddMassFun_of_MassFun.Build R Tn m_example HRTBM_Weak_example_massfun0 HRTBM_Weak_example_massfun1.
   
   Lemma HRTBM_Weak_example_ge0 A :
     m_example A >= 0.

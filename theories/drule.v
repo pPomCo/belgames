@@ -42,9 +42,9 @@ Section DRule.
 
   Structure zinst dW (W : porderType dW) := 
     { z_idw : W ;
-      z_op_mfun : Monoid.com_law z_idw ;
+      z_op_mfun : SemiGroup.com_law W ;
       z_idu : U ;
-      z_oplus : Monoid.com_law z_idu ;
+      z_oplus : SemiGroup.com_law U ;
       z_otimes : W -> V -> U ;
       z_f_agg : forall (X : finType), (X -> V) -> {set X} -> V }.
 
@@ -189,15 +189,23 @@ Section NumDRules.
         z_otimes := *%R ;
         z_f_agg := fun X u B => \sum_(x in B) u x / #|B|%:R |}.
 
-    (*
-    Definition zUopt : zinst (option R) R (option R) :=
+
+    Definition zUopt : zinst R R R :=
       {| z_idw := 0 ;
-        z_op_mfun := omax ;
+        z_op_mfun := max ;
         z_idu := 0 ;
         z_oplus := max ;
         z_otimes := min ;
         z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
-     *)
+
+    Definition zUpes : zinst R R R :=
+      {| z_idw := 0 ;
+        z_op_mfun := max ;
+        z_idu := 0 ;
+        z_oplus := min ;
+        z_otimes := fun w v => max (1-w) v ;
+        z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
+
 
   End ZInstances.
 
@@ -245,7 +253,7 @@ Section NumDRules.
     Proof. by []. Qed.
 
     Lemma zJaffray_JEU' alpha v w m chi :
-      is_mass_function (z_op_mfun (zJaffray alpha)) w m ->
+      is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
       Jaffray alpha v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hm/=.
@@ -275,7 +283,7 @@ Section NumDRules.
 
     Lemma zJaffray_Hurwicz' alpha beta v (w : categorical_capacity R T) m chi :
       (forall x y, alpha x y = beta) 
-      -> is_mass_function (z_op_mfun (zJaffray alpha)) w m ->
+      -> is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
       Hurwicz beta v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hab Hm ; rewrite (moebius_unique Hm).
@@ -290,7 +298,7 @@ Section NumDRules.
     Qed.
 
     Lemma zChoquet_CEU' v w m chi :
-      is_mass_function (z_op_mfun zChoquet) w m
+      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> Choquet v w chi = XEU zChoquet v m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -319,7 +327,7 @@ Section NumDRules.
     Qed.
     
     Lemma zChoquet_EU' v (w : probability R T) m chi :
-      is_mass_function (z_op_mfun zChoquet) w m
+      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> ExpectedUtility v w chi = XEU zChoquet v m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -344,7 +352,7 @@ Section NumDRules.
     Qed.
 
     Lemma zChoquet_Wald' v (w : categorical_capacity R T) m chi :
-      is_mass_function (z_op_mfun zChoquet) w m
+      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> Wald v w chi = XEU zChoquet v  m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -352,7 +360,7 @@ Section NumDRules.
     Qed.
     
     Lemma zJaffray_CEU' v (w : capacity R T) m chi :
-      is_mass_function (z_op_mfun (zJaffray (fun _ _ =>1))) w m
+      is_mass_function (z_idw (zJaffray (fun _ _ =>1))) (z_op_mfun (zJaffray (fun _ _ =>1))) w m
       -> Choquet v w chi = XEU (zJaffray (fun _ _=>1)) v m chi.
     Proof.
     move=>Hm.
@@ -362,7 +370,7 @@ Section NumDRules.
     Qed.
 
     Lemma zJaffray_EU' alpha v (w : probability R T) m chi :
-      is_mass_function (z_op_mfun (zJaffray alpha)) w m
+      is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m
       -> ExpectedUtility v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hm.
@@ -414,7 +422,7 @@ Section NumDRules.
     Qed.
 
     Lemma zTBM_TBEU' v (w : belief_function R T) m chi :
-      is_mass_function (z_op_mfun zTBM) w m
+      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
       -> TBEU v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -423,7 +431,7 @@ Section NumDRules.
     Qed.
 
     Lemma zTBM_EU v (w : probability R T) m chi :
-      is_mass_function (z_op_mfun zTBM) w m
+      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
       -> ExpectedUtility v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -447,13 +455,13 @@ Section NumDRules.
       by rewrite ffunE (negbTE HA) mul0r.
     - rewrite big_set1 ffunE big1 ?mulr0=>//=A HA.
       rewrite -(moebius_unique (categorical_massfunE w)) ffunE.
-      case (boolP (A == [set t0 | categorical_dist (s:=w) t0] ))=>/= Hcontra ;
-        last by rewrite mul0r.
+      case (boolP (A == [set t0 | categorical_dist (s:=w) t0] ))=>/= [Hcontra|H'] ; 
+        last by rewrite (negbTE H') mul0r.
       by rewrite -(eqP Hcontra) HA in H.
     Qed.
 
     Lemma zTBM_Laplace v (w : categorical_capacity R T) m chi :
-      is_mass_function (z_op_mfun zTBM) w m
+      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
       -> Laplace v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -461,7 +469,15 @@ Section NumDRules.
     exact: zTBM_TBEU'.
     Qed.
 
-    
+
+    (*
+    Lemma zUpes_Wald v (w : categorical_capacity R T) m chi :
+      is_mass_function (z_idw zUpes) (z_op_mfun zUpes) w m
+      -> Wald v w chi = XEU zUpes v m chi.
+    Proof.
+    move=>Hm.
+    rewrite/Wald/XEU/=.
+     *)
     
   End ZInstance_Correct.
   
@@ -473,9 +489,9 @@ Section XEUMassFunction.
     Variable R : eqType.
     Variable T : finType.
     Variable idx : R.
-    Variable op : Monoid.com_law idx.
+    Variable op : SemiGroup.com_law R.
 
-    Definition XEUm idz oplus (otimes : R -> R -> R) T (m : massfun T op) (phi_u_chi : {set T} -> R) :=
+    Definition XEUm idz oplus (otimes : R -> R -> R) T (m : massfun T idx op) (phi_u_chi : {set T} -> R) :=
       \big[oplus/idz]_(A : {set T}) otimes (m A) (phi_u_chi A).
 
   End XEUmDef.
@@ -487,7 +503,7 @@ Section XEUMassFunction.
     Variable R : numDomainType.
     Variable zi : zinst R R R.
     
-    Lemma XEU_XEUm (X T : finType) (v : X -> R) (m : massfun T (z_op_mfun zi)) chi :
+    Lemma XEU_XEUm (X T : finType) (v : X -> R) (m : massfun T (z_idw zi) (z_op_mfun zi)) chi :
       XEU zi v m chi = XEUm (z_idu zi) (z_oplus zi) (z_otimes zi) m (z_f_agg zi (fun t => v (chi t))).
     Proof. exact: eq_bigr. Qed.
 

@@ -748,8 +748,12 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition AddMassFun_of_DempsterCond m C (HC : Dempster_cond_revisable m C) :=
-        AddMassFun_of_Ffun.Build R T (Dempster_cond_fun HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
+      Definition _ m C (HC : Dempster_cond_revisable m C) :=
+        MassFun_of_Ffun.Build R T 0 +%R (Dempster_cond_fun HC).
+
+      HB.instance
+      Definition _ m C (HC : Dempster_cond_revisable m C) :=
+        AddMassFun_of_MassFun.Build R T (Dempster_cond_fun HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
 
       Definition Dempster_cond m C (HC : Dempster_cond_revisable m C) : rmassfun R T :=
         Dempster_cond_fun HC.
@@ -846,7 +850,11 @@ Section Capacity.
 
       HB.instance
       Definition _ m C (HC : FH_cond_revisable m C) :=
-        AddMassFun_of_Ffun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
+        MassFun_of_Ffun.Build R T 0 +%R (FH_cond_fun HC).
+
+      HB.instance
+      Definition _ m C (HC : FH_cond_revisable m C) :=
+        AddMassFun_of_MassFun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
       
       Definition FH_cond m C (HC : FH_cond_revisable m C) : rmassfun R T :=
         FH_cond_fun HC.
@@ -903,8 +911,12 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition AddMassFun_of_StrongCond m C (HC : Strong_cond_revisable m C) :=
-        AddMassFun_of_Ffun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
+      Definition _ m C (HC : Strong_cond_revisable m C) :=
+        MassFun_of_Ffun.Build R T 0 +%R (Strong_cond_fun HC).
+
+      HB.instance
+      Definition _ m C (HC : Strong_cond_revisable m C) :=
+        AddMassFun_of_MassFun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
 
       Definition Strong_cond m C (HC : Strong_cond_revisable m C) : rmassfun R T :=
         Strong_cond_fun HC.
@@ -948,8 +960,12 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition AddMassFun_of_WeakCond m C (HC : Weak_cond_revisable m C) :=
-        AddMassFun_of_Ffun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
+      Definition _ m C (HC : Weak_cond_revisable m C) :=
+        MassFun_of_Ffun.Build R T 0 +%R (Weak_cond_fun HC).
+
+      HB.instance
+      Definition _ m C (HC : Weak_cond_revisable m C) :=
+        AddMassFun_of_MassFun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
 
       Definition Weak_cond m C (HC : Weak_cond_revisable m C) : rmassfun R T :=
         Weak_cond_fun HC.

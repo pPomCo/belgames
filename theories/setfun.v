@@ -27,7 +27,9 @@ Section SetFunctions.
 
   (** Set-function may have "mass-function" representations **)
   Section MassFunction.
-    Context {R : eqType} {idx : R} (op : Monoid.com_law idx).
+    Variable R : eqType.
+    Variable idx : R.
+    Variable op : R -> R -> R.
 
     Notation m_repr := (fun m A => \big[op/idx]_(B : {set T} | B \subset A) m B).
 
@@ -38,8 +40,15 @@ Section SetFunctions.
 
     Definition k_additivity m := \max_(A in focal m) #|A|.
 
+  End MassFunction.
+
+  Section MassFunctionOnComMonoid.
+    Variable R : eqType.
+    Variable idx : R.
+    Variable op : Monoid.com_law idx.
+
     Lemma mass_function_focal mu m :
-      is_mass_function mu m -> mu =1 fun A => \big[op/idx]_(B in focal m | B \subset A) m B.
+      is_mass_function idx op mu m -> mu =1 fun A => \big[op/idx]_(B in focal idx m | B \subset A) m B.
     Proof.
     move=>Hm A.
     rewrite big_mkcondl Hm.
@@ -48,7 +57,7 @@ Section SetFunctions.
     by case (boolP (m B == idx))=>[/eqP->|].
     Qed.
     
-  End MassFunction.
+  End MassFunctionOnComMonoid.
 
   (** Set-functions with numerical co-domain **)
   Section NumSetFunctions.
@@ -324,13 +333,13 @@ Section SetFunctions.
       Qed.
 
       Lemma mass_function_unique2 (mu m1 m2 : set_function) :
-        is_mass_function +%R mu m1 -> is_mass_function +%R mu m2
+        is_mass_function 0 +%R mu m1 -> is_mass_function 0 +%R mu m2
         -> m1 =1 m2.
       Proof. move=>H1 H2 ; apply: mass_function_unique=>A ; by rewrite -H1 -H2. Qed.
 
       Lemma mass_functionE mu m :
         m =1 (fun A => mu A - \sum_(B : {set T} | B \proper A) m B)
-        -> is_mass_function +%R mu m.
+        -> is_mass_function 0 +%R mu m.
       Proof.
       move=>H A.
       rewrite (bigD1 A) //=.
@@ -370,7 +379,7 @@ Section SetFunctions.
       Qed.
 
       Lemma dualE mu m :
-        is_mass_function +%R mu m -> dual mu =1 (fun A => \sum_(B : {set T} | ~~[disjoint B & A]) m B).
+        is_mass_function 0 +%R mu m -> dual mu =1 (fun A => \sum_(B : {set T} | ~~[disjoint B & A]) m B).
       Proof.
       move=>/=Hm A.
       rewrite ffunE !Hm/=.
@@ -634,17 +643,17 @@ Section SetFunctions.
       Qed.
       
       Lemma moebius_focalE mu A :
-        ~~ focal (idx:=0) (moebius mu) A -> moebius mu A = 0.
+        ~~ focal 0 (moebius mu) A -> moebius mu A = 0.
       Proof.
       by move=>/negPn/eqP.
       Qed.
       
       Lemma is_mass_function_moebius mu :
-        is_mass_function +%R mu (moebius mu).
+        is_mass_function 0 +%R mu (moebius mu).
       Proof. exact: moebiusE. Qed.
 
       Lemma moebius_unique mu m :
-        is_mass_function +%R mu m -> m = moebius mu.
+        is_mass_function 0 +%R mu m -> m = moebius mu.
       Proof.
       move=>H.
       apply/ffunP=>C.
@@ -795,7 +804,7 @@ Section SetFunctions.
 
   Section RealSetFunctions.
 
-    Variable R : realFieldType.
+    Variable R : realDomainType.
 
     Implicit Type mu : {ffun {set T} -> R}.
 
@@ -905,12 +914,17 @@ Section SetFunctions.
 
       Lemma is_mass_function_oqmoebius mu :
         monotonic mu -> 
-        is_mass_function (@omax _ R) [ffun A => Some (mu A)] (oqmoebius mu).
+        is_mass_function None (@omax _ R) [ffun A => Some (mu A)] (oqmoebius mu).
       Proof.
       move=>Hmon A/=.
       rewrite ffunE qmoebius_maxSE_Some///maxS.
       by under eq_bigl do rewrite inE ; under [in RHS]eq_bigr do rewrite ffunE.
       Qed.
+
+      Lemma is_mass_function_qmoebius mu :
+        monotonic mu ->
+        is_mass_function (mu set0) Num.max mu (qmoebius mu).
+      Proof. exact: qmoebiusE. Qed.       
 
     End QualitativeMoebiusTransform.
 

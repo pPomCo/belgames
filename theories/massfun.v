@@ -28,7 +28,7 @@ Implicit Type T : finType.
 (** Mass function *)
 Check "Mass function".
 HB.mixin
-Record MassFun_of_Ffun R T (idx : R) (op : Monoid.com_law idx) (m : {ffun {set T} -> R}) :=
+Record MassFun_of_Ffun R T (idx : R) (op : SemiGroup.com_law R) (m : {ffun {set T} -> R}) :=
   {  }.
 
 #[short(type="massfun")]
@@ -40,104 +40,117 @@ Section MassFunTheory.
   Variable R : eqType.
   Variable T : finType.
   Variable idx : R.
-  Variable op : Monoid.com_law idx.
-  Implicit Type m : massfun T op.
-  Implicit Type mu : {ffun {set T} -> R}.
 
-  Implicit Type A B C : {set T}.
+  Section OnSemiGroup.
+    Variable op : SemiGroup.com_law R.
+    Implicit Type m : massfun T idx op.
+    Implicit Type mu : {ffun {set T} -> R}.
 
-  Definition focal m A := m A != idx.
+    Implicit Type A B C : {set T}.
 
-  Lemma focalE m A :
-    focal m A == setfun.focal (idx:=idx) m A.
-  Proof. by []. Qed.
-
-  Definition is_massfun_of m (mu : {set T} -> R) :=
-    is_mass_function op mu m.
-
-  (* Notation focal := (@focal T R idx m). *)
-  
-  Definition Pinf m : {ffun {set T} -> R} :=
-    [ffun A : {set T} => \big[op/idx]_(B : {set T} | B \subset A) m B].
-
-  Definition Psup m : {ffun {set T} -> R} :=
-    [ffun A : {set T} => \big[op/idx]_(B : {set T} | ~~[disjoint B & A]) m B].
-
-  Lemma massfunE m : is_massfun_of m (Pinf m).
-  Proof. by move=>A ; rewrite ffunE. Qed.
-
-  Section Inversible.
-    Variable (inv : R -> R).
-    Variable (massfunV : right_inverse idx inv op).
-
-
-    Program Fixpoint mkmassfun_wf (mu : {ffun {set T} -> R}) A {measure #|A|} : R :=
-      op (mu A) (inv (\big[op/idx]_(B : {B0: {set T} | B0 \proper A}) mkmassfun_wf mu B)).
-    Next Obligation.
-    move=>mu A H [B HB].
-    exact: ssrnat.ltP (proper_card HB).
-    Defined.
-    Next Obligation.
-    apply: measure_wf.
-    exact: Wf_nat.lt_wf.
-    Defined.
-
-    Definition mkmassfun mu := [ffun A : {set T} => mkmassfun_wf mu A].
-
-    HB.instance
-    Definition _ mu :=  MassFun_of_Ffun.Build R T idx op (mkmassfun mu).
-
-    Lemma mkmassfun_def mu A :
-      mkmassfun mu A = op (mu A) (inv (\big[op/idx]_(B : {set T} | B \proper A) mkmassfun mu B)).
-    Proof.
-    rewrite -sig_big ffunE ; under eq_bigr do rewrite ffunE.
-    rewrite/mkmassfun_wf/mkmassfun_wf_func Fix_eq //=.
-    move => [mu' A'] /= y z Hyz.
-    congr (op _ _).
-    congr (inv _).
-    apply:eq_bigr => [B _] /=.
-    by rewrite Hyz.
-    Qed.
-
-    Lemma mkmassfunE mu A :
-      mu A = \big[op/idx]_(B : {set T} | B \subset A) mkmassfun mu B.
-    Proof.
-    rewrite (bigD1 A) ?subxx // mkmassfun_def -Monoid.mulmA /=.
-    under [E in _ = op _ (op _ E)]eq_bigl do rewrite -properEbis.
-    by rewrite [E in _ = op _ E]Monoid.mulmC/= massfunV Monoid.mulm1.
-    Qed.
-
-    Lemma mkmassfun_Pinf m A :
-      m A = mkmassfun (Pinf m) A.
-    Proof.
-    rewrite /Pinf.
-    move:A ; apply: subset_ind=>A IH.
-    rewrite mkmassfun_def ffunE (bigD1 A)//.
-    under eq_bigl do rewrite -properEbis.
-    by rewrite -(eq_bigr _ IH) -Monoid.mulmA/= massfunV Monoid.mulm1.
-    Qed.
-
-    Lemma Pinf_mkmassfun mu A :
-      mu A = Pinf (mkmassfun mu) A.
-    Proof.
-    rewrite ffunE mkmassfunE.
-    move:A ; apply: subset_ind=>A IH.
-    by rewrite (bigD1 A) ?subxx// [in RHS](bigD1 A).
-    Qed.
-    
-    Lemma massfun_unique (m1 m2 : massfun T op) :
-      Pinf m1 =1 Pinf m2 -> m1 =1 m2.
-    Proof.
-    move=>Hm1m2.
-    apply: subset_ind=>A IH.
-    rewrite mkmassfun_Pinf [in RHS]mkmassfun_Pinf.
-    congr (mkmassfun _ _).
-    exact/ffunP.
-    Qed.
-
+    Definition focal m A := m A != idx.
     Definition dist m := [ffun t => m [set t]].
 
-  End Inversible.
+    (*
+  Lemma focalE m A :
+    focal m A == setfun.focal idx m A.
+  Proof. by []. Qed.
+     *)
+    
+    Definition Pinf m : {ffun {set T} -> R} :=
+      [ffun A : {set T} => \big[op/idx]_(B : {set T} | B \subset A) m B].
+
+    Definition Psup m : {ffun {set T} -> R} :=
+      [ffun A : {set T} => \big[op/idx]_(B : {set T} | ~~[disjoint B & A]) m B].
+
+    Lemma massfunE m : is_mass_function idx op (Pinf m) m.
+    Proof. by move=>A ; rewrite ffunE. Qed.
+
+    Section Inversible.
+      Variable (inv : R -> R).
+
+      (* \approx moebius *)
+      Program Fixpoint mkmassfun_wf (mu : {ffun {set T} -> R}) A {measure #|A|} : R :=
+        op (mu A) (inv (\big[op/idx]_(B : {B0: {set T} | B0 \proper A}) mkmassfun_wf mu B)).
+      Next Obligation.
+      move=>mu A H [B HB].
+      exact: ssrnat.ltP (proper_card HB).
+      Defined.
+      Next Obligation.
+      apply: measure_wf.
+      exact: Wf_nat.lt_wf.
+      Defined.
+
+      Definition mkmassfun mu := [ffun A : {set T} => mkmassfun_wf mu A].
+
+      HB.instance
+      Definition _ mu :=  MassFun_of_Ffun.Build R T idx op (mkmassfun mu).
+
+      Lemma mkmassfun_def mu A :
+        mkmassfun mu A = op (mu A) (inv (\big[op/idx]_(B : {set T} | B \proper A) mkmassfun mu B)).
+      Proof.
+      rewrite -sig_big ffunE ; under eq_bigr do rewrite ffunE.
+      rewrite/mkmassfun_wf/mkmassfun_wf_func Fix_eq //=.
+      move => [mu' A'] /= y z Hyz.
+      congr (op _ _).
+      congr (inv _).
+      apply:eq_bigr => [B _] /=.
+      by rewrite Hyz.
+      Qed.
+    End Inversible.
+
+  End OnSemiGroup.
+
+  Section OnMonoid.
+    Variable op : Monoid.com_law idx.
+    Implicit Type m : massfun T idx op.
+    Implicit Type mu : {ffun {set T} -> R}.
+
+    Implicit Type A B C : {set T}.
+
+    Section Inversible.
+      Variable (inv : R -> R).
+      Variable (massfunV : right_inverse idx inv op).
+      
+      Lemma mkmassfunE mu A :
+        mu A = \big[op/idx]_(B : {set T} | B \subset A) mkmassfun op inv mu B.
+      Proof.
+      rewrite (bigD1 A) ?subxx // mkmassfun_def -Monoid.mulmA /=.
+      under [E in _ = op _ (op _ E)]eq_bigl do rewrite -properEbis.
+      by rewrite [E in _ = op _ E]Monoid.mulmC/= massfunV Monoid.mulm1.
+      Qed.
+
+      Lemma mkmassfun_Pinf m A :
+        m A = mkmassfun op inv (Pinf m) A.
+      Proof.
+      rewrite /Pinf.
+      move:A ; apply: subset_ind=>A IH.
+      rewrite mkmassfun_def ffunE (bigD1 A)//.
+      under eq_bigl do rewrite -properEbis.
+      by rewrite -(eq_bigr _ IH) -Monoid.mulmA/= massfunV Monoid.mulm1.
+      Qed.
+
+      Lemma Pinf_mkmassfun mu A :
+        mu A = Pinf (mkmassfun op inv mu) A.
+      Proof.
+      rewrite ffunE mkmassfunE.
+      move:A ; apply: subset_ind=>A IH.
+      by rewrite (bigD1 A) ?subxx// [in RHS](bigD1 A).
+      Qed.
+      
+      Lemma massfun_unique (m1 m2 : massfun T idx op) :
+        Pinf m1 =1 Pinf m2 -> m1 =1 m2.
+      Proof.
+      move=>Hm1m2.
+      apply: subset_ind=>A IH.
+      rewrite mkmassfun_Pinf [in RHS]mkmassfun_Pinf.
+      congr (mkmassfun _ _ _ _).
+      exact/ffunP.
+      Qed.
+
+    End Inversible.
+
+  End OnMonoid.
 
 End MassFunTheory.
 
@@ -145,30 +158,28 @@ End MassFunTheory.
 
 
 
-(** NumField mass functions *)
+(** +-based mass functions *)
 
 
-
-
-Implicit Type R : numFieldType.
+Implicit Type R : numDomainType.
 Local Open Scope ring_scope.
 
+Check "+-based mass function".
 HB.mixin
-Record AddMassFun_of_Ffun R T (m : {ffun {set T} -> R}) :=
+Record AddMassFun_of_MassFun R T (m : {ffun {set T} -> R}) of MassFun_of_Ffun R T 0 +%R m :=
   { massfun0 : m set0 = 0 ;
     massfun1 : \sum_(A : {set T}) m A = 1 }.
 
-#[short(type="rmassfun")]
+#[short(type="addMassfun")]
 HB.structure
-Definition AddMassFun R T := {p of AddMassFun_of_Ffun R T p}.
+Definition AddMassFun R T := {m of AddMassFun_of_MassFun R T m & MassFun_of_Ffun R T 0 +%R m}.
 
-#[non_forgetful_inheritance]
-HB.instance
-Definition _ R T (m : rmassfun R T) := MassFun_of_Ffun.Build R T (0:R) +%R m.
+(* TODO: For compatibility *)
+Notation rmassfun := addMassfun.
 
 Section AddMassFunTheory.
 
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
   Variable m : rmassfun R T.
 
@@ -180,6 +191,12 @@ Section AddMassFunTheory.
   - under eq_bigl do rewrite subsetT ; by rewrite massfun1.
   Qed.
 
+  Lemma Pinf0 : Pinf m set0 = 0.
+  Proof. exact: pointed0 Pinf01. Qed.
+
+  Lemma PinfT : Pinf m setT = 1.
+  Proof. exact: pointedT Pinf01. Qed.
+
   Lemma Psup01 : pointed (Psup m).
   Proof.
   apply/andP ; split ; rewrite ffunE /=.
@@ -189,21 +206,24 @@ Section AddMassFunTheory.
     by rewrite massfun0 add0r.
   Qed.
 
-  Lemma massfun_Pinf : is_mass_function +%R (Pinf m) m.
-  Proof. move=>/=A. by rewrite ffunE. Qed.
+  Lemma Psup0 : Psup m set0 = 0.
+  Proof. exact: pointed0 Psup01. Qed.
+
+  Lemma PsupT : Psup m setT = 1.
+  Proof. exact: pointedT Psup01. Qed.
   
   Lemma massfun_moebius :
     m =1 moebius (Pinf m).
-  Proof. by rewrite (moebius_unique massfun_Pinf). Qed.
+  Proof. by rewrite (moebius_unique (massfunE m)). Qed.
 
   Lemma PinfD : setfun.dual (Pinf m) = (Psup m).
   apply/ffunP=>/=A.
-  by rewrite (dualE massfun_Pinf) ffunE.
+  by rewrite (dualE (massfunE m)) ffunE.
   Qed.  
 
   Lemma PsupD : setfun.dual (Psup m) = (Pinf m).
   apply/ffunP=>/=A.
-  by rewrite -PinfD dualK// pointed0// Pinf01.
+  by rewrite -PinfD dualK// Pinf0.
   Qed.
 
   Lemma focal_set0F A :
@@ -301,29 +321,50 @@ Section AddMassFunTheory.
 End AddMassFunTheory.
 
 
+(** max-based mass function *)
+Check "max-based mass function".
+
+HB.mixin
+Record MaxMassFun_of_MassFun (R : realDomainType) T (m : {ffun {set T} -> R}) of MassFun_of_Ffun R T 0 max m :=
+  { massfun0 : m set0 = 0 ;
+    massfun1 : \big[max/0]_(A : {set T}) m A = 1 }.
+
+#[short(type="maxMassfun")]
+HB.structure
+Definition MaxMassFun (R : realDomainType) T := {m of MaxMassFun_of_MassFun R T m & MassFun_of_Ffun R T 0 max m}.
+
+(*
+Section MaxMassFunTheory.
+
+  Variable R : realDomainType.
+  Variable T : finType.
+  Variable m : maxMassfun R T.
+
+End MaxMassFunTheory.
+*)
 
 
 
-(** Mass function with positive values *)
+(** +-based mass function with positive values *)
 
 Check "BPA".
 
 HB.mixin
-Record Bpa_of_AddMassFun R T (m : {ffun {set T} -> R}) of AddMassFun_of_Ffun R T m :=
+Record Bpa_of_AddMassFun R T (m : {ffun {set T} -> R})
+of AddMassFun_of_MassFun R T m
+& MassFun_of_Ffun R T 0 +%R m :=
   { bpa_ge0 : forall A, m A >= 0 }.
 
 #[short(type="bpa")]
 HB.structure
-Definition Bpa R T := {m of Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m}.
-
-#[non_forgetful_inheritance]
-HB.instance
-Definition _ R T (m : bpa R T) := MassFun_of_Ffun.Build R T (0:R) +%R m.
+Definition Bpa R T := {m of Bpa_of_AddMassFun R T m
+                       & AddMassFun_of_MassFun R T m
+                       & MassFun_of_Ffun R T 0 +%R m}.
 
 
 Section BpaTheory.
 
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
   Variable m : bpa R T.
 
@@ -335,7 +376,7 @@ Section BpaTheory.
   Notation Pl := (Psup m).
 
   Lemma massfun_mpositive : mpositive Bel.
-  Proof. by move=>A ; rewrite -(moebius_unique (massfun_Pinf m)) ; exact: bpa_ge0. Qed.
+  Proof. by move=>A ; rewrite -(moebius_unique (massfunE m)) ; exact: bpa_ge0. Qed.
 
   Lemma massfun_mpositiveD : mpositive (setfun.dual Pl).
   Proof. by rewrite PsupD ; exact: massfun_mpositive. Qed.
@@ -355,31 +396,32 @@ Section BpaTheory.
 
   Lemma PsupM : monotonic Pl.
   Proof. by rewrite -PinfD ; apply: dual_monotonic ; exact: PinfM. Qed.
-  
-
 
 End BpaTheory.
+
+
 
 (** Probability mass function *)
 
 Check "PrBpa".
 
 HB.mixin
-Record PrBpa_of_Bpa R T (m : {ffun {set T} -> R}) of Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m :=
+Record PrBpa_of_Bpa R T (m : {ffun {set T} -> R})
+of Bpa_of_AddMassFun R T m
+& AddMassFun_of_MassFun R T m
+& MassFun_of_Ffun R T 0 +%R m :=
   { prbpa_card1 : forall A : {set T}, m A != 0 -> #|A| == 1%N }.
 
 #[short(type="prBpa")]
 HB.structure
-Definition PrBpa R T := {m of PrBpa_of_Bpa R T m & Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m}.
-
-#[non_forgetful_inheritance]
-HB.instance
-Definition _ R T (m : prBpa R T) := MassFun_of_Ffun.Build R T (0:R) +%R m.
-
+Definition PrBpa R T := {m of PrBpa_of_Bpa R T m
+                         & Bpa_of_AddMassFun R T m
+                         & AddMassFun_of_MassFun R T m
+                         & MassFun_of_Ffun R T 0 +%R m}.
 
 Section PrBpaTheory.
 
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
   Variable p : prBpa R T.
 
@@ -411,6 +453,9 @@ Section PrBpaTheory.
 
   Lemma PinfPsup_eq : Pinf p = Psup p.
   Proof. by rewrite -PrPinf -PrPsup. Qed.
+
+  Lemma PrD : setfun.dual Pr = Pr.
+  Proof. by rewrite [in LHS]PrPinf PrPsup ; exact: PinfD. Qed.
 
   Lemma massfun_additiveUI : additiveUI Pr.
   Proof.
@@ -459,7 +504,7 @@ Definition PrDist R T := {p of PrDist_of_Ffun R T p}.
 
 Section PrDistTheory.
 
-  Variable R : numFieldType.
+  Variable R : numDomainType.
   Variable T : finType.
 
   HB.instance Definition _ (p : prBpa R T) :=
@@ -507,17 +552,17 @@ End PrDistTheory.
 
 Check "PiDist".
 
-HB.mixin Record PiDist_of_Ffun (R : realFieldType) T (p : {ffun T -> R}) :=
+HB.mixin Record PiDist_of_Ffun (R : realDomainType) T (p : {ffun T -> R}) :=
   { pidist_in01 : [forall t, (0 <= p t <= 1)%R] ;
     pidist_norm : [exists t, (p t == 1)%R] }.
 
 #[short(type="pidist")]
-HB.structure Definition PiDist (R : realFieldType) T := {p of PiDist_of_Ffun R T p}.
+HB.structure Definition PiDist (R : realDomainType) T := {p of PiDist_of_Ffun R T p}.
 
 
 Section PiDistTheory.
 
-  Variable R : realFieldType.
+  Variable R : realDomainType.
   Variable T : finType.
   Variable p : pidist R T.
   Implicit Type A B C : {set T}.
@@ -624,17 +669,17 @@ End PiDistTheory.
 
 Check "CatPiDist".
 
-HB.mixin Record CatPiDist_of_PiDist (R : realFieldType) T (p : {ffun T -> R}) of PiDist_of_Ffun R T p :=
+HB.mixin Record CatPiDist_of_PiDist (R : realDomainType) T (p : {ffun T -> R}) of PiDist_of_Ffun R T p :=
   { pidistCat : forall t, p t = 0 \/ p t = 1 }.
 
 #[short(type="catpidist")]
-HB.structure Definition CatPiDist (R : realFieldType) T :=
+HB.structure Definition CatPiDist (R : realDomainType) T :=
   {p of CatPiDist_of_PiDist R T p & PiDist_of_Ffun R T p}.
 
 
 Section CatPiDistTheory.
 
-  Variable R : realFieldType.
+  Variable R : realDomainType.
   Variable T : finType.
   Variable p : catpidist R T.
   Implicit Type A B C : {set T}.
