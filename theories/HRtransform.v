@@ -15,7 +15,8 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-Require Import general_lemmas capacity games.
+From decision Require Import fintype finset ssrnum.
+From decision Require Import massfun decision games.
 
 Local Open Scope ring_scope.
 
@@ -86,7 +87,7 @@ Section HowsonRosenthal.
 
   Definition HR_action (i_ti : HR_player) : eqType := A (projT1 i_ti).
 
-
+  (*
   Section HRclassical.
 
     Variable G : bgame R A T.
@@ -142,6 +143,8 @@ Section HowsonRosenthal.
 
   End HRclassical.
 
+   *)
+
   Theorem HR_eqNash_prop (G : igame R A T) (G' : cgame R HR_action) (cond : conditioning R Tn) fXEU (proper_G : proper_igame G cond) :
     (forall p i ti, igame_utility fXEU proper_G p ti = G' (iprofile_flatten p) (existT _ i ti))
     ->
@@ -184,7 +187,7 @@ Section HowsonRosenthal.
 
     Lemma HRdirect_lg_nonempty (lg : HRdirect_localgame) i_ti (Hlg : HRdirect_plays_in lg i_ti) : lg != set0.
     Proof.
-    by have := existsP (existsb_l Hlg) => /set0Pn ->.
+    by have := existsP (existsb_l _ Hlg) => /set0Pn ->.
     Qed.
 
 
@@ -205,7 +208,8 @@ Section HowsonRosenthal.
     Proof.
     apply finfun => j.
     have [t' Ht'] := pick_nonemptyset_sig (HRdirect_lg_nonempty Hi_ti).
-    have Htj' : HRdirect_plays_in lg (existT _ j (t' j)). apply/existsP ; exists t' ; by rewrite Ht' /=.
+    have Htj' : HRdirect_plays_in lg (existT _ j (t' j))
+      by apply/existsP ; exists t' ; rewrite Ht' /=.
     exact: p (exist _ (existT _ j (t' j)) Htj').
     Qed.
 
@@ -232,10 +236,13 @@ Section HowsonRosenthal.
     apply eq_dffun => j ; by rewrite !ffunE.
     Qed.
 
+    
+    Definition evt i (ti : T i) := @event_ti I T i ti.
+
     Definition HRdirect_u : forall lg : HRdirect_localgame, HRdirect_localprof lg -> HRdirect_localagent lg -> R
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in let (i, ti) := i_ti in
-         G.1 lg * fXEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (event_ti ti)) / Pl G.1 (event_ti ti).
+         G.1 lg * fXEU [ffun t => G.2 (HRdirect_mkprofile Hi_ti p t) t i] (lg :&: (evt ti)) / Psup G.1 (evt ti).
 
     Definition HRdirect : cgame R HR_action := hg_game HRdirect_u.
 
@@ -243,7 +250,7 @@ Section HowsonRosenthal.
       igame_utility fXEU proper_G p ti = HRdirect (iprofile_flatten p) (existT _ i ti).
     Proof.
     set i_ti := existT _ i ti.
-    rewrite /igame_utility /XEU /HRdirect hg_gameE => //=.
+    rewrite /igame_utility /XEUm /HRdirect hg_gameE => //=.
     rewrite Dempster_cond_sumE.
     rewrite -big_mkcondr sum_fun_focalset_cond big_mkcond [in RHS]big_mkcond => //=.
     rewrite big_distrl.
@@ -295,14 +302,14 @@ Section HowsonRosenthal.
 
     Lemma HRcond_lg_nonempty (lg :HRcond_localgame) i_ti (Hlg : HRcond_plays_in lg i_ti) : lg != set0.
     Proof.
-    by have := existsP (existsb_l Hlg) => /set0Pn ->.
+    by have := existsP (existsb_l _ Hlg) => /set0Pn ->.
     Qed.
 
     Notation HRcond_localagent := (fun lg => {i_ti : HR_player | HRcond_plays_in lg i_ti}).
     Notation HRcond_localprof := (fun lg => local_cprofile HR_action (HRcond_plays_in lg)).
 
     Lemma negb_HRcond_plays_in lg i_ti (H : ~~ HRcond_plays_in lg i_ti) :
-      lg \notin focalset (cond G.1 (event_ti (projT2 i_ti)) (is_revisable proper_G (projT2 i_ti))).
+      lg \notin focal (cond G.1 (evt (projT2 i_ti)) (is_revisable proper_G (projT2 i_ti))).
     Proof.
     rewrite negb_focal_revise => // t Ht.
     move: H ; rewrite negb_exists => /forallP => H.
@@ -342,7 +349,7 @@ Section HowsonRosenthal.
       := fun lg p x =>
          let (i_ti, Hi_ti) := x in
          let (i, ti) := i_ti in
-         let kn := cond G.1 (event_ti ti) (is_revisable proper_G ti) in
+         let kn := cond G.1 (evt ti) (is_revisable proper_G ti) in
          kn lg * xeu [ffun t => G.2 (HRcond_mkprofile Hi_ti p t) t i] lg.
 
 
@@ -368,12 +375,12 @@ Section HowsonRosenthal.
       igame_utility xeu proper_G p ti = HRcond (iprofile_flatten p) (existT _ i ti).
     Proof.
     set i_ti := existT _ i ti.
-    rewrite /HRcond hg_gameE /igame_utility /XEU.
+    rewrite /HRcond hg_gameE /igame_utility /XEUm.
     rewrite sum_fun_focalset [in RHS]big_mkcond.
     apply eq_bigr => lg _.
     case (boolP (HRcond_plays_in lg i_ti)) => H.
     - rewrite /HRcond_u /=.
-      set kn := cond G.1 (event_ti ti) (is_revisable proper_G ti).
+      set kn := cond G.1 (evt ti) (is_revisable proper_G ti).
       + apply: mulr_ll ; apply: xeu_equality => t Ht.
         by rewrite !ffunE HRcond_mkprofileE.
     - have := negb_HRcond_plays_in H.
@@ -403,13 +410,13 @@ Section HowsonRosenthal.
 
     Definition HRTBM_localgame : finType := Tn.
 
-    Definition m_ti (i_ti : HR_player) : massfun R Tn :=
-      let ti := projT2 i_ti in cond G.1 (event_ti ti) (forallP (forallP proper_G _) ti).
+    Definition m_ti (i_ti : HR_player) : rmassfun R Tn :=
+      let ti := projT2 i_ti in cond G.1 (evt ti) (forallP (forallP proper_G _) ti).
     
     Definition HRTBM_plays_in : HRTBM_localgame -> pred HR_player
       := fun lg i_ti =>
            [|| lg (projT1 i_ti) == projT2 i_ti |
-             [exists A : {set Tn}, [&& A \in focalset (m_ti i_ti), lg \in A & [exists t : Tn, (t \in A) && (t (projT1 i_ti) == projT2 i_ti)]]]].
+             [exists A : {set Tn}, [&& A \in focal (m_ti i_ti), lg \in A & [exists t : Tn, (t \in A) && (t (projT1 i_ti) == projT2 i_ti)]]]].
     (* Note: for Weak conditioning, i_ti may plays in lg = t' such as t' i != ti *)
 
            
@@ -462,12 +469,12 @@ Section HowsonRosenthal.
       + by rewrite (negbTE HX) andbF.
       + rewrite negb_exists in HX.
         move/forallP in HX.
-        have : X \notin focalset (m_ti i_ti).
+        have : X \notin focal (m_ti i_ti).
         apply: conditioning_axiomE.
         * by case cond.
-        * rewrite /event_ti.
+        * rewrite /evt.
           rewrite -setD_eq0.
-          rewrite set0_existsF negb_exists.
+          rewrite set0_exists negb_exists.
           apply/forallP => t.
           rewrite in_setD negb_and.
           case (boolP (t \in X)) => /= Ht ; last by rewrite orbT.
@@ -496,7 +503,7 @@ Section HowsonRosenthal.
   case (boolP (lg (projT1 i_ti) == projT2 i_ti)) => // H.
   rewrite orFb ; apply: negbTE ; rewrite negb_exists.
   apply/forallP => X ; apply/negP => /and3P [Hcontra1 Hcontra2 Hcontra3].
-  move: Hcontra1 ; rewrite in_focalset_focalelement /focal_element /= ffunE.
+  move: Hcontra1 ; rewrite in_focalset_focalelement /focal /= ffunE.
   have X_neq_set0 : X != set0 by apply/set0Pn ; exists lg.
   rewrite (negbTE X_neq_set0)  big_pred0 => [|Y] ; first by rewrite eqxx.
   suff H1 : Y :&: [set t : {dffun forall i, T i} | t (projT1 i_ti) == projT2 (i_ti)] == X = false
@@ -512,10 +519,10 @@ Section HowsonRosenthal.
   case (boolP (lg (projT1 i_ti) == projT2 i_ti)) => // H.
   rewrite orFb ; apply: negbTE ; rewrite negb_exists.
   apply/forallP => X ; apply/negP => /and3P [Hcontra1 Hcontra2 Hcontra3].
-  move: Hcontra1 ; rewrite in_focalset_focalelement /focal_element /= ffunE.
+  move: Hcontra1 ; rewrite in_focalset_focalelement /focal /= ffunE.
   have X_neq_set0 : X != set0 by apply/set0Pn ; exists lg.
   rewrite (negbTE X_neq_set0) andTb.
-  suff H1 : ~~ (X \subset event_ti (projT2 i_ti))
+  suff H1 : ~~ (X \subset evt (projT2 i_ti))
     by rewrite (negbTE H1) eqxx.
   by apply/subsetPn ; exists lg ; try rewrite !inE.
   Qed.
@@ -534,49 +541,64 @@ Section HRTBMWeakConditioningLocalGames.
 
   Notation Tn := {ffun forall i, T i}.
 
-  Program Definition HRTBM_Weak_example_m : massfun R Tn :=
-    {| massfun_val := [ffun X => if X == setT then 1 else 0] |}.
-  Next Obligation.
-  have H0T : [set: {dffun 'I_2 -> 'I_2}] != set0
-    by apply/set0Pn ; exists [ffun t => ord0].
-  apply/andP ; split.
-  + by rewrite ffunE [e in if e then _ else _]eq_sym (negbTE H0T) eqxx.
-  + rewrite (bigD1 setT) //= ffunE eqxx big1 => [|X HX].
-    * by rewrite addr0.
-    * by rewrite ffunE (negbTE HX).
-      (*
-  + apply/forallP => X.
-    rewrite ffunE /=.
-    case (boolP (X == setT)) => [->//|H].
-    by rewrite (negbTE H) //.
-       *)
-  Defined.
+  From HB Require Import structures.
+
+  Notation m_example := [ffun X : {set Tn} => if X == setT then 1 else 0:R].
+
+  Lemma HRTBM_Weak_example_massfun0 :
+    m_example set0 = 0.
+  Proof. by rewrite ffunE/= eq_sym (negbTE (setT0F [ffun t => ord0])). Qed.
+
+  Lemma HRTBM_Weak_example_massfun1 :
+    \sum_(A : {set Tn}) m_example A = 1.
+  Proof.
+  rewrite (bigD1 setT)//= big1=>[|A HA].
+  - by rewrite addr0 ffunE eqxx.
+  - by rewrite ffunE (negbTE HA).
+  Qed.
+
+  HB.instance Definition _ :=
+    NumMassFun_of_Ffun.Build R Tn m_example HRTBM_Weak_example_massfun0 HRTBM_Weak_example_massfun1.
+  
+  Lemma HRTBM_Weak_example_ge0 A :
+    m_example A >= 0.
+  Proof.
+  rewrite ffunE/=.
+  case (boolP (A == setT))=>[->//|H].
+  by rewrite (negbTE H).
+  Qed.
+
+  HB.instance Definition _ :=
+    Bpa_of_NumMassFun.Build R Tn m_example HRTBM_Weak_example_ge0.
+
+  Notation m := (m_example : rmassfun R Tn).
 
   Definition HRTBM_Weak_example_igame : igame R A T :=
-    (HRTBM_Weak_example_m, (fun => fun => fun => 0)).
+    (m, (fun => fun => fun => 0)).
   
   Lemma HRTBM_Weak_example_proper : proper_igame HRTBM_Weak_example_igame (Weak_conditioning _ _).
   Proof.
   apply/forallP => i ; apply/forallP => ti.
-  rewrite/revisable/Weak_conditioning/Weak_cond_revisable/Psup.
+  rewrite/revisable/Weak_conditioning/Weak_cond_revisable ffunE.
   apply: lt0r_neq0.
   rewrite (bigD1 setT) /=.
   - rewrite ffunE eqxx big1 => [|X /andP [HX1 HX2]].
     + by rewrite addr0 ltr01.
     + by rewrite ffunE (negbTE HX2).
-    + apply/set0Pn.
-      exists [ffun j => ti].
-      by rewrite setTI !inE ffunE.
+  - rewrite -setI_eq0.
+    apply/set0Pn.
+    exists [ffun j => ti].
+    by rewrite setTI !inE ffunE.
   Qed.
 
-  Lemma Pl_1 X : X != set0 -> Pl HRTBM_Weak_example_m X = 1.
+  Lemma Pl_1 X : X != set0 -> Psup m X = 1.
   Proof.
   move => HX.
-  rewrite /Pl.
-  rewrite (bigD1 setT) /=.
+  rewrite ffunE (bigD1 setT) /=.
   - rewrite ffunE eqxx big1 => [|Y /andP [HY1 HY2]] ; first by rewrite addr0.
     by rewrite ffunE (negbTE HY2).
-  - apply/set0Pn.
+  - rewrite -setI_eq0.
+    apply/set0Pn.
     rewrite -card_gt0 in HX.
     have [t Ht _] := eq_bigmax_cond (fun=>1%N) HX.
     exists t ; by rewrite setTI.
@@ -588,10 +610,10 @@ Section HRTBMWeakConditioningLocalGames.
   apply/orP ; right.
   apply/existsP ; exists setT.
   apply/and3P ; split.
-  - rewrite !inE /focal_element /= ffunE.
-    have : setT :&: event_ti (projT2 i_ti) != set0
+  - rewrite /focal/(_\in_)//= ffunE.
+    have : setT :&: evt (projT2 i_ti) != set0
       by apply/set0Pn ; exists [ffun _ => projT2 i_ti] ; rewrite in_setI !inE andTb ffunE.
-    move => ->.
+    move => ->/=.
     rewrite ffunE eqxx Pl_1 ;
       first by apply: lt0r_neq0 ; apply: divr_gt0 ; exact: ltr01.
     apply/set0Pn ; exists [ffun _ => projT2 i_ti].

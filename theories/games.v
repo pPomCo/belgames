@@ -92,7 +92,8 @@ Import GRing GRing.Theory.
 Import Num.Theory.
 
 
-Require Import general_lemmas capacity.
+From decision Require Import fintype finset ssrnum.
+From decision Require Import massfun drule decision.
 
 Local Open Scope ring_scope.
 
@@ -300,7 +301,7 @@ Section Games.
     Notation xeu_function W := ({ffun W -> R} -> {ffun {set W} -> R}) (only parsing).
 
     Definition igame :=
-      (massfun R Tn * (cprofile A -> Tn -> I -> R))%type.
+      (rmassfun R Tn * (cprofile A -> Tn -> I -> R))%type.
 
     Definition proper_igame (G : igame) (cond : conditioning R Tn) : bool :=
       [forall i : I, [forall ti : T i, revisable cond G.1 (event_ti ti)]].
@@ -311,7 +312,7 @@ Section Games.
 
     Definition igame_utility (G : igame) (cond : conditioning R Tn) (fXEU : xeu_function _) (HG : proper_igame G cond) (p : iprofile A T) (i : I) (ti : T i) : R :=
         let kn := cond G.1 (event_ti ti) (is_revisable HG ti) in
-        XEU kn (fXEU [ffun t => G.2 (proj_iprofile p t) t i]).
+        XEUm kn (fXEU [ffun t => G.2 (proj_iprofile p t) t i]).
 
     Definition Igame_Nash_equilibrium (G : igame) (cond : conditioning R Tn) fXEU (HG : proper_igame G cond) (p : iprofile A T) : Prop :=
       forall i : I,
@@ -350,6 +351,7 @@ Section Games.
 
   End FiniteIGame.
 
+  (*
   Section BGame.
 
     Notation Tconfig := (fun T => {ffun forall i : I, T i}).
@@ -414,9 +416,10 @@ Section Games.
       [EU of [ffun t => G.2 (proj_iprofile p t) t i] wrt kn].
 
   End BGame.
+   *)
 End Games.
 
-
+(*
 Section MixedStrategies.
 
   Variable R : realFieldType.
@@ -450,3 +453,4 @@ Section MixedStrategies.
   Qed.
 
 End MixedStrategies.
+*)
