@@ -20,9 +20,10 @@ Unset Printing Implicit Defensive.
 
 
 
-
+(*
 Definition prefs d (R : porderType d) (T : finType) := {ffun T -> R}.
 Definition kn d (R : porderType d) (T : finType) := {ffun {set T} -> R}.
+ *)
 
 
 Section DRule.
@@ -31,10 +32,12 @@ Section DRule.
   Variable dV : Datatypes.unit.
   Variable V : porderType dV.
 
+  Implicit Type X T : finType.
+
   Definition drule dispU (U : porderType dispU)
   dispV (V : porderType dispV)
   (knType : forall (T : finType), Type) :=
-    forall X T, prefs V X -> knType T -> (T -> X) -> U.
+    forall X T, (X -> V) -> knType T -> (T -> X) -> U.
 
 
   Structure zinst dW (W : porderType dW) := 
@@ -51,11 +54,14 @@ Section DRule.
    *)
 
   Definition XEU dW (W : porderType dW) (zi : zinst W) (X T : finType) :
-    prefs V X -> kn W T -> (T -> X) -> U :=
+    (X -> V) -> {ffun {set T} -> W} -> (T -> X) -> U :=
     fun v m chi =>
       \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (fun t => v (chi t)) B).
 
 End DRule.
+
+  
+
 
 
 Section NumDRules.
@@ -68,9 +74,9 @@ Section NumDRules.
   Section DRules.
 
     (** Expected utility *)
-    Definition EU X T (v : prefs R X) (p : prdist R T) chi := \sum_t v (chi t) * p t.
+    Definition EU X T (v : X -> R) (p : prdist R T) chi := \sum_t v (chi t) * p t.
     Definition ExpectedUtility : drule R R (probability R) :=
-      fun X T (v : prefs R X) (w : probability R T) chi =>
+      fun X T (v : X -> R) (w : probability R T) chi =>
         EU v (prdist_of_probability w) chi.
 
 
@@ -144,20 +150,22 @@ Section NumDRules.
         alpha * vmin + (1 - alpha) * vmax.
 
     (** Possibilistic utility *)
-  (*
-  Definition Uopt v (p : pidist R T) chi :=
-    \big[max/0]_t min (v (chi t)) (p t).
-  
-  Definition Upess v (p : pidist R T) chi :=
-    \big[max/0]_t min (v (chi t)) (p t).
-   *)
+    (*
+    Definition Uopt v (p : pidist R T) chi :=
+      \big[max/0]_t min (v (chi t)) (p t).
+    
+    Definition Upess v (p : pidist R T) chi :=
+      \big[max/0]_t min (v (chi t)) (p t).
+     *)
   End DRules.
 
 
   Section ZInstances.
 
     Definition zJaffray (alpha : R -> R -> R) : zinst R R R :=
-      {| z_op_mfun := +%R ;
+      {| z_idw := 0 ;
+        z_op_mfun := +%R ;
+        z_idu := 0 ;
         z_oplus := +%R ;
         z_otimes := *%R ;
         z_f_agg := fun X u B =>
@@ -166,26 +174,39 @@ Section NumDRules.
                      alpha vmin vmax * vmin + (1-alpha vmin vmax) * vmax |}.
 
     Definition zChoquet : zinst R R R :=
-    {| z_op_mfun := +%R ;
+    {| z_idw := 0 ;
+      z_op_mfun := +%R ;
+      z_idu := 0 ;
       z_oplus := +%R ;
       z_otimes := *%R ;
       z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
 
     Definition zTBM : zinst R R R :=
-      {| z_op_mfun := +%R ;
+      {| z_idw := 0 ;
+        z_op_mfun := +%R ;
+        z_idu := 0 ;
         z_oplus := +%R ;
         z_otimes := *%R ;
         z_f_agg := fun X u B => \sum_(x in B) u x / #|B|%:R |}.
 
+    (*
+    Definition zUopt : zinst (option R) R (option R) :=
+      {| z_idw := 0 ;
+        z_op_mfun := omax ;
+        z_idu := 0 ;
+        z_oplus := max ;
+        z_otimes := min ;
+        z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
+     *)
 
   End ZInstances.
 
   Section ZInstance_Correct.
 
     Variable X T : finType.
-    Implicit Type v : prefs R X.
+    Implicit Type v : X -> R.
     Implicit Type w : capacity R T.
-    Implicit Type m : {ffun {set T} -> R}.
+    Implicit Type m : rmassfun R T.
     Implicit Type chi : {ffun T -> X}.
     
 
@@ -227,7 +248,8 @@ Section NumDRules.
       is_mass_function (z_op_mfun (zJaffray alpha)) w m ->
       Jaffray alpha v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
-    move=>Hm ; rewrite (moebius_unique Hm).
+    move=>Hm/=.
+    rewrite (moebius_unique Hm).
     exact: zJaffray_JEU.
     Qed.
     
@@ -442,5 +464,33 @@ Section NumDRules.
     
     
   End ZInstance_Correct.
-
+  
 End NumDRules.
+
+Section XEUMassFunction.
+
+  Section XEUmDef.
+    Variable R : eqType.
+    Variable T : finType.
+    Variable idx : R.
+    Variable op : Monoid.com_law idx.
+
+    Definition XEUm idz oplus (otimes : R -> R -> R) T (m : massfun T op) (phi_u_chi : {set T} -> R) :=
+      \big[oplus/idz]_(A : {set T}) otimes (m A) (phi_u_chi A).
+
+  End XEUmDef.
+
+
+  Section XEUmZInstance.
+
+    
+    Variable R : numDomainType.
+    Variable zi : zinst R R R.
+    
+    Lemma XEU_XEUm (X T : finType) (v : X -> R) (m : massfun T (z_op_mfun zi)) chi :
+      XEU zi v m chi = XEUm (z_idu zi) (z_oplus zi) (z_otimes zi) m (z_f_agg zi (fun t => v (chi t))).
+    Proof. exact: eq_bigr. Qed.
+
+  End XEUmZInstance.
+
+End XEUMassFunction.

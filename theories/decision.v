@@ -189,26 +189,11 @@ Section Capacity.
   Qed.
    *)
   
-  (** Ensure definitions **)
-  Lemma PsupE (m : rmassfun R T) (A : {set T}) :
-    Psup m A = 1 - Pinf m (~:A).
-  Proof.
-  have := (massfun_Pinf01 m)=>/=/andP [Hm0 Hm1].
-  by rewrite -massfun_PinfD ffunE (eqP Hm1).
-  Qed.
-
-  Lemma PinfE (m : rmassfun R T) (A : {set T}) :
-    Pinf m A = 1 - Psup m (~:A).
-  Proof.
-  have := (massfun_Pinf01 m)=>/=/andP [Hm0 Hm1].
-  by rewrite -massfun_PinfD [in RHS]ffunE setCK (eqP Hm1) opprB [E in _ = 1+E]addrC addrA subrr add0r.
-  Qed.
-
-  
+  (*
   Lemma Pl_ge0 (m : bpa R T) :
     forall C, Psup m C >= 0.
   Proof. move=>C ; rewrite ffunE ; apply sumr_ge0=>B _ ; exact: bpa_ge0. Qed.
-
+   *)
   (*
   Lemma Psup_ge0 (m : massfun) :
     forall C, Psup m C >= 0.
@@ -233,11 +218,13 @@ Section Capacity.
   exact: lerB H11 (Pinf_ge0 m (~:C)).
   Qed.  
    *)
-  
+  (*  
   Lemma mass_set0 (m : rmassfun R T) :
     m set0 = 0.
   Proof. exact: massfun0. Qed.
+   *)
 
+  (*
   Lemma focal_neq_set0 (m : rmassfun R T) B :
     focal m B -> B != set0.
   Proof.
@@ -349,7 +336,8 @@ Section Capacity.
   have := massfun_Pinf01 m =>/andP[/eqP H0>_].
   by rewrite massfun_moebius moebius1 H0 subr0.
   Qed.
-
+  *)
+  
   (*
   Lemma Psup_set1 (m : massfun) w :
     Psup m [set w] = m [set w].
@@ -760,8 +748,8 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition NumMassFun_of_DempsterCond m C (HC : Dempster_cond_revisable m C) :=
-        NumMassFun_of_Ffun.Build R T (Dempster_cond_fun HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
+      Definition AddMassFun_of_DempsterCond m C (HC : Dempster_cond_revisable m C) :=
+        AddMassFun_of_Ffun.Build R T (Dempster_cond_fun HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
 
       Definition Dempster_cond m C (HC : Dempster_cond_revisable m C) : rmassfun R T :=
         Dempster_cond_fun HC.
@@ -773,12 +761,12 @@ Section Capacity.
       case: ifP => _//.
       apply: sumr_ge0 => B HB.
       apply divr_ge0 ; first by rewrite bpa_ge0.
-      exact: Pl_ge0.
+      exact: Psup_ge0.
       Qed.
 
       HB.instance
       Definition _ (m : bpa R T) C (HC : Dempster_cond_revisable m C) :=
-        Bpa_of_NumMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0 HC).
+        Bpa_of_AddMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0 HC).
 
       (*
       Definition Dempster_cond_bpa (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) : bpa
@@ -794,10 +782,10 @@ Section Capacity.
           then m A * f (A :&: C)
           else 0) / Psup m C.
       Proof.
-      rewrite -[in RHS]big_mkcondr sum_fun_focalset_cond.
+      rewrite -[in RHS]big_mkcondr sum_fun_focal_cond.
       Opaque Dempster_cond.
-      rewrite (big_setI_distrl (fun b => b != set0)) sum_fun_focalset (bigD1 set0) //=.
-      rewrite mass_set0 mul0r add0r.
+      rewrite (big_setI_distrl (fun b => b != set0)) sum_fun_focal (bigD1 set0) //=.
+      rewrite massfun0 mul0r add0r.
       under [in RHS]eq_bigr do rewrite mulrC.
       rewrite big_distrl /=.
       under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
@@ -809,7 +797,7 @@ Section Capacity.
       Lemma Dempster_cond_axiom : @conditioning_axiom Dempster_cond_revisable Dempster_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B HB.
-      rewrite notin_focalset ffunE => //=.
+      rewrite notin_focal ffunE => //=.
       case (boolP (B == set0)) => // /set0Pn [w Hw].
       rewrite big_pred0 => // A.
       case (boolP (A :&: C == B)) => //HA.
@@ -836,7 +824,7 @@ Section Capacity.
         -> FH_Pinf m C setT = 1.
       Proof.
       rewrite /FH_Pinf=>H.
-      by rewrite ffunE setTI setCT set0I Psup0 addr0 divff.
+      by rewrite ffunE setTI setCT set0I (pointed0 (Psup01 m)) addr0 divff.
       Qed.
 
       Definition FH_cond_fun (m : rmassfun R T) (C : {set T}) (HC : FH_cond_revisable m C) :=
@@ -845,7 +833,7 @@ Section Capacity.
 
       Lemma FH_cond_massfun0 (m : rmassfun R T) (C : {set T}) (HC : FH_cond_revisable m C) :
         FH_cond_fun HC set0 = 0.
-      Proof. by rewrite ffunE moebius0 ffunE set0I Pinf0 mul0r. Qed.
+      Proof. by rewrite ffunE moebius0 ffunE set0I (pointed0 (Pinf01 m)) mul0r. Qed.
       
       Lemma FH_cond_massfun1 (m : rmassfun R T) (C : {set T}) (HC : FH_cond_revisable m C) :
         \sum_(A : {set T}) FH_cond_fun HC A = 1.
@@ -858,7 +846,7 @@ Section Capacity.
 
       HB.instance
       Definition _ m C (HC : FH_cond_revisable m C) :=
-        NumMassFun_of_Ffun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
+        AddMassFun_of_Ffun.Build R T (FH_cond_fun HC) (FH_cond_massfun0 HC) (FH_cond_massfun1 HC).
       
       Definition FH_cond m C (HC : FH_cond_revisable m C) : rmassfun R T :=
         FH_cond_fun HC.
@@ -873,7 +861,7 @@ Section Capacity.
       rewrite {1}/FH_Pinf.
       have HAC : (A :&: C) = set0
         by apply: disjoint_setI0 ; rewrite disjoints_subset.
-      rewrite ffunE HAC Pinf0 mul0r big1=>//B HB.
+      rewrite ffunE HAC (pointed0 (Pinf01 m)) mul0r big1=>//B HB.
       rewrite -ffunE.
       apply: IH=>//.
       apply: (subset_trans _ HA).
@@ -915,8 +903,8 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition NumMassFun_of_StrongCond m C (HC : Strong_cond_revisable m C) :=
-        NumMassFun_of_Ffun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
+      Definition AddMassFun_of_StrongCond m C (HC : Strong_cond_revisable m C) :=
+        AddMassFun_of_Ffun.Build R T (Strong_cond_fun HC) (Strong_cond_massfun0 HC) (Strong_cond_massfun1 HC).
 
       Definition Strong_cond m C (HC : Strong_cond_revisable m C) : rmassfun R T :=
         Strong_cond_fun HC.
@@ -924,7 +912,7 @@ Section Capacity.
       Lemma Strong_cond_axiom : @conditioning_axiom Strong_cond_revisable Strong_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
-      rewrite notin_focalset ffunE => //=.
+      rewrite notin_focal ffunE => //=.
       case (boolP (B == set0)) => //= /set0Pn [t Ht].
       case (boolP (B \subset C)) => //= HB.
       contradiction (subsetF HB H Ht).
@@ -960,8 +948,8 @@ Section Capacity.
       Qed.
 
       HB.instance
-      Definition NumMassFun_of_WeakCond m C (HC : Weak_cond_revisable m C) :=
-        NumMassFun_of_Ffun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
+      Definition AddMassFun_of_WeakCond m C (HC : Weak_cond_revisable m C) :=
+        AddMassFun_of_Ffun.Build R T (Weak_cond_fun HC) (Weak_cond_massfun0 HC) (Weak_cond_massfun1 HC).
 
       Definition Weak_cond m C (HC : Weak_cond_revisable m C) : rmassfun R T :=
         Weak_cond_fun HC.
@@ -969,7 +957,7 @@ Section Capacity.
       Lemma Weak_cond_axiom : @conditioning_axiom Weak_cond_revisable Weak_cond.
       Proof.
       apply conditioning_axiomE2 => m C HC B H.
-      rewrite notin_focalset ffunE => //=.
+      rewrite notin_focal ffunE => //=.
       case (boolP (B :&: C == set0)) => //= /set0Pn [w Hw].
       move: Hw ; rewrite in_setI => /andP [Hw1 Hw2].
       move: H ; rewrite subsetE => /pred0P H.
@@ -1298,8 +1286,8 @@ Section Capacity.
     Proof.
     rewrite /TBEU/XEUm.
     under eq_bigr do rewrite ffunE.
-    rewrite sum_fun_focalset.
-    under [RHS]eq_bigr do rewrite /BetP_fun sum_fun_focalset_cond.
+    rewrite sum_fun_focal.
+    under [RHS]eq_bigr do rewrite /BetP_fun sum_fun_focal_cond.
     have Hl B : m B * (\sum_(t in B) u t / #|B|%:R) = (\sum_(t in B) m B * u t / #|B|%:R).
     by rewrite big_distrr /= ; under eq_bigr do rewrite mulrA.
     have Hr t : (\sum_(B : {set T} | t \in B) m B / #|B|%:R) * u t =  (\sum_(B : {set T} | t \in B) m B * u t / #|B|%:R).

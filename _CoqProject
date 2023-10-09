@@ -11,6 +11,7 @@ theories/lib/minmax.v
 theories/setfun.v
 theories/massfun.v
 theories/capacity.v
+theories/conditioning.v
 theories/drule.v
 theories/decision.v
 

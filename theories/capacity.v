@@ -23,25 +23,25 @@ Implicit Type T : finType.
 Local Open Scope ring_scope.
 
 
-
-
-
-(** Capacities *)
-Check "Capacity".
+(** Pointed Function *)
+Check "Pointed Function".
 HB.mixin
-Record Capacity_of_Ffun R T (mu : {ffun {set T} -> R}) :=
-  { capaM : monotonic mu ;
-    capa01 : pointed mu }.
+Record PointedFun_of_Ffun R T (mu : {ffun {set T} -> R}) :=
+  { capa01 : pointed mu }.
 
-#[short(type="capacity")]
+#[short(type="pointed_function")]
 HB.structure
-Definition Capacity R T := {mu of Capacity_of_Ffun R T mu}.
+Definition PointedFun R T := {mu of PointedFun_of_Ffun R T mu}.
 
-Section CapacityTheory.
+(** Belief function from Bpa *)
+HB.instance Definition _ R T (m : rmassfun R T) :=
+  PointedFun_of_Ffun.Build R T (Pinf m) (Pinf01 m).
+
+Section PointedFunTheory.
   
   Variable R : numFieldType.
   Variable T : finType.
-  Variable mu : capacity R T.
+  Variable mu : pointed_function R T.
   Implicit Type A B C : {set T}.
   
   (** Massfun of capacity *)
@@ -54,17 +54,48 @@ Section CapacityTheory.
   Qed.
 
   HB.instance
-  Definition _ := NumMassFun_of_Ffun.Build _ _ (moebius mu) capa_massfun0 capa_massfun1.
+  Definition _ := AddMassFun_of_Ffun.Build _ _ (moebius mu) capa_massfun0 capa_massfun1.
+
+  Lemma Pinf_moebiusE :
+    Pinf (moebius mu : rmassfun R T) = mu.
+  Proof. by apply/ffunP=>/=A ; rewrite ffunE moebiusE/=. Qed.
+
+  
+  (** Dual pointed function *)
+  Lemma dual_capa01 : pointed (setfun.dual mu).
+  Proof. apply: dual_pointed ; exact: capa01. Qed.
+
+  HB.instance
+  Definition _ := PointedFun_of_Ffun.Build R T (setfun.dual mu) dual_capa01.
+
+End PointedFunTheory.
+
+
+
+(** Numerical Capacities *)
+Check "Capacity".
+HB.mixin
+Record Capacity_of_PointedFun R T (mu : {ffun {set T} -> R}) of PointedFun_of_Ffun R T mu :=
+  { capaM : monotonic mu }.
+
+#[short(type="capacity")]
+HB.structure
+Definition Capacity R T := {mu of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu}.
+
+Section CapacityTheory.
+  
+  Variable R : numFieldType.
+  Variable T : finType.
+  Variable mu : capacity R T.
+  Implicit Type A B C : {set T}.
 
 
   (** Dual capacities *)
   Lemma dual_capaM : monotonic (setfun.dual mu).
   Proof. apply: dual_monotonic ; exact: capaM. Qed.
-  Lemma dual_capa01 : pointed (setfun.dual mu).
-  Proof. apply: dual_pointed ; exact: capa01. Qed.
 
   HB.instance
-  Definition _ := Capacity_of_Ffun.Build R T (setfun.dual mu) dual_capaM dual_capa01.
+  Definition _ := Capacity_of_PointedFun.Build R T (setfun.dual mu) dual_capaM.
 
 End CapacityTheory.
 (*
@@ -76,22 +107,25 @@ Check fun (mu : capacity _ _) => (setfun.dual mu : capacity _ _).
 (** 2-monotone capacities *)
 Check "Capa2inf".
 HB.mixin
-Record Capa2inf_of_Capacity R T mu of Capacity_of_Ffun R T mu :=
+Record Capa2inf_of_Capacity R T mu of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu :=
   { capa2mon : is_2monotone mu }.
 #[short(type="capa2inf")]
 HB.structure
-Definition Capa2inf R T := {mu of Capa2inf_of_Capacity R T mu & Capacity_of_Ffun R T mu}.
+Definition Capa2inf R T := {mu of Capa2inf_of_Capacity R T mu
+                            & Capacity_of_PointedFun R T mu
+                            & PointedFun_of_Ffun R T mu}.
 
 
 (** 2-alternating capacities *)
 Check "Capa2sup".
 HB.mixin
-Record Capa2sup_of_Capacity R T mu of Capacity_of_Ffun R T mu :=
+Record Capa2sup_of_Capacity R T mu of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu :=
   { capa2alt : is_2alternating mu }.
 #[short(type="capa2sup")]
 HB.structure
-Definition Capa2sup R T := {mu of Capa2sup_of_Capacity R T mu & Capacity_of_Ffun R T mu}.
-
+Definition Capa2sup R T := {mu of Capa2sup_of_Capacity R T mu 
+                            & Capacity_of_PointedFun R T mu
+                            & PointedFun_of_Ffun R T mu}.
 
 Section Capa2Theory.
   
@@ -178,7 +212,7 @@ Admitted.
 (** Belief functions *)
 Check "BeliefFunction".
 HB.mixin
-Record BeliefFunction_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_Ffun R T mu :=
+Record BeliefFunction_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu :=
   { massfun_ge0 : mpositive mu }.
 HB.factory
 Record BeliefFunction_of_Ffun R T (mu : {ffun {set T} -> R}) :=
@@ -187,25 +221,26 @@ Record BeliefFunction_of_Ffun R T (mu : {ffun {set T} -> R}) :=
 
 HB.builders
 Context R T mu of BeliefFunction_of_Ffun R T mu.
-HB.instance
-Definition _ := Capacity_of_Ffun.Build R T mu (mpositive_monotonic massfun_ge0) capa01.
-HB.instance
-Definition _ := Capa2inf_of_Capacity.Build R T mu (mpositive_2monotone massfun_ge0).
-HB.instance
-Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
+HB.instance Definition _ := PointedFun_of_Ffun.Build R T mu capa01.
+HB.instance Definition _ := Capacity_of_PointedFun.Build R T mu (mpositive_monotonic massfun_ge0).
+HB.instance Definition _ := Capa2inf_of_Capacity.Build R T mu (mpositive_2monotone massfun_ge0).
+HB.instance Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
 HB.end.
 
 #[short(type="belief_function")]
 HB.structure
 Definition BeliefFunction R T := {mu of BeliefFunction_of_Ffun R T mu}.
 
+(** Belief function from Bpa *)
+HB.instance Definition _ R T (m : bpa R T) :=
+  BeliefFunction_of_Ffun.Build R T (Pinf m) (Pinf01 m) (massfun_mpositive m).
 
 
 
 (** Plausibility measures *)
 Check "Plausibility".
 HB.mixin
-Record Plausibility_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_Ffun R T mu :=
+Record Plausibility_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu :=
   { massfunD_ge0 : mpositive (setfun.dual mu) }.
 HB.factory
 Record Plausibility_of_Ffun R T (mu : {ffun {set T} -> R}) :=
@@ -227,17 +262,20 @@ Qed.
 Lemma capa2alt : is_2alternating mu.
 Proof. rewrite dual_2monotone ; apply: mpositive_2monotone ; exact: massfunD_ge0. Qed.
 
-HB.instance
-Definition _ := Capacity_of_Ffun.Build R T mu capaM capa01.
-HB.instance
-Definition _ := Capa2sup_of_Capacity.Build R T mu (capa2alt).
-HB.instance
-Definition _ := Plausibility_of_Capacity.Build R T mu massfunD_ge0.
+HB.instance Definition _ := PointedFun_of_Ffun.Build R T mu capa01.
+HB.instance Definition _ := Capacity_of_PointedFun.Build R T mu capaM.
+HB.instance Definition _ := Capa2sup_of_Capacity.Build R T mu (capa2alt).
+HB.instance Definition _ := Plausibility_of_Capacity.Build R T mu massfunD_ge0.
 HB.end.
 
 #[short(type="plausibility")]
 HB.structure
 Definition Plausibility R T := {mu of Plausibility_of_Ffun R T mu}.
+
+(** Plausibility from Bpa *)
+HB.instance Definition _ R T (m : bpa R T) :=
+  Plausibility_of_Ffun.Build R T (Psup m) (Psup01 m) (massfun_mpositiveD m).
+
 
 
 Section BeliefFunctionTheory.
@@ -252,26 +290,24 @@ Section BeliefFunctionTheory.
   Lemma dual_massfunD_ge0 : mpositive (setfun.dual (setfun.dual Bel)).
   Proof. rewrite dualK. exact: massfun_ge0. exact: pointed0 capa01. Qed.
 
-  HB.instance
-  Definition _ :=
+  HB.instance Definition _ :=
     Plausibility_of_Capacity.Build R T (setfun.dual Bel) dual_massfunD_ge0.
-  HB.instance
-  Definition _ :=
+  HB.instance Definition _ :=
     BeliefFunction_of_Capacity.Build R T (setfun.dual Pl) massfunD_ge0.
 
 
-  (** Belief function <-> mass function **)
+  (** Belief function -> mass function **)
   Lemma bel_massfun0 : moebius Bel set0 = 0.
   Proof. by rewrite moebius0 pointed0//capa01. Qed.
 
   Lemma bel_massfun1 : \sum_(B : {set T}) moebius Bel B = 1.
   Proof. by rewrite -moebiusT pointedT//capa01. Qed.
 
-  HB.instance
-  Definition _ := NumMassFun_of_Ffun.Build R T (moebius Bel) bel_massfun0 bel_massfun1.
+  HB.instance Definition _ :=
+    AddMassFun_of_Ffun.Build R T (moebius Bel) bel_massfun0 bel_massfun1.
 
-  HB.instance
-  Definition _ := Bpa_of_NumMassFun.Build R T (moebius Bel) massfun_ge0.
+  HB.instance Definition _ :=
+    Bpa_of_AddMassFun.Build R T (moebius Bel) massfun_ge0.
 
 End BeliefFunctionTheory.
 
@@ -287,7 +323,7 @@ Record Proba_of_Plausibility R T (mu : {ffun {set T} -> R}) of Plausibility_of_F
   { massfunD_card1 : forall A, moebius (setfun.dual mu) A != 0%R -> #|A| = 1%N }.
 
 HB.mixin
-Record Proba_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_Ffun R T mu :=
+Record Proba_of_Capacity R T (mu : {ffun {set T} -> R}) of Capacity_of_PointedFun R T mu & PointedFun_of_Ffun R T mu :=
   { capaAdd : additiveUI mu }.
 
 
@@ -322,23 +358,19 @@ exact: mpositive_2monotone massfun_ge0.
 Qed.
 
 
-HB.instance
-Definition _ := Capa2inf_of_Capacity.Build R T mu (mpositive_2monotone massfun_ge0).
-HB.instance
-Definition _ := Capa2sup_of_Capacity.Build R T mu capa2alt.
-HB.instance
-Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
-HB.instance
-Definition _ := Plausibility_of_Capacity.Build R T mu massfunD_ge0.
-HB.instance
-Definition _ := Proba_of_BeliefFunction.Build R T mu massfun_card1.
-HB.instance
-Definition _ := Proba_of_Plausibility.Build R T mu massfunD_card1.
+HB.instance Definition _ := Capa2inf_of_Capacity.Build R T mu (mpositive_2monotone massfun_ge0).
+HB.instance Definition _ := Capa2sup_of_Capacity.Build R T mu capa2alt.
+HB.instance Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
+HB.instance Definition _ := Plausibility_of_Capacity.Build R T mu massfunD_ge0.
+HB.instance Definition _ := Proba_of_BeliefFunction.Build R T mu massfun_card1.
+HB.instance Definition _ := Proba_of_Plausibility.Build R T mu massfunD_card1.
 
 HB.end.
 
 #[short(type="probability")]
-HB.structure Definition Probability R T := {mu of Proba_of_Capacity R T mu & Capacity_of_Ffun R T mu}.
+HB.structure Definition Probability R T := {mu of Proba_of_Capacity R T mu
+                                            & Capacity_of_PointedFun R T mu
+                                            & PointedFun_of_Ffun R T mu}.
 
 
 Section ProbabilityTheory.
@@ -376,6 +408,14 @@ Section ProbabilityTheory.
     HB.instance Definition _ :=
       Proba_of_Capacity.Build R T (setfun.dual Pr) dual_capaAdd.
 
+    (** Probability measure <-> probability bpa *)
+    Lemma proba_moebius_card1 :
+      forall A, moebius Pr A != 0 -> #|A|==1%N.
+    Proof. by move=>/=A H ; apply/eqP ; exact: (massfun_card1 (s:=Pr)). Qed.
+
+    HB.instance Definition _ := PrBpa_of_Bpa.Build R T (moebius Pr) proba_moebius_card1.
+    
+
     (** Probability measure <-> probability distribution *)
     Notation p := [ffun t => Pr [set t]].
 
@@ -401,8 +441,17 @@ Section ProbabilityTheory.
 
   End LetPrBeAProbability.
 
+  Lemma prBpa_moebius_card1 (m : prBpa R T) A :
+    moebius (Pinf m) A != 0 -> #|A| = 1%N.
+  Proof. by rewrite -massfun_moebius=>HA ; apply/eqP ; exact: (prbpa_card1 (s:=m)). Qed.  
+  HB.instance Definition _ (p : prBpa R T) :=
+    Proba_of_BeliefFunction.Build R T (Pinf p) (@prBpa_moebius_card1 p).
+  
+
   HB.instance Definition _ (p : prdist R T) :=
-    Capacity_of_Ffun.Build R T [ffun A : {set T} => \sum_(t in A) p t] (prdist_capaM p) (prdist_capa01 p).
+    PointedFun_of_Ffun.Build R T [ffun A : {set T} => \sum_(t in A) p t] (prdist_capa01 p).
+  HB.instance Definition _ (p : prdist R T) :=
+    Capacity_of_PointedFun.Build R T [ffun A : {set T} => \sum_(t in A) p t] (prdist_capaM p).
   HB.instance Definition _ (p : prdist R T) :=
     Proba_of_Capacity.Build R T [ffun A : {set T} => \sum_(t in A) p t] (prdist_capaAdd p).
 
@@ -440,11 +489,9 @@ Proof. by rewrite poss_pidistE ; exact: pidist_Pi01. Qed.
 Lemma capa2alt : is_2alternating mu.
 Proof. by rewrite poss_pidistE ; exact: pidist_Pi2alt. Qed.
 
-HB.instance Definition _ :=
-  Capacity_of_Ffun.Build R T mu capaM capa01.
-
-HB.instance Definition _ :=
-  Capa2sup_of_Capacity.Build R T mu capa2alt.
+HB.instance Definition _ := PointedFun_of_Ffun.Build R T mu capa01.
+HB.instance Definition _ := Capacity_of_PointedFun.Build R T mu capaM.
+HB.instance Definition _ := Capa2sup_of_Capacity.Build R T mu capa2alt.
 
 HB.end.
 
@@ -468,14 +515,12 @@ Proof. by rewrite nec_pidistE ; exact: pidist_NM. Qed.
 Lemma capa01 : pointed mu.
 Proof. by rewrite nec_pidistE ; exact: pidist_N01. Qed.
 
-HB.instance Definition _ :=
-  Capacity_of_Ffun.Build R T mu capaM capa01.
-
 Lemma capa2mon : is_2monotone mu.
 Proof. by rewrite nec_pidistE ; exact: pidist_N2mon. Qed.
 
-HB.instance Definition _ :=
-  Capa2inf_of_Capacity.Build R T mu capa2mon.
+HB.instance Definition _ := PointedFun_of_Ffun.Build R T mu capa01.
+HB.instance Definition _ := Capacity_of_PointedFun.Build R T mu capaM.
+HB.instance Definition _ := Capa2inf_of_Capacity.Build R T mu capa2mon.
 
 HB.end.
 
@@ -549,8 +594,7 @@ HB.instance
 Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
  *)
 
-HB.instance
-Definition _ := BeliefFunction_of_Ffun.Build R T mu capa01 massfun_ge0.
+HB.instance Definition _ := BeliefFunction_of_Ffun.Build R T mu capa01 massfun_ge0.
 
 (*
 Definition cat_pidist :=

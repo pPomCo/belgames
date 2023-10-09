@@ -154,25 +154,25 @@ Implicit Type R : numFieldType.
 Local Open Scope ring_scope.
 
 HB.mixin
-Record NumMassFun_of_Ffun R T (m : {ffun {set T} -> R}) :=
+Record AddMassFun_of_Ffun R T (m : {ffun {set T} -> R}) :=
   { massfun0 : m set0 = 0 ;
     massfun1 : \sum_(A : {set T}) m A = 1 }.
 
 #[short(type="rmassfun")]
 HB.structure
-Definition NumMassFun R T := {p of NumMassFun_of_Ffun R T p}.
+Definition AddMassFun R T := {p of AddMassFun_of_Ffun R T p}.
 
 #[non_forgetful_inheritance]
 HB.instance
 Definition _ R T (m : rmassfun R T) := MassFun_of_Ffun.Build R T (0:R) +%R m.
 
-Section NumMassFunTheory.
+Section AddMassFunTheory.
 
   Variable R : numFieldType.
   Variable T : finType.
   Variable m : rmassfun R T.
 
-  Lemma massfun_Pinf01 : pointed (Pinf m).
+  Lemma Pinf01 : pointed (Pinf m).
   Proof.
   apply/andP ; split ; rewrite ffunE.
   - rewrite (bigD1 set0)//= big1 ?addr0 ?massfun0=>// A.
@@ -180,7 +180,7 @@ Section NumMassFunTheory.
   - under eq_bigl do rewrite subsetT ; by rewrite massfun1.
   Qed.
 
-  Lemma massfun_Psup01 : pointed (Psup m).
+  Lemma Psup01 : pointed (Psup m).
   Proof.
   apply/andP ; split ; rewrite ffunE /=.
   - rewrite big1=>//A ; by rewrite disjoint0.
@@ -196,17 +196,109 @@ Section NumMassFunTheory.
     m =1 moebius (Pinf m).
   Proof. by rewrite (moebius_unique massfun_Pinf). Qed.
 
-  Lemma massfun_PinfD : setfun.dual (Pinf m) = (Psup m).
+  Lemma PinfD : setfun.dual (Pinf m) = (Psup m).
   apply/ffunP=>/=A.
   by rewrite (dualE massfun_Pinf) ffunE.
   Qed.  
 
-  Lemma massfun_PsupD : setfun.dual (Psup m) = (Pinf m).
+  Lemma PsupD : setfun.dual (Psup m) = (Pinf m).
   apply/ffunP=>/=A.
-  by rewrite -massfun_PinfD dualK// pointed0// massfun_Pinf01.
+  by rewrite -PinfD dualK// pointed0// Pinf01.
+  Qed.
+
+  Lemma focal_set0F A :
+    focal m A -> A != set0.
+  Proof.
+  case (boolP (A == set0)) => [/eqP ->| //].
+  by rewrite /focal massfun0 eqxx.
+  Qed.
+
+  Lemma notin_focal B :
+    (B \notin focal m) = (m B == 0).
+  Proof. by rewrite Bool.negb_involutive. Qed.
+
+  Lemma focal_card A :
+    focal m A -> (#|A| > 0)%N.
+  Proof. by rewrite card_gt0 ; exact: focal_set0F. Qed.
+  
+  Lemma focal_nonempty :
+    (#|focal m| > 0)%N.
+  Proof.
+  apply /card_gt0P=>/=.
+  have Hm1' : \sum_A m A != 0 by rewrite massfun1 ; exact: oner_neq0.
+  destruct (big_eq1F Hm1') as [A HA] ; move: HA=>/and3P[_ _ HA0].
+  have HA0F : A != set0 by apply/eqP=>Hcontra ; rewrite Hcontra massfun0 eqxx in HA0.
+  by exists A.
+  Qed.
+
+  Lemma massfun_nonempty :
+    (#|T| > 0)%N.
+  Proof.
+  apply /card_gt0P.
+  have [A HA] := eq_bigmax_cond (fun=>1%N) focal_nonempty.
+  have [t _] := eq_bigmax_cond (fun=>1%N) (focal_card HA).
+  by exists t.
   Qed.  
 
-End NumMassFunTheory.
+  Definition massfun_pick : T
+    := let (t,_) := (bigop.eq_bigmax (fun=>0%N) massfun_nonempty) in t.
+
+
+  (** A sum over the focalset, weighted using the mass function, is equal to the same sum over X *)
+  Lemma sum_fun_focal_cond (P : pred {set T}) (f : {set T} -> R) :
+    \sum_(B in focal m | P B) m B * f B = \sum_(B : {set T} | P B) m B * f B.
+  Proof.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focal m)) => [_|].
+  - by rewrite andTb.
+  - rewrite andFb notin_focal => /eqP -> ; case (P B) => // ; by rewrite mul0r.
+  Qed.
+
+  Lemma sum_fun_focal (f : {set T} -> R) :
+    \sum_(B in focal m) m B * f B = \sum_(B : {set T}) m B * f B.
+  Proof.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focal m)) => [_//|].
+  rewrite notin_focal => /eqP -> ; by rewrite mul0r.
+  Qed.
+
+  Lemma sum_mass_focal_cond (P : pred {set T}) :
+    \sum_(B in focal m | P B) m B = \sum_(B : {set T} | P B) m B.
+  Proof.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focal m)) => [_|].
+  - by rewrite andTb.
+  - rewrite andFb notin_focal => /eqP -> ; by case (P B).
+  Qed.
+
+  Lemma sum_mass_focal :
+    \sum_(B in focal m) m B = \sum_(B : {set T}) m B.
+  Proof.
+  rewrite big_mkcond [in RHS]big_mkcond.
+  apply eq_bigr => B _.
+  case (boolP (B \in focal m)) => [_//|].
+  by rewrite notin_focal => /eqP ->.
+  Qed.
+
+  Lemma Pinf_focalE A :
+    Pinf m A = \sum_(B in focal m | B \subset A) m B.
+  Proof. by rewrite ffunE sum_mass_focal_cond. Qed.
+
+  Lemma Psup_focalE A :
+    Psup m A = \sum_(B in focal m | B :&: A != set0) m B.
+  Proof. by rewrite ffunE sum_mass_focal_cond ; under eq_bigl do rewrite -setI_eq0. Qed.
+
+  Lemma Pinf1 t :
+    Pinf m [set t] = m [set t].
+  Proof.
+  have := Pinf01 =>/andP[/eqP H0>_].
+  by rewrite massfun_moebius moebius1 H0 subr0.
+  Qed.
+
+End AddMassFunTheory.
 
 
 
@@ -217,12 +309,12 @@ End NumMassFunTheory.
 Check "BPA".
 
 HB.mixin
-Record Bpa_of_NumMassFun R T (m : {ffun {set T} -> R}) of NumMassFun_of_Ffun R T m :=
+Record Bpa_of_AddMassFun R T (m : {ffun {set T} -> R}) of AddMassFun_of_Ffun R T m :=
   { bpa_ge0 : forall A, m A >= 0 }.
 
 #[short(type="bpa")]
 HB.structure
-Definition Bpa R T := {m of Bpa_of_NumMassFun R T m & NumMassFun_of_Ffun R T m}.
+Definition Bpa R T := {m of Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m}.
 
 #[non_forgetful_inheritance]
 HB.instance
@@ -243,11 +335,28 @@ Section BpaTheory.
   Notation Pl := (Psup m).
 
   Lemma massfun_mpositive : mpositive Bel.
-  Proof.
-  move=>A.
-  rewrite -(moebius_unique (massfun_Pinf m)).
-  exact: bpa_ge0.
-  Qed.
+  Proof. by move=>A ; rewrite -(moebius_unique (massfun_Pinf m)) ; exact: bpa_ge0. Qed.
+
+  Lemma massfun_mpositiveD : mpositive (setfun.dual Pl).
+  Proof. by rewrite PsupD ; exact: massfun_mpositive. Qed.
+  
+  Lemma in_focal_mass B :
+    (B \in focal m) = (m B > 0).
+  Proof. by rewrite lt0r bpa_ge0 andbT. Qed.
+  
+  Lemma Pinf_ge0 A : Bel A >= 0.
+  Proof. by rewrite ffunE ; apply sumr_ge0=>B _ ; exact: bpa_ge0. Qed.
+
+  Lemma Psup_ge0 A : Pl A >= 0.
+  Proof. by rewrite ffunE ; apply sumr_ge0=>B _ ; exact: bpa_ge0. Qed.
+
+  Lemma PinfM : monotonic Bel.
+  Proof. by apply: mpositive_monotonic ; exact: massfun_mpositive. Qed.
+
+  Lemma PsupM : monotonic Pl.
+  Proof. by rewrite -PinfD ; apply: dual_monotonic ; exact: PinfM. Qed.
+  
+
 
 End BpaTheory.
 
@@ -256,12 +365,12 @@ End BpaTheory.
 Check "PrBpa".
 
 HB.mixin
-Record PrBpa_of_Bpa R T (m : {ffun {set T} -> R}) of Bpa_of_NumMassFun R T m & NumMassFun_of_Ffun R T m :=
+Record PrBpa_of_Bpa R T (m : {ffun {set T} -> R}) of Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m :=
   { prbpa_card1 : forall A : {set T}, m A != 0 -> #|A| == 1%N }.
 
 #[short(type="prBpa")]
 HB.structure
-Definition PrBpa R T := {m of PrBpa_of_Bpa R T m & Bpa_of_NumMassFun R T m}.
+Definition PrBpa R T := {m of PrBpa_of_Bpa R T m & Bpa_of_AddMassFun R T m & AddMassFun_of_Ffun R T m}.
 
 #[non_forgetful_inheritance]
 HB.instance
@@ -272,14 +381,36 @@ Section PrBpaTheory.
 
   Variable R : numFieldType.
   Variable T : finType.
-  Variable m : prBpa R T.
+  Variable p : prBpa R T.
 
-  Notation Pr := [ffun A : {set T} => \sum_(t in A) m [set t]].
+  Notation Pr := [ffun A : {set T} => \sum_(t in A) dist p t].
 
-  (*
-  Lemma PrPinf : Pr = Pinf m.
+  Lemma PrPinf : Pr = (Pinf p).
   Proof.
-   *)
+  apply/ffunP=>/=A.
+  rewrite !ffunE/=.
+  rewrite [in RHS](bigID (fun A : {set T} => #|A|==1%N))/= big_card1_dep [E in _=_+E]big1 ?addr0/=.
+  - apply: eq_big=>[t|B HB] ; first by rewrite sub1set.
+    by rewrite ffunE.
+  - move=>B /andP [_ HB].
+    apply/eqP/negP=>/negP Hcontra.
+    by rewrite (prbpa_card1 _ Hcontra) in HB.
+  Qed.
+
+  Lemma PrPsup : Pr = (Psup p).
+  Proof.
+  apply/ffunP=>/=A.
+  rewrite !ffunE/=.
+  rewrite [in RHS](bigID (fun A : {set T} => #|A|==1%N))/= big_card1_dep [E in _=_+E]big1 ?addr0/=.
+  - apply: eq_big=>[t|B HB] ; first by rewrite disjoints1 Bool.negb_involutive.
+    by rewrite ffunE.
+  - move=>B /andP [_ HB].
+    apply/eqP/negP=>/negP Hcontra.
+    by rewrite (prbpa_card1 _ Hcontra) in HB.
+  Qed.
+
+  Lemma PinfPsup_eq : Pinf p = Psup p.
+  Proof. by rewrite -PrPinf -PrPsup. Qed.
 
   Lemma massfun_additiveUI : additiveUI Pr.
   Proof.
@@ -294,6 +425,16 @@ Section PrBpaTheory.
   + by rewrite in_setD andbC.
   + by rewrite in_setD in_setU ; case (t \in A) ; case (t \in B).
   + by rewrite in_setU ; case (t \in A) ; rewrite // andbF.
+  Qed.
+
+  Lemma prBpa_dist_ge0 t : dist p t >= 0.
+  Proof. by rewrite ffunE ; exact: bpa_ge0. Qed.
+
+  Lemma prBpa_dist_sum1 : \sum_t dist p t = 1.
+  Proof.
+  have : Pr setT = 1
+    by rewrite PrPinf (pointedT (Pinf01 p)).
+  by rewrite ffunE big_setT.
   Qed.
 
 End PrBpaTheory.
@@ -320,6 +461,10 @@ Section PrDistTheory.
 
   Variable R : numFieldType.
   Variable T : finType.
+
+  HB.instance Definition _ (p : prBpa R T) :=
+    PrDist_of_Ffun.Build R T (dist p) (prBpa_dist_ge0 p) (prBpa_dist_sum1 p).
+
   Variable p : prdist R T.
 
   Notation Pr := [ffun A : {set T} => \sum_(t in A) p t].
