@@ -4,6 +4,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 --->
 # A Formal Theory of Games of Incomplete Information Based on Belief Functions
 
+**Update:** The ITP2023 formalization is available [on the ITP2023 branch](https://github.com/pPomCo/belgames/tree/ITP2023).
+
 [![Docker CI][docker-action-shield]][docker-action-link]
 
 [docker-action-shield]: https://github.com/pPomCo/belgames/workflows/Docker%20CI/badge.svg?branch=main
