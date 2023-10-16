@@ -22,6 +22,9 @@ Implicit Type R : numDomainType.
 Implicit Type T : finType.
 Local Open Scope ring_scope.
 
+
+
+
 (** Pointed Function *)
 Check "Pointed Function".
 HB.mixin
@@ -43,7 +46,7 @@ Section PointedFunTheory.
   Variable mu : pointed_function R T.
   Implicit Type A B C : {set T}.
   
-  (** Massfun of capacity *)
+  (** Moebius from pointed capacity *)
   Lemma capa_massfun0 : moebius mu set0 = 0.
   Proof. by rewrite moebius0 pointed0//capa01. Qed.
   Lemma capa_massfun1 : \sum_(A : {set T}) moebius mu A = 1.
@@ -110,7 +113,7 @@ Section CapacityTheory.
     Implicit Type A B C : {set T}.
 
     Lemma qmassfun_trivial :
-      is_mass_function 0 max mu mu.
+      is_massfun 0 max mu mu.
     Proof.
     move=>A.
     apply/eqP ; rewrite eq_le ; apply/andP ; split.
@@ -138,7 +141,6 @@ Section CapacityTheory.
     rewrite (pointed0 capa01) ; move=><-.
     exact: (pointedT capa01).
     Qed.
-    HB.about MaxMassFun_of_MassFun.Build.
     
     HB.instance Definition _ :=
       MaxMassFun_of_MassFun.Build R T (qmoebius mu) capa_qmoebius0 capa_qmoebius1.
@@ -465,7 +467,9 @@ Section ProbabilityTheory.
     under eq_bigr do rewrite ffunE.
     rewrite -finset.big_card1 -(pointedT (mu:=Pr) capa01) moebiusE big_mkcond [in RHS]big_mkcond/=.
     apply/eq_bigr=>A _.
-    by rewrite subsetT pr_moebiusE ?ffunE//.
+    rewrite subsetT/=.
+    have := pr_moebiusE=>/ffunP->.
+    by rewrite ffunE.
     Qed.
 
     HB.instance
@@ -597,7 +601,7 @@ apply/andP ; split ; rewrite categoricalE.
 Qed.
 
 Lemma cat_massfunE :
-  is_mass_function 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist t] then 1 else 0].
+  is_massfun 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist t] then 1 else 0].
 Proof.
 move=>/=A.
 case (boolP ([set t | categorical_dist t] \subset A))=>H.
@@ -713,7 +717,7 @@ Section CategoricalCapacityTheory.
 
 
   Lemma categorical_massfunE : 
-    is_mass_function 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist (s:=mu) t] then 1 else 0].
+    is_massfun 0 +%R mu [ffun A : {set T} => if A == [set t | categorical_dist (s:=mu) t] then 1 else 0].
   Proof.
   move=>/=A.
   case (boolP ([set t | categorical_dist (s:=mu) t] \subset A))=>H.

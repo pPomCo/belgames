@@ -35,6 +35,7 @@ Record MassFun_of_Ffun R T (idx : R) (op : SemiGroup.com_law R) (m : {ffun {set 
 HB.structure
 Definition MassFun R T idx op := {m of MassFun_of_Ffun R T idx op m}.
 
+
 Section MassFunTheory.
 
   Variable R : eqType.
@@ -63,41 +64,8 @@ Section MassFunTheory.
     Definition Psup m : {ffun {set T} -> R} :=
       [ffun A : {set T} => \big[op/idx]_(B : {set T} | ~~[disjoint B & A]) m B].
 
-    Lemma massfunE m : is_mass_function idx op (Pinf m) m.
+    Lemma massfunE m : is_massfun idx op (Pinf m) m.
     Proof. by move=>A ; rewrite ffunE. Qed.
-
-    Section Inversible.
-      Variable (inv : R -> R).
-
-      (* \approx moebius *)
-      Program Fixpoint mkmassfun_wf (mu : {ffun {set T} -> R}) A {measure #|A|} : R :=
-        op (mu A) (inv (\big[op/idx]_(B : {B0: {set T} | B0 \proper A}) mkmassfun_wf mu B)).
-      Next Obligation.
-      move=>mu A H [B HB].
-      exact: ssrnat.ltP (proper_card HB).
-      Defined.
-      Next Obligation.
-      apply: measure_wf.
-      exact: Wf_nat.lt_wf.
-      Defined.
-
-      Definition mkmassfun mu := [ffun A : {set T} => mkmassfun_wf mu A].
-
-      HB.instance
-      Definition _ mu :=  MassFun_of_Ffun.Build R T idx op (mkmassfun mu).
-
-      Lemma mkmassfun_def mu A :
-        mkmassfun mu A = op (mu A) (inv (\big[op/idx]_(B : {set T} | B \proper A) mkmassfun mu B)).
-      Proof.
-      rewrite -sig_big ffunE ; under eq_bigr do rewrite ffunE.
-      rewrite/mkmassfun_wf/mkmassfun_wf_func Fix_eq //=.
-      move => [mu' A'] /= y z Hyz.
-      congr (op _ _).
-      congr (inv _).
-      apply:eq_bigr => [B _] /=.
-      by rewrite Hyz.
-      Qed.
-    End Inversible.
 
   End OnSemiGroup.
 
@@ -111,48 +79,23 @@ Section MassFunTheory.
     Section Inversible.
       Variable (inv : R -> R).
       Variable (massfunV : right_inverse idx inv op).
-      
-      Lemma mkmassfunE mu A :
-        mu A = \big[op/idx]_(B : {set T} | B \subset A) mkmassfun op inv mu B.
-      Proof.
-      rewrite (bigD1 A) ?subxx // mkmassfun_def -Monoid.mulmA /=.
-      under [E in _ = op _ (op _ E)]eq_bigl do rewrite -properEbis.
-      by rewrite [E in _ = op _ E]Monoid.mulmC/= massfunV Monoid.mulm1.
-      Qed.
 
-      Lemma mkmassfun_Pinf m A :
-        m A = mkmassfun op inv (Pinf m) A.
-      Proof.
-      rewrite /Pinf.
-      move:A ; apply: subset_ind=>A IH.
-      rewrite mkmassfun_def ffunE (bigD1 A)//.
-      under eq_bigl do rewrite -properEbis.
-      by rewrite -(eq_bigr _ IH) -Monoid.mulmA/= massfunV Monoid.mulm1.
-      Qed.
+      HB.instance
+      Definition _ mu :=  MassFun_of_Ffun.Build R T idx op (mkmassfun op inv mu).
 
-      Lemma Pinf_mkmassfun mu A :
-        mu A = Pinf (mkmassfun op inv mu) A.
+      Lemma mkmassfunE mu :
+        mu = Pinf (mkmassfun op inv mu).
       Proof.
-      rewrite ffunE mkmassfunE.
-      move:A ; apply: subset_ind=>A IH.
-      by rewrite (bigD1 A) ?subxx// [in RHS](bigD1 A).
+      apply/ffunP=>/=A.
+      rewrite ffunE.
+      exact: mkmassfunE.
       Qed.
       
-      Lemma massfun_unique (m1 m2 : massfun T idx op) :
-        Pinf m1 =1 Pinf m2 -> m1 =1 m2.
-      Proof.
-      move=>Hm1m2.
-      apply: subset_ind=>A IH.
-      rewrite mkmassfun_Pinf [in RHS]mkmassfun_Pinf.
-      congr (mkmassfun _ _ _ _).
-      exact/ffunP.
-      Qed.
-
     End Inversible.
-
   End OnMonoid.
-
 End MassFunTheory.
+
+Check (mkmassfun _ _ _ : massfun _ _ _).
 
 
 
@@ -176,6 +119,7 @@ Definition AddMassFun R T := {m of AddMassFun_of_MassFun R T m & MassFun_of_Ffun
 
 (* TODO: For compatibility *)
 Notation rmassfun := addMassfun.
+
 
 Section AddMassFunTheory.
 
@@ -338,7 +282,7 @@ Section MaxMassFunTheory.
 
   Variable R : realDomainType.
   Variable T : finType.
-  Variable m : maxMassfun R T.
+  Implicit Type m : maxMassfun R T.
 
 End MaxMassFunTheory.
 *)

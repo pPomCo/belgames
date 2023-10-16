@@ -18,27 +18,34 @@ Import Order Order.POrderTheory.
 
 
 
-(** Lemmas about set-functions {ffun {set T} -> R} **)
+(** Lemmas about set-functions (f : {set T} -> R) **)
 Section SetFunctions.
 
   Context {T : finType}.
   Implicit Type t : T.
   Implicit Type A B C : {set T}.
 
-  (** Set-function may have "mass-function" representations **)
+  (** Set-function may have "mass-function" representations which also is a set function **)
   Section MassFunction.
     Variable R : eqType.
     Variable idx : R.
     Variable op : R -> R -> R.
+    
+    Notation Pinf m := (fun A => \big[op/idx]_(B : {set T} | B \subset A) m B).
+    Notation Psup m := (fun A => \big[op/idx]_(B : {set T} | ~~[disjoint B & A]) m B).
 
-    Notation m_repr := (fun m A => \big[op/idx]_(B : {set T} | B \subset A) m B).
+    
+    Definition is_massfun mu m :=
+      mu =1 Pinf m.
 
-    Definition is_mass_function mu m :=
-      mu =1 m_repr m.
+    Lemma Pinf_isMassfun m :
+      is_massfun (Pinf m) m.
+    Proof. by []. Qed.
 
     Definition focal m A := m A != idx.
 
     Definition k_additivity m := \max_(A in focal m) #|A|.
+
 
   End MassFunction.
 
@@ -47,8 +54,13 @@ Section SetFunctions.
     Variable idx : R.
     Variable op : Monoid.com_law idx.
 
-    Lemma mass_function_focal mu m :
-      is_mass_function idx op mu m -> mu =1 fun A => \big[op/idx]_(B in focal idx m | B \subset A) m B.
+    Notation Pinf m := (fun A => \big[op/idx]_(B : {set T} | B \subset A) m B).
+    Notation Psup m := (fun A => \big[op/idx]_(B : {set T} | ~~[disjoint B & A]) m B).
+
+    
+    Lemma massfun_focal mu m :
+      is_massfun idx op mu m
+      -> mu =1 (fun A : {set T} => \big[op/idx]_(B in focal idx m | B \subset A) m B).
     Proof.
     move=>Hm A.
     rewrite big_mkcondl Hm.
@@ -56,18 +68,119 @@ Section SetFunctions.
     rewrite unfold_in.
     by case (boolP (m B == idx))=>[/eqP->|].
     Qed.
+
+    Lemma Pinf_focal m :
+      Pinf m =1 (fun A : {set T} => \big[op/idx]_(B in focal idx m | B \subset A) m B).
+    Proof.
+    apply: massfun_focal.
+    exact: Pinf_isMassfun.
+    Qed.
+
+    Lemma Psup_focal m :
+      Psup m =1 (fun A : {set T} => \big[op/idx]_(B in focal idx m | ~~[disjoint B & A]) m B).
+    Proof.
+    move=> A.
+    rewrite [in RHS]big_mkcondl.
+    apply: eq_bigr=>/= B HB.
+    rewrite unfold_in.
+    by case (boolP (m B == idx))=>[/eqP->|].
+    Qed.
+
+
+
+    Section Inversible.
+      Variable (inv : R -> R).
+      Variable (massfunV : right_inverse idx inv op).
+
+      (* \approx moebius *)
+      Program Fixpoint mkmassfun_wf (mu : {set T} -> R) A {measure #|A|} : R :=
+        op (mu A) (inv (\big[op/idx]_(B : {B0: {set T} | B0 \proper A}) mkmassfun_wf mu B)).
+      Next Obligation.
+      move=>mu A H [B HB].
+      exact: ssrnat.ltP (proper_card HB).
+      Defined.
+      Next Obligation.
+      apply: measure_wf.
+      exact: Wf_nat.lt_wf.
+      Defined.
+
+      Definition mkmassfun mu := [ffun A : {set T} => mkmassfun_wf mu A].
+
+      Lemma mkmassfun_def mu A :
+        mkmassfun mu A = op (mu A) (inv (\big[op/idx]_(B : {set T} | B \proper A) mkmassfun mu B)).
+      Proof.
+      rewrite -sig_big ffunE ; under eq_bigr do rewrite ffunE.
+      rewrite/mkmassfun_wf/mkmassfun_wf_func Fix_eq //=.
+      move => [mu' A'] /= y z Hyz.
+      congr (op _ _).
+      congr (inv _).
+      apply:eq_bigr => [B _] /=.
+      by rewrite Hyz.
+      Qed.
+      
+      Lemma mkmassfunE mu A :
+        mu A = \big[op/idx]_(B : {set T} | B \subset A) mkmassfun mu B.
+      Proof.
+      rewrite (bigD1 A) ?subxx // mkmassfun_def -Monoid.mulmA /=.
+      under [E in _ = op _ (op _ E)]eq_bigl do rewrite -properEbis.
+      by rewrite [E in _ = op _ E]Monoid.mulmC/= massfunV Monoid.mulm1.
+      Qed.
+
+      Check Pinf _.
+      Lemma mkmassfun_Pinf m A :
+        m A = mkmassfun (Pinf m) A.
+      Proof.
+      move:A ; apply: subset_ind=>A IH.
+      rewrite mkmassfun_def (bigD1 A)//.
+      under eq_bigl do rewrite -properEbis.
+      by rewrite -(eq_bigr _ IH) -Monoid.mulmA/= massfunV Monoid.mulm1.
+      Qed.
+
+      Lemma Pinf_mkmassfun mu A :
+        mu A = Pinf (mkmassfun mu) A.
+      Proof.
+      rewrite mkmassfunE.
+      move:A ; apply: subset_ind=>A IH.
+      by rewrite (bigD1 A) ?subxx// [in RHS](bigD1 A).
+      Qed.
+      
+      Lemma mkmassfunT mu :
+        mu setT = \big[op/idx]_(B : {set T}) mkmassfun mu B.
+      Proof. rewrite mkmassfunE ; apply: eq_bigl=>B ; by rewrite subsetT. Qed.
+
+      Lemma massfun_unique m1 m2 :
+        Pinf m1 =1 Pinf m2 -> m1 =1 m2.
+      Proof.
+      move=>Hm1m2.
+      apply: subset_ind=>A IH.
+      rewrite mkmassfun_Pinf [in RHS]mkmassfun_Pinf.
+      rewrite !mkmassfun_def.
+      congr (op _ _)=>//=.
+      congr (inv _).
+      apply: eq_bigr=>/=B HB.
+      rewrite -mkmassfun_Pinf -mkmassfun_Pinf.
+      exact: IH.
+      Qed.
+
+      Lemma massfun_unique2 (mu m1 m2 : {ffun {set T} -> R}) :
+        is_massfun idx op mu m1 -> is_massfun idx op mu m2
+        -> m1 =1 m2.
+      Proof. move=>H1 H2 ; apply: massfun_unique=>A ; by rewrite -H1 -H2. Qed.
+
+
+      
+    End Inversible.
     
   End MassFunctionOnComMonoid.
 
   (** Set-functions with numerical co-domain **)
-  Section NumSetFunctions.
+  Section OrderedSetFunctions.
 
-    Open Scope ring_scope.
-    Context {R : numDomainType}. (* TODO zmodType with >, but *%R is not necessary *)
+    Open Scope order_scope.
+    Variable disp : Datatypes.unit.
+    Variable (R : porderType disp).
     
-    Notation set_function := {ffun {set T} -> R}.
-    Notation m_repr := (fun m A => \sum_(B : {set T} | B \subset A) m B).
-    Implicit Type mu m : set_function.
+    Implicit Type mu m : {ffun {set T} -> R}.
 
     Definition monotonic mu := forall A B, mu (A :|: B) >= mu A.
     Definition monotonicb mu := [forall A : {set T}, [forall B : {set T}, mu (A :|: B) >= mu A]].
@@ -84,13 +197,27 @@ Section SetFunctions.
       by rewrite (negbTE HAB).
     Qed.
 
-    Lemma monotonic1 mu :
+    Lemma monotonic0 mu :
+      monotonic mu -> forall A, mu A >= mu set0.
+    Proof. move=>Hmonotony A ; by rewrite -(set0U A) Hmonotony. Qed.
+
+    (*
+    Lemma monotonic0b mu :
+      monotonicb mu -> forall A, mu A >= mu set0.
+    Proof. move=>/monotonicP H ; exact: monotonic0. Qed.
+     *)
+
+    Lemma monotonicT mu :
+      monotonic mu -> forall A, mu A <= mu setT.
+    Proof. move=>Hmonotony A ; by rewrite -(setUT A) Hmonotony. Qed.
+    
+    Lemma monotonicU1 mu :
       (forall A t, mu A <= mu (t |: A)) -> monotonic mu.
     Proof.
+    Search "V" set0.
     move=>H1 A ; apply: card_ind=>B IH.
-    case (boolP (B == set0))=>[/eqP->|H] ;
+    case (set_0Vmem B)=>[->|[t Ht]] ;
       first by rewrite setU0.
-    have [t Ht] := pick_nonemptyset_sig H.
     rewrite setUC -(setU1_eq Ht) -(setUD [set t] B) -setUA.
     have H1t := H1 (B :\ t :|: A) t.
     apply: Order.le_trans _ H1t.
@@ -98,6 +225,9 @@ Section SetFunctions.
     apply: IH.
     by rewrite [E in (_<E)%N](cardsD1 t) Ht.
     Qed.
+
+    #[deprecated(since="belgames2", note="Use monotonicU1 instead.")]
+    Notation monotonic1 := monotonicU1 (only parsing).
     
     Lemma monotonicI mu :
       monotonic mu -> forall A B, mu (A :&: B) <= mu A.
@@ -140,7 +270,17 @@ Section SetFunctions.
     split=>[|H A B] ; first exact: monotonicD.
     by rewrite -[E in mu E<=_](setUDD A B).
     Qed.
+
+  End OrderedSetFunctions.
+
+  (** Set-functions with numerical co-domain **)
+  Section NumSetFunctions.
+
+    Open Scope ring_scope.
+    Variable (R : numDomainType).
     
+    Implicit Type mu m : {ffun {set T} -> R}.
+
     Definition pointed mu := [&& mu set0 == 0 & mu setT == 1].
 
     Lemma pointed0 mu : pointed mu -> mu set0 = 0.
@@ -149,9 +289,6 @@ Section SetFunctions.
     Proof. by move=>/andP[_/eqP->]. Qed.
 
 
-    
-
-    
     Definition is_2monotone mu :=
       forall A B : {set T}, mu (A :|: B) + mu (A :&: B) >= mu A + mu B.
     
@@ -185,15 +322,6 @@ Section SetFunctions.
       move: HA ; rewrite negb_forall=>/existsP/=[B HB].
       by rewrite (Hcontra A B) in HB.
     Qed.
-
-
-    Lemma monotonic0 mu :
-      monotonic mu -> forall A, mu A >= mu set0.
-    Proof. move=>Hmonotony A ; by rewrite -(set0U A) Hmonotony. Qed.
-
-    Lemma monotonicb0 mu :
-      monotonicb mu -> forall A, mu A >= mu set0.
-    Proof. move=>/monotonicP H ; exact: monotonic0. Qed.
 
     Definition superadditive mu :=
       forall A B, [disjoint A & B] -> mu (A :|: B) >= mu A + mu B.
@@ -314,12 +442,13 @@ Section SetFunctions.
     exact: additive_additiveUI.
     Qed.
 
-    
+
+    (*
     (** Numerical set-functions always have a unique mass function **)
     Section NumMassFunction.
 
-      Lemma mass_function_unique (m1 m2 : set_function):
-        (m_repr m1) =1 (m_repr m2) -> m1 =1 m2.
+      Lemma massfun_unique (m1 m2 : {ffun {set T} -> R}):
+        (Pinf m1) =1 (Pinf m2) -> m1 =1 m2.
       Proof.
       move=>/= H12.
       apply: subset_ind=>A H.
@@ -332,29 +461,27 @@ Section SetFunctions.
       move=>-> HA ; exact: (addIr _ HA).
       Qed.
 
-      Lemma mass_function_unique2 (mu m1 m2 : set_function) :
-        is_mass_function 0 +%R mu m1 -> is_mass_function 0 +%R mu m2
+      Lemma massfun_unique2 (mu m1 m2 : {ffun {set T} -> R}) :
+        is_massfun 0 +%R mu m1 -> is_massfun 0 +%R mu m2
         -> m1 =1 m2.
-      Proof. move=>H1 H2 ; apply: mass_function_unique=>A ; by rewrite -H1 -H2. Qed.
+      Proof. move=>H1 H2 ; apply: massfun_unique=>A ; by rewrite -H1 -H2. Qed.
 
-      Lemma mass_functionE mu m :
+      Lemma massfunE mu m :
         m =1 (fun A => mu A - \sum_(B : {set T} | B \proper A) m B)
-        -> is_mass_function 0 +%R mu m.
+        -> is_massfun 0 +%R mu m.
       Proof.
       move=>H A.
       rewrite (bigD1 A) //=.
       under eq_bigl do rewrite -properEbis.
       by rewrite H -addrA [E in _+E]addrC subrr addr0.
       Qed.
-
-      
     End NumMassFunction.
-
+     *)
     
     (** Duality of numerical set-functions **)
     Section DualSetFunction.
 
-      Definition dual mu : set_function :=
+      Definition dual mu : {ffun {set T} -> R} :=
         [ffun A : {set T} => mu setT - mu (~: A)].
 
       Lemma dual2E mu : dual (dual mu) = [ffun A : {set T} => mu A - mu set0].
@@ -379,11 +506,11 @@ Section SetFunctions.
       Qed.
 
       Lemma dualE mu m :
-        is_mass_function 0 +%R mu m -> dual mu =1 (fun A => \sum_(B : {set T} | ~~[disjoint B & A]) m B).
+        is_massfun 0 +%R mu m -> dual mu =1 (fun A => \sum_(B : {set T} | ~~[disjoint B & A]) m B).
       Proof.
       move=>/=Hm A.
       rewrite ffunE !Hm/=.
-      under eq_bigl do rewrite subsetT.
+      under [E in E-_=_]eq_bigl do rewrite subsetT.
       rewrite (bigID (fun B : {set T} => B \subset ~: A)) /= [E in E+_]addrC -addrA subrr addr0.
       apply: eq_bigl=>B.
       by rewrite disjoints_subset.
@@ -580,7 +707,7 @@ Section SetFunctions.
           (fun A : {set T} => \sum_(B : {set T} | B \subset A) (-1)^#|setD A B| * mu B) 
      **)
     Section MoebiusTransform.
-
+      (*
       Program Fixpoint moebius_wf mu A {measure #|A|} : R :=
         mu A - \sum_(B : {B0: {set T} | B0 \proper A}) moebius_wf mu B.
       Next Obligation.
@@ -592,35 +719,17 @@ Section SetFunctions.
       exact: Wf_nat.lt_wf.
       Defined.
 
-      Definition moebius mu : set_function := [ffun A : {set T} => moebius_wf mu A].
+      Definition moebius mu : {ffun {set T} -> R} := [ffun A : {set T} => moebius_wf mu A].
+       *)
 
-      Lemma moebius_def mu A :
-        moebius mu A = mu A - \sum_(B : {set T} | B \proper A) moebius mu B.
-      Proof.
-      rewrite -sig_big ffunE ; under eq_bigr do rewrite ffunE.
-      rewrite/moebius_wf/moebius_wf_func Fix_eq //=.
-      move => [mu' A'] /= y z Hyz.
-      congr (_ - _).
-      apply:eq_bigr => [B _] /=.
-      by rewrite Hyz.
-      Qed.
-
-      Lemma moebiusE mu A :
-        mu A = \sum_(B : {set T} | B \subset A) moebius mu B.
-      Proof.
-      rewrite (bigD1 A) ?subxx // moebius_def -Monoid.mulmA /=.
-      under [E in _ = _ + (-_ + E)]eq_bigl do rewrite -properEbis.
-      by rewrite addNr addr0.
-      Qed.
-
-      Lemma moebiusT mu :
-        mu setT = \sum_(B : {set T}) moebius mu B.
-      Proof. rewrite moebiusE ; apply: eq_bigl=>B ; by rewrite subsetT. Qed.
+      Definition moebius := (mkmassfun (@add R) -%R).
+      Definition moebius_def := (mkmassfun_def (@add R) -%R).
+      Definition moebiusE := (mkmassfunE (@subrr R)).
 
       Lemma moebius0 mu :
         moebius mu set0 = mu set0.
       Proof.
-      rewrite moebius_def big1=>[|A].
+      rewrite moebius_def big1=>[/=|A].
       - by rewrite subr0.
       - by rewrite proper0E.
       Qed.
@@ -628,7 +737,7 @@ Section SetFunctions.
       Lemma moebius1 mu t :
         moebius mu [set t] = mu [set t] - mu set0.
       Proof.
-      rewrite moebius_def.
+      rewrite moebius_def/=.
       congr (_ - _).
       under eq_bigl do rewrite proper1E.
       rewrite (bigD1 set0) // big_pred0=>/=[|B] ;
@@ -648,22 +757,23 @@ Section SetFunctions.
       by move=>/negPn/eqP.
       Qed.
       
-      Lemma is_mass_function_moebius mu :
-        is_mass_function 0 +%R mu (moebius mu).
-      Proof. exact: moebiusE. Qed.
+      Lemma is_massfun_moebius mu :
+        is_massfun 0 +%R mu (moebius mu).
+      Proof. move=>/=A ; by rewrite moebiusE. Qed.
 
       Lemma moebius_unique mu m :
-        is_mass_function 0 +%R mu m -> m = moebius mu.
+        is_massfun 0 +%R mu m -> m = moebius mu.
       Proof.
       move=>H.
-      apply/ffunP=>C.
-      exact: (fun Hm => mass_function_unique2 Hm (is_mass_function_moebius _)).
+      apply/ffunP=>C/=.
+      apply (massfun_unique2 (@subrr R) H (is_massfun_moebius _)C).
+      Check (fun Hm => massfun_unique2 _ Hm (is_massfun_moebius _)) _.
       Qed.
 
       Lemma dual_moebius mu A :
         dual mu A = \sum_(B : {set T} | ~~[disjoint B & A]) moebius mu B.
       Proof.
-      exact: dualE (is_mass_function_moebius mu) A.
+      exact: dualE (is_massfun_moebius mu) A.
       Qed.
 
       Lemma moebius_dual mu A :
@@ -671,7 +781,7 @@ Section SetFunctions.
       Proof.
       have Hmu : mu A - mu set0 = [ffun A : {set T} => mu A - mu set0] A by rewrite ffunE.
       rewrite Hmu -dual2E.
-      exact: (dualE (is_mass_function_moebius (dual mu))).
+      exact: (dualE (is_massfun_moebius (dual mu))).
       Qed.
 
       
@@ -912,19 +1022,21 @@ Section SetFunctions.
 
       Definition oqmoebius mu := [ffun A : {set T} => Some (qmoebius mu A)].
 
-      Lemma is_mass_function_oqmoebius mu :
+      Lemma is_massfun_oqmoebius mu :
         monotonic mu -> 
-        is_mass_function None (@omax _ R) [ffun A => Some (mu A)] (oqmoebius mu).
+        is_massfun None (@omax _ R) [ffun A => Some (mu A)] (oqmoebius mu).
       Proof.
       move=>Hmon A/=.
-      rewrite ffunE qmoebius_maxSE_Some///maxS.
+      rewrite !ffunE qmoebius_maxSE_Some///maxS.
       by under eq_bigl do rewrite inE ; under [in RHS]eq_bigr do rewrite ffunE.
       Qed.
 
-      Lemma is_mass_function_qmoebius mu :
+      Lemma is_massfun_qmoebius mu :
         monotonic mu ->
-        is_mass_function (mu set0) Num.max mu (qmoebius mu).
-      Proof. exact: qmoebiusE. Qed.       
+        is_massfun (mu set0) max mu (qmoebius mu).
+      Proof.
+      Check qmoebiusE.
+      exact: qmoebiusE. Qed.       
 
     End QualitativeMoebiusTransform.
 

@@ -32,13 +32,24 @@ Section DRule.
   Variable dV : Datatypes.unit.
   Variable V : porderType dV.
 
-  Implicit Type X T : finType.
+  Implicit Type X : Type.
+  Implicit Type T : finType.
 
   Definition drule dispU (U : porderType dispU)
   dispV (V : porderType dispV)
   (knType : forall (T : finType), Type) :=
     forall X T, (X -> V) -> knType T -> (T -> X) -> U.
+  
+  Definition drule2 dispU (U : porderType dispU)
+                    dispV (V : porderType dispV)
+                    dispW (W : porderType dispW) :=
+    forall X T, (X -> V) -> ({set T} -> W) -> (T -> X) -> U.
 
+  Definition f_agg_type : Type := (forall (X : finType), (X -> V) -> {set X} -> V).
+
+  Definition f_agg_axiom (f_agg : f_agg_type) : Prop :=
+    forall (X Y : finType) (f1 : X -> Y) (f2 : Y -> V) (A : {set X}),
+        f_agg X (fun x => f2 (f1 x)) A = f_agg Y f2 [set f1 x | x in A].
 
   Structure zinst dW (W : porderType dW) := 
     { z_idw : W ;
@@ -46,17 +57,30 @@ Section DRule.
       z_idu : U ;
       z_oplus : SemiGroup.com_law U ;
       z_otimes : W -> V -> U ;
-      z_f_agg : forall (X : finType), (X -> V) -> {set X} -> V }.
+      z_f_agg : f_agg_type ;
+      z_f_agg_ax : f_agg_axiom z_f_agg}.
 
   (*
   Definition is_repr dW (W : porderType dW) (T : finType) : {ffun {set T} -> W} -> {ffun {set T} -> W} -> forall idx : W, Monoid.com_law idx -> bool.
   Admitted.
    *)
 
-  Definition XEU dW (W : porderType dW) (zi : zinst W) (X T : finType) :
+  Definition XEU dW (W : porderType dW) (zi : zinst W) X T :
     (X -> V) -> {ffun {set T} -> W} -> (T -> X) -> U :=
     fun v m chi =>
       \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (fun t => v (chi t)) B).
+
+  Lemma XEU_eq dW (W : porderType dW) (zi : zinst W) (X : finType) T :
+    forall v m chi,
+      XEU zi v m (chi : T -> X)
+      = \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (v) [set chi t | t in B]).
+  Proof.
+  move=>v m chi.
+  apply: eq_bigr=>/=A _.
+  congr (z_otimes _ _).
+  by rewrite z_f_agg_ax.
+  Qed.
+
 
 End DRule.
 
@@ -67,7 +91,8 @@ End DRule.
 Section NumDRules.
 
   Variable R : realFieldType.
-  Implicit Type X T : finType.
+  Implicit Type X : Type.
+  Implicit Type T : finType.
 
   Open Scope ring_scope.
 
@@ -78,26 +103,45 @@ Section NumDRules.
     Definition ExpectedUtility : drule R R (probability R) :=
       fun X T (v : X -> R) (w : probability R T) chi =>
         EU v (prdist_of_probability w) chi.
+    
+    Definition ExpectedUtility2 : drule2 R R R :=
+      fun X T v w chi =>
+        \sum_t w [set t] * v (chi t).
 
 
+
+    
     (** Choquet *)
     Definition Choquet : drule R R (capacity R) :=
       fun X T v w chi =>
-        \sum_(A : {set T}) moebius w A * match minS (fun t => v (chi t)) A with
+        \sum_(A : {set T}) moebius w A * minSb 0 (fun t => v (chi t)) A.
+    Definition Choquet2 : drule2 R R R :=
+      fun X T v w chi =>
+        \sum_(A : {set T}) moebius w A * minSb 0 (fun t => v (chi t)) A.
+    (*
+        \sum_(A : {set T}) moebius w A * match minSb (fun t => v (chi t)) A with
                                          | Some x => x | None => 0
                                          end.
+     *)
 
     (** Jaffray *)
     Definition Jaffray (alpha : R -> R -> R)  : drule R R (capacity R) :=
       fun X T v w chi =>
         \sum_(A : {set T})
-        let vmin :=  match minS (fun t => v (chi t)) A with Some x => x | None => 0%R end in
-        let vmax :=  match maxS (fun t => v (chi t)) A with Some x => x | None => 0%R end in
+        let vmin :=  minSb 0 (fun t => v (chi t)) A in
+        let vmax :=  maxSb 0 (fun t => v (chi t)) A in
+        moebius w A * ((alpha vmin vmax) * vmin + (1 - alpha vmin vmax) * vmax).
+    
+    Definition Jaffray2 (alpha : R -> R -> R)  : drule2 R R R :=
+      fun X T v w chi =>
+        \sum_(A : {set T})
+        let vmin :=  minSb 0 (fun t => v (chi t)) A in
+        let vmax :=  maxSb 0 (fun t => v (chi t)) A in
         moebius w A * ((alpha vmin vmax) * vmin + (1 - alpha vmin vmax) * vmax).
 
 
     (** TBM *)
-    Definition BetP T (w : capacity R T) : {ffun T -> R} :=
+    Definition BetP T (w : {ffun {set T} -> R}) : {ffun T -> R} :=
       [ffun t => \sum_(A : {set T} | t \in A) moebius w A / #|A|%:R].
 
     Lemma BetP_ge0 T (w : belief_function R T) : forall t, 0 <= BetP w t.
@@ -132,9 +176,11 @@ Section NumDRules.
     Definition TBEU : drule R R (belief_function R) :=
       fun X T v w chi => ExpectedUtility v (BetPr w) chi.
 
+    Definition TBEU2 : drule2 R R R :=
+      fun X T v w chi => \sum_t (BetP [ffun A : {set T} => w A] t) * (v (chi t)).
+
     Definition Wald : drule R R (categorical_capacity R) :=
-      fun X T v w chi => match minS (fun t => v (chi t)) [set t | categorical_dist (s:=w) t] with
-                       | Some x => x | None => 0 end.
+      fun X T v w chi => minSb 0 (fun t => v (chi t)) [set t | categorical_dist (s:=w) t].
 
     Definition Laplace : drule R R (categorical_capacity R) :=
       fun X T v w chi =>
@@ -143,24 +189,46 @@ Section NumDRules.
 
     Definition Hurwicz (alpha : R) : drule R R (categorical_capacity R) :=
       fun X T v w chi =>
-        let vmin := match minS (fun t => v (chi t)) [set t | categorical_dist (s:=w) t] with
-                       | Some x => x | None => 0 end in
-        let vmax := match maxS (fun t => v (chi t)) [set t | categorical_dist (s:=w) t] with
-                    | Some x => x | None => 0 end in
+        let vmin := minSb 0 (fun t => v (chi t)) [set t | categorical_dist (s:=w) t] in
+        let vmax := maxSb 0 (fun t => v (chi t)) [set t | categorical_dist (s:=w) t] in
         alpha * vmin + (1 - alpha) * vmax.
 
     (** Possibilistic utility *)
-    (*
-    Definition Uopt v (p : pidist R T) chi :=
-      \big[max/0]_t min (v (chi t)) (p t).
     
-    Definition Upess v (p : pidist R T) chi :=
-      \big[max/0]_t min (v (chi t)) (p t).
-     *)
+    Definition Uopt : drule2 R R R :=
+      fun X T v w chi =>
+        \big[max/0]_t min (qmoebius [ffun A : {set T} => w A] [set t]) (v (chi t)).
+
+    Definition Upes : drule2 R R R :=
+      fun X T v w chi =>
+        \big[min/0]_t max (1 - qmoebius [ffun A : {set T} => w A] [set t]) (v (chi t)).
+  
   End DRules.
 
 
   Section ZInstances.
+
+    Definition minf : f_agg_type R := fun T (u : T -> R) B => minSb 0 u B.
+    Lemma minf_correct : f_agg_axiom minf.
+    Proof.
+    move=>X Y f1 f2 A.
+    rewrite/minf/minSb.
+    Admitted.
+
+    Definition minmaxf alpha : f_agg_type R :=
+      fun T (u : T -> R) B => 
+        let vmin := minSb 0 u B in
+        let vmax := maxSb 0 u B in
+        alpha vmin vmax * vmin + (1-alpha vmin vmax) * vmax.
+
+    Lemma minmaxf_correct alpha : f_agg_axiom (minmaxf alpha).
+    Admitted.
+
+    Definition moyf : f_agg_type R :=
+      fun T (u : T -> R) B => \sum_(x in B) u x / #|B|%:R.
+
+    Lemma moyf_correct : f_agg_axiom moyf.
+    Admitted.
 
     Definition zJaffray (alpha : R -> R -> R) : zinst R R R :=
       {| z_idw := 0 ;
@@ -168,18 +236,15 @@ Section NumDRules.
         z_idu := 0 ;
         z_oplus := +%R ;
         z_otimes := *%R ;
-        z_f_agg := fun X u B =>
-                     let vmin := match minS u B with Some x => x | None => 0 end in 
-                     let vmax := match maxS u B with Some x => x | None => 0 end in
-                     alpha vmin vmax * vmin + (1-alpha vmin vmax) * vmax |}.
+        z_f_agg_ax := minmaxf_correct alpha |}.
 
     Definition zChoquet : zinst R R R :=
-    {| z_idw := 0 ;
-      z_op_mfun := +%R ;
-      z_idu := 0 ;
-      z_oplus := +%R ;
-      z_otimes := *%R ;
-      z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
+      {| z_idw := 0 ;
+        z_op_mfun := +%R ;
+        z_idu := 0 ;
+        z_oplus := +%R ;
+        z_otimes := *%R ;
+        z_f_agg_ax := minf_correct |}.
 
     Definition zTBM : zinst R R R :=
       {| z_idw := 0 ;
@@ -187,7 +252,7 @@ Section NumDRules.
         z_idu := 0 ;
         z_oplus := +%R ;
         z_otimes := *%R ;
-        z_f_agg := fun X u B => \sum_(x in B) u x / #|B|%:R |}.
+        z_f_agg_ax := moyf_correct |}.
 
 
     Definition zUopt : zinst R R R :=
@@ -196,7 +261,7 @@ Section NumDRules.
         z_idu := 0 ;
         z_oplus := max ;
         z_otimes := min ;
-        z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
+        z_f_agg_ax := minf_correct |}.
 
     Definition zUpes : zinst R R R :=
       {| z_idw := 0 ;
@@ -204,14 +269,15 @@ Section NumDRules.
         z_idu := 0 ;
         z_oplus := min ;
         z_otimes := fun w v => max (1-w) v ;
-        z_f_agg := fun X u B => match minS u B with Some x => x | None => 0 end |}.
+        z_f_agg_ax := minf_correct |}.
 
 
   End ZInstances.
 
   Section ZInstance_Correct.
 
-    Variable X T : finType.
+    Variable X : Type.
+    Variable T : finType.
     Implicit Type v : X -> R.
     Implicit Type w : capacity R T.
     Implicit Type m : rmassfun R T.
@@ -241,19 +307,22 @@ Section NumDRules.
     under eq_bigr do rewrite pr_moebiusE ffunE (fun_if (fun x => x * _)) mul0r. 
                      rewrite -big_mkcond big_card1/=. 
                      apply: eq_bigr=>t _.
-                     rewrite minS1 maxS1 mulrC ffunE.
+                     rewrite minSb1 maxSb1 mulrC ffunE.
                      congr (_ * _).
                      by rewrite mulrDl mul1r mulNr [E in _+E=_]addrC addrA subrr add0r.
     Qed.
 
     
-
     Lemma zJaffray_JEU alpha v w chi :
       Jaffray alpha v w chi = XEU (zJaffray alpha) v (moebius w) chi.
     Proof. by []. Qed.
+    
+    Lemma zJaffray_JEU2 alpha v w chi :
+      Jaffray2 alpha v w chi = XEU (zJaffray alpha) v (moebius w) chi.
+    Proof. by []. Qed.
 
     Lemma zJaffray_JEU' alpha v w m chi :
-      is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
+      is_massfun (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
       Jaffray alpha v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hm/=.
@@ -283,7 +352,7 @@ Section NumDRules.
 
     Lemma zJaffray_Hurwicz' alpha beta v (w : categorical_capacity R T) m chi :
       (forall x y, alpha x y = beta) 
-      -> is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
+      -> is_massfun (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m ->
       Hurwicz beta v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hab Hm ; rewrite (moebius_unique Hm).
@@ -298,7 +367,7 @@ Section NumDRules.
     Qed.
 
     Lemma zChoquet_CEU' v w m chi :
-      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
+      is_massfun (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> Choquet v w chi = XEU zChoquet v m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -327,7 +396,7 @@ Section NumDRules.
     Qed.
     
     Lemma zChoquet_EU' v (w : probability R T) m chi :
-      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
+      is_massfun (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> ExpectedUtility v w chi = XEU zChoquet v m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -352,7 +421,7 @@ Section NumDRules.
     Qed.
 
     Lemma zChoquet_Wald' v (w : categorical_capacity R T) m chi :
-      is_mass_function (z_idw zChoquet) (z_op_mfun zChoquet) w m
+      is_massfun (z_idw zChoquet) (z_op_mfun zChoquet) w m
       -> Wald v w chi = XEU zChoquet v  m chi.
     Proof.
     move=>Hm ; rewrite (moebius_unique Hm).
@@ -360,7 +429,7 @@ Section NumDRules.
     Qed.
     
     Lemma zJaffray_CEU' v (w : capacity R T) m chi :
-      is_mass_function (z_idw (zJaffray (fun _ _ =>1))) (z_op_mfun (zJaffray (fun _ _ =>1))) w m
+      is_massfun (z_idw (zJaffray (fun _ _ =>1))) (z_op_mfun (zJaffray (fun _ _ =>1))) w m
       -> Choquet v w chi = XEU (zJaffray (fun _ _=>1)) v m chi.
     Proof.
     move=>Hm.
@@ -370,7 +439,7 @@ Section NumDRules.
     Qed.
 
     Lemma zJaffray_EU' alpha v (w : probability R T) m chi :
-      is_mass_function (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m
+      is_massfun (z_idw (zJaffray alpha)) (z_op_mfun (zJaffray alpha)) w m
       -> ExpectedUtility v w chi = XEU (zJaffray alpha) v m chi.
     Proof.
     move=>Hm.
@@ -422,7 +491,7 @@ Section NumDRules.
     Qed.
 
     Lemma zTBM_TBEU' v (w : belief_function R T) m chi :
-      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
+      is_massfun (z_idw zTBM) (z_op_mfun zTBM) w m
       -> TBEU v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -431,7 +500,7 @@ Section NumDRules.
     Qed.
 
     Lemma zTBM_EU v (w : probability R T) m chi :
-      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
+      is_massfun (z_idw zTBM) (z_op_mfun zTBM) w m
       -> ExpectedUtility v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -461,7 +530,7 @@ Section NumDRules.
     Qed.
 
     Lemma zTBM_Laplace v (w : categorical_capacity R T) m chi :
-      is_mass_function (z_idw zTBM) (z_op_mfun zTBM) w m
+      is_massfun (z_idw zTBM) (z_op_mfun zTBM) w m
       -> Laplace v w chi = XEU zTBM v m chi.
     Proof.
     move=>Hm.
@@ -470,14 +539,21 @@ Section NumDRules.
     Qed.
 
 
-    (*
+    Lemma zUopt_Uopt v (w : possibility R T) m chi :
+      is_massfun (z_idw zUpes) (z_op_mfun zUopt) w m
+      -> Uopt v w chi = XEU zUopt v m chi.
+    Proof.
+    move=>Hm.
+    rewrite/Uopt/XEU/=.
+    Admitted.
+
     Lemma zUpes_Wald v (w : categorical_capacity R T) m chi :
-      is_mass_function (z_idw zUpes) (z_op_mfun zUpes) w m
+      is_massfun (z_idw zUpes) (z_op_mfun zUpes) w m
       -> Wald v w chi = XEU zUpes v m chi.
     Proof.
     move=>Hm.
     rewrite/Wald/XEU/=.
-     *)
+    Admitted.
     
   End ZInstance_Correct.
   

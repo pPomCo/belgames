@@ -17,6 +17,7 @@ theories/decision.v
 
 # HR transforms
 theories/games.v
+theories/games2.v
 theories/HRtransform.v
 
 # HB graphs

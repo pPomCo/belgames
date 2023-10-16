@@ -62,7 +62,106 @@ Section BigminBigmax.
   Qed.
 
 End BigminBigmax.
+
+
+
+Section MinMax.
+  Import Order Order.POrderTheory Order.TotalTheory.
+  Open Scope order_scope.
+
+
+  Lemma bigmin_idx {disp : Datatypes.unit} {T : orderType disp} [I : eqType] (r : seq I) (x : T) (P : pred I) (F : I -> T) :
+    \big[min/x]_(i <- r | P i) F i <= x.
+  Proof.
+  induction r.
+  - by rewrite bigop.unlock.
+  - apply: (le_trans _ IHr).
+    apply: sub_bigmin_cond=>i.
+    rewrite !/(_\in_)/mem//=.
+    by case (P a)=>//=-> ; rewrite orbT.
+  Qed.
+
+  Lemma bigmax_idx {disp : Datatypes.unit} {T : orderType disp} [I : eqType] (r : seq I) (x : T) (P : pred I) (F : I -> T) :
+    \big[max/x]_(i <- r | P i) F i >= x.
+  Proof.
+  induction r.
+  - by rewrite bigop.unlock.
+  - apply: (le_trans IHr).
+    apply: sub_bigmax_cond=>i.
+    rewrite !/(_\in_)/mem//=.
+    by case (P a)=>//=-> ; rewrite orbT.
+  Qed.
+
+  Lemma bigmin_idx2 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (x : T) (P : pred I) (F : I -> T) :
+    (forall i, P i -> x <= F i)
+    -> \big[min/x]_(i | P i) F i = x.
+  Proof.
+  move=>H.
+  rewrite bigop.unlock.
+  induction (index_enum I)=>//=.
+  case (boolP (P a))=>//= Ha.
+  by rewrite IHl minElt ltNge H.
+  Qed.
+
+  Lemma bigmax_idx2 {disp : Datatypes.unit} {T : porderType disp} [I : finType] (x : T) (P : pred I) (F : I -> T) :
+    (forall i, P i -> x >= F i)
+    -> \big[max/x]_(i | P i) F i = x.
+  Proof.
+  move=>H.
+  rewrite bigop.unlock.
+  induction (index_enum I)=>//=.
+  case (boolP (P a))=>//= Ha.
+  by rewrite IHl maxEle H.
+  Qed.
   
+  Lemma bigmin_set1 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (x : T) (j : I) (F : I -> T) :
+    \big[min/x]_(i in [set j]) F i = min x (F j).
+  Proof.
+  rewrite minEle.
+  case (boolP (x <= F j))=>H ;
+    first by apply: bigmin_idx2=>i /set1P->.
+  apply/eqP ; rewrite eq_le ; apply/andP ; split.
+  - apply: bigmin_le_cond ; by rewrite in_set1.
+  - apply: le_bigmin=>[|i /set1P->//].
+    by rewrite leNgt lt_leAnge (negbTE H) andFb.
+  Qed.
+
+  Lemma bigmax_set1 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (x : T) (j : I) (F : I -> T) :
+    \big[max/x]_(i in [set j]) F i = max x (F j).
+  Proof.
+  rewrite maxEle.
+  case (boolP (x <= F j))=>H.
+  - apply/eqP ; rewrite eq_le ; apply/andP ; split.
+    + by apply: bigmax_le=>//i /set1P->.
+    + by apply: le_bigmax_cond ; rewrite in_set1.
+  - apply: bigmax_idx2=>i /set1P->.
+    by rewrite leNgt lt_leAnge (negbTE H) andFb.
+  Qed.
+  
+
+  Definition minSb {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (A : {set I}) :=
+    match [pick t in A] with
+    | Some x => \big[min/F x]_(i in A) F i
+    | None => t0
+    end.
+
+  Lemma minSb1 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (i : I) :
+    minSb t0 F [set i] = F i.
+  Proof. by rewrite /minSb pick_set1E bigmin_set1 minxx. Qed.
+
+  Definition maxSb {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (A : {set I}) :=
+    match [pick t in A] with
+    | Some x => \big[max/F x]_(i in A) F i
+    | None => t0
+    end.
+
+  Lemma maxSb1 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (i : I) :
+    maxSb t0 F [set i] = F i.
+  Proof. by rewrite /maxSb pick_set1E bigmax_set1 maxxx. Qed.
+
+End MinMax.
+
+
 Section MinMax.
 
   Import Order Order.TotalTheory.
