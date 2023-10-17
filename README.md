@@ -8,8 +8,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 [![Docker CI][docker-action-shield]][docker-action-link]
 
-[docker-action-shield]: https://github.com/pPomCo/belgames/workflows/Docker%20CI/badge.svg?branch=main
-[docker-action-link]: https://github.com/pPomCo/belgames/actions?query=workflow:"Docker%20CI"
+[docker-action-shield]: https://github.com/pPomCo/belgames/actions/workflows/docker-action.yml/badge.svg?branch=main
+[docker-action-link]: https://github.com/pPomCo/belgames/actions/workflows/docker-action.yml
 
 
 We formalize several results from uncertainty theories, decision theories and game theories.
