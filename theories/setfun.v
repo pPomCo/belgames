@@ -47,6 +47,7 @@ Section SetFunctions.
     Definition k_additivity m := \max_(A in focal m) #|A|.
 
 
+
   End MassFunction.
 
   Section MassFunctionOnComMonoid.
@@ -85,8 +86,27 @@ Section SetFunctions.
     rewrite unfold_in.
     by case (boolP (m B == idx))=>[/eqP->|].
     Qed.
-
-
+    
+    Lemma is_massfunE mu m :
+      (m set0 = mu set0) /\ (forall A, (#|A|>=1)%N -> mu A = op (m A) (\big[op/idx]_(B : {set T} | B \proper A) m B))
+      <-> is_massfun idx op mu m.
+    Proof.
+    split.
+    - move=>[H0 HA] A.
+      case (boolP (A == set0)).
+      + move=>/eqP->.
+        under eq_bigl do rewrite subset0 ; rewrite (bigD1 set0) ?eqxx// big1 ?Monoid.mulm1=>//B.
+        by case (boolP (B == set0))=>[->//|H] ; rewrite (negbTE H).
+      + rewrite -card_gt0=>H.
+        by rewrite (bigD1 A)//; under eq_bigl do rewrite -properEbis; by rewrite HA.
+    - move=>H ; split. 
+      + rewrite H ; under eq_bigl do rewrite subset0.
+        rewrite (bigD1 set0) ?eqxx// big1 ?Monoid.mulm1=>//B.
+        by case (boolP (B == set0))=>[->//|HB] ; rewrite (negbTE HB).
+      + move=>A HA.
+        rewrite H (bigD1 A)//.
+        by under eq_bigl do rewrite -properEbis.
+    Qed.
 
     Section Inversible.
       Variable (inv : R -> R).
