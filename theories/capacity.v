@@ -123,9 +123,6 @@ Section CapacityTheory.
       exact: (monotonic0 capaM).
     Qed.
 
-    Check qmoebius.
-    Check qmoebius mu.
-
 
     (** qmoebius *)
 
@@ -194,66 +191,6 @@ Section Capa2Theory.
   Definition _ := Capa2inf_of_Capacity.Build R T (setfun.dual Psup) dual2mon.
 
 End Capa2Theory.
-(*
-Check fun (mu : capa2inf _ _) => (moebius mu : massfun _ _).
-Check fun (mu : capa2inf _ _) => (setfun.dual mu : capa2sup _ _).
-Check fun (mu : capa2sup _ _) => (setfun.dual mu : capa2inf _ _).
-*)
-
-(** Probability intervals distributions *)
-(*
-Definition reachable (R : realDomainType) T (p : T -> R * R) :=
-  [forall t, [&& (p t).2 + \sum_(t' | t' != t) (p t').1 <= 1
-         &  (p t).1 + \sum_(t' | t' != t) (p t').2 >= 1 ]].
-HB.mixin
-Record PrIntvDist_of_Ffun (R : realDomainType) T (p : {ffun T -> R * R}) :=
-  { printvdist_0le1 : forall t : T, 0 <= (p t).1 ;
-    printvdist_1le2 : forall t : T, (p t).1 <= (p t).2 ;
-    printvdist1 : \sum_t (p t).1 <= 1 <= \sum_t (p t).2 ;
-    printvdistR : reachable p ;
-  }.
-#[short(type="printvdist")]
-HB.structure
-Definition PrintvDist (R : realDomainType) T := {mu of PrIntvDist_of_Ffun R T mu}.
-
-HB.mixin
-Record ProbaIntervalsInf_of_Ffun (R : realDomainType) T (mu : {ffun {set T} -> R}) :=
-  { printv_dist :  printvdist R T ;
-    printv_distE : forall A, mu A = min (\sum_(t in A) (printv_dist t).1) (1 - \sum_(t in ~:A) (printv_dist t).2) ;
-    }.
-HB.builders
-Context (R : realDomainType) T mu of ProbaIntervalsInf_of_Ffun R T mu.
-Lemma capaM : monotonic mu.
-Proof.
-move=>A B.
-- have HAleAB : \sum_(t in A) (printv_dist t).1 <= \sum_(t in (A :|: B)) (printv_dist t).1.
-  rewrite [E in _<=E](bigID (fun t => t \in A)) [E in _<=E+_](eq_bigl (fun t => t \in A))=>/=[|t] ;
-    last rewrite !inE ; last case (t \in A)=>// ; last by rewrite andbF.
-  rewrite lerDl.
-  apply: sumr_ge0=>t _.
-  exact: printvdist_0le1.
-  rewrite !printv_distE !minEle.
-- case (boolP (\sum_(t in A) (printv_dist t).1 <= 1 - \sum_(t in ~: A) (printv_dist t).2))=>HA ;
-    case (boolP (\sum_(t in (A :|: B)) (printv_dist t).1 <= 1 - \sum_(t in ~: (A :|: B)) (printv_dist t).2))=>HAB//.
-  + under [E in _<=(1-E)]eq_bigl do rewrite setCU.
-    admit.
-  + rewrite -TotalTheory.ltNge in HA.
-    apply: ltW.
-    apply ( lt_le_trans (lt_le_trans HA HAleAB)).
-    by rewrite le_eqVlt eqxx orTb.
-  + rewrite -TotalTheory.ltNge in HA.
-    rewrite -TotalTheory.ltNge in HAB.
-    apply: lerB=>//.
-    under eq_bigl do rewrite setCU.
-    rewrite [E in _<=E](bigID (fun t => t \in ~:B)).
-    rewrite [E in _<=E+_](eq_bigl (fun t => t \in ~:A :&: ~:B))=>//=.
-    * rewrite lerDl.
-      apply: sumr_ge0=>t _.
-      apply (le_trans (printvdist_0le1 (s:=printv_dist) t)).
-      exact: printvdist_1le2.
-Admitted.
-*)
-
 
 (** Belief functions *)
 Check "BeliefFunction".
@@ -430,15 +367,6 @@ Section ProbabilityTheory.
     
 
     (** Dual probability measures *)
-    (*
-    Lemma pr_dual_massfun_ge0 : mpositive (setfun.dual Pr).
-    Proof. by rewrite pr_dualE ; exact: massfun_ge0. Qed.
-    Lemma pr_dual_massfunD_ge0 : mpositive (setfun.dual (setfun.dual Pr)).
-    Proof. by rewrite dualK ?(pointed0 capa01)// ; exact: massfun_ge0. Qed.
-    Lemma pr_dual_massfunD_card1 A :
-      moebius (setfun.dual (setfun.dual Pr)) A != 0 -> #|A| = 1%N.
-    Proof. by rewrite dualK ?(pointed0 capa01)// ; exact: massfun_card1. Qed.
-     *)
     Lemma dual_capaAdd : additiveUI (setfun.dual Pr).
     Proof. by rewrite pr_dualE ; exact: capaAdd. Qed.
 
@@ -497,11 +425,7 @@ Section ProbabilityTheory.
   Definition probability_of_prdist (p : prdist R T) : probability R T :=
     [ffun A : {set T} => \sum_(t in A) p t].
 
-  (*
-  Lemma probability_of_prdistK :
-    cancel probability_of_prdist prdist_of_probability.
-   *)
-
+  
 End ProbabilityTheory.
 
 
@@ -580,12 +504,6 @@ Record Categorical_of_Ffun R  T (mu : {ffun {set T} -> R}) :=
     categorical_distE : exists t, categorical_dist t ;
     categoricalE : forall A, mu A = if [set t | categorical_dist t] \subset A then 1 else 0}.
 
-(*
-HB.mixin
-Record Categorical_of_Necessity (R : realDomainType)  T (mu : {ffun {set T} -> R})
-  of Necessity_of_Ffun R T mu :=
-  { categorical_nec_pidistE : forall t : T, [|| nec_pidist (s:=mu) t == 0 | nec_pidist (s:=mu) t == 1] }.
- *)
 
 HB.builders
 Context R T mu of Categorical_of_Ffun R T mu.
@@ -622,86 +540,7 @@ rewrite -(moebius_unique cat_massfunE) ffunE.
 by case (A == [set t | categorical_dist t]).
 Qed.
 
-(*
-HB.instance
-Definition _ := Capacity_of_Ffun.Build R T mu (mpositive_monotonic massfun_ge0) capa01.
-
-HB.instance
-Definition _ := Capa2inf_of_Capacity.Build R T mu (mpositive_2monotone massfun_ge0).
-
-HB.instance
-Definition _ := BeliefFunction_of_Capacity.Build R T mu massfun_ge0.
- *)
-
 HB.instance Definition _ := BeliefFunction_of_Ffun.Build R T mu capa01 massfun_ge0.
-
-(*
-Definition cat_pidist :=
-  [ffun t : T => if categorical_dist t then (1:R) else (0:R)].
-Lemma cat_pidist_in01 :
-  [forall t, 0 <= cat_pidist t <= (1:R)].
-Proof.
-apply/forallP=>t ; rewrite ffunE.
-by case (categorical_dist t) ; apply/andP.
-Qed.
-
-Lemma cat_pidist_norm :
-  [exists t,  cat_pidist t == (1:R)].
-apply/existsP.
-have [t Ht] := categorical_distE.
-exists t.
-by rewrite ffunE Ht.
-Qed.
-HB.instance Definition _  :=
-  PiDist_of_Ffun.Build R T _ (cat_pidist_in01) (cat_pidist_norm).
-
-Lemma cat_nec_pidistE :
-  forall A : {set T}, mu A = 1 - \big[Num.max/0]_(t in ~:A) cat_pidist t.
-Proof.
-move=>/=A.
-rewrite categoricalE.
-have [t Ht] := categorical_distE.
-case (boolP ([set t | categorical_dist t] \subset A))=>H.
-- have H0 : \big[Num.max/0]_(t in ~: A) cat_pidist t = 0.
-  apply/eqP ; rewrite eq_le ; apply/andP ; split.
-  + apply: bigmax_le=>//=t'.
-    have :=subsetP H t'.
-    rewrite !inE=>HtA HtAC.
-    have HcF : ~~(categorical_dist t')
-      by apply/negP=>Hcontra ; rewrite (HtA Hcontra) in HtAC.
-    by rewrite ffunE (negbTE HcF).
-  + by rewrite bigmax_idl le_maxr lexx orTb.
-  + by rewrite H0 subr0.
-- have H1 : \big[Num.max/0]_(t in ~: A) cat_pidist t = 1.
-  apply/eqP ; rewrite eq_le ; apply/andP ; split.
-  + apply: bigmax_le=>//=t' _.
-    rewrite ffunE.
-    by case (categorical_dist t').
-  + have [t' Ht'1 Ht'2] := subsetPn H.
-    have : cat_pidist t' = 1
-      by rewrite inE in Ht'1 ; rewrite ffunE Ht'1.
-    move=><-.
-    apply: le_bigmax_cond.
-    by rewrite !inE.
-  + by rewrite H1 subrr.
-Qed.
-
-HB.instance Definition _  :=
-  Necessity_of_Ffun.Build R T mu cat_nec_pidistE.
-*)
-(*
-Lemma categorical_nec_pidistE :
-  forall t : T, [|| cat_pidist t == 0 | cat_pidist t == 1].
-Proof.
-move=>t.
-rewrite ffunE.
-by case (categorical_dist t) ; rewrite eqxx// orbT.
-Qed.
-
-HB.instance Definition _  :=
-  Categorical_of_Necessity.Build R T mu categorical_nec_pidistE.
- *)
-
 HB.end.
 
 #[short(type="categorical_capacity")]
@@ -794,45 +633,3 @@ HB.instance Definition _  (R : realDomainType) T (mu : categorical_capacity R T)
   Necessity_of_Ffun.Build R T mu (cat_nec_pidistE mu).
 
 
-
-(** Decidable equality *)
-(*
-Definition eq_capacity R T (c1 c2 : capacity R T) : bool :=
-  Capacity.sort c1 == Capacity.sort c2.
-Lemma eq_capacityP [R T] : Equality+-ba.axiom (@eq_capacity R T).
-move=>c1 c2 ; apply (iffP eqP)=>[|->//] ; move: c1 c2.
-case=>mu1 ; do 2 case ; move => axM ax01.
-case=>mu2 ; do 2 case ; move => axM' ax01'/= H.
-rewrite H in ax01 axM *.
-by rewrite (eq_irrelevance ax01 ax01') (eq_irrelevance axM axM').
-Qed.
-
-HB.instance Definition hasDecEq_of_Capacity R T :=
-  hasDecEq.Build (capacity R T) (@eq_capacityP R T).
-*)
-
-
-
-(*
-Definition eq_capa2inf R T (c1 c2 : capa2inf R T) : bool := eq_capacity c1 c2.
-Lemma eq_capa2infP [R T] : Equality.axiom (@eq_capa2inf R T).
-move=>c1 c2 ; apply (iffP eqP)=>[|->//] ; move: c1 c2.
-case=>mu1 ; do 2 case ; move => axM ax01 ; case=> ax2mon.
-case=>mu2 ; do 2 case ; move => axM' ax01' ; case=> ax2mon'/=H.
-rewrite H in axM ax01 ax2mon *.
-by rewrite (eq_irrelevance ax01 ax01') (eq_irrelevance ax2mon ax2mon') (eq_irrelevance axM axM').
-Qed.
-
-HB.instance Definition hasDecEq_of_Capa2Inf R T :=
-  hasDecEq.Build (capa2inf R T) (@eq_capa2infP R T).
-
-Check (_ : capacity _ _) == (_ : capa2inf _ _).
-Check (_ : capa2inf _ _) == (_ : capa2inf _ _).
-Fail Check (_ : capa2inf _ _) == (_ : capacity _ _). (* Pas satisfaisant *)
-Check (_ : capa2inf _ _) == (_ : capacity _ _) :> capacity _ _.
-
-Check (_ : capacity _ _) == (_ : capacity _ _).
-Check (_ : belief_function _ _) == (_ : capa2inf _ _) :> capacity _ _.
-
-Check (_ : belief_function _ _) == (_ : capa2inf _ _) :> capa2inf _ _.
-*)

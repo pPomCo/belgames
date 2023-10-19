@@ -51,12 +51,6 @@ Section MassFunTheory.
 
     Definition focal m A := m A != idx.
     Definition dist m := [ffun t => m [set t]].
-
-    (*
-  Lemma focalE m A :
-    focal m A == setfun.focal idx m A.
-  Proof. by []. Qed.
-     *)
     
     Definition Pinf m : {ffun {set T} -> R} :=
       [ffun A : {set T} => \big[op/idx]_(B : {set T} | B \subset A) m B].
@@ -95,7 +89,6 @@ Section MassFunTheory.
   End OnMonoid.
 End MassFunTheory.
 
-Check (mkmassfun _ _ _ : massfun _ _ _).
 
 
 
@@ -277,16 +270,6 @@ Record MaxMassFun_of_MassFun (R : realDomainType) T (m : {ffun {set T} -> R}) of
 HB.structure
 Definition MaxMassFun (R : realDomainType) T := {m of MaxMassFun_of_MassFun R T m & MassFun_of_Ffun R T 0 max m}.
 
-(*
-Section MaxMassFunTheory.
-
-  Variable R : realDomainType.
-  Variable T : finType.
-  Implicit Type m : maxMassfun R T.
-
-End MaxMassFunTheory.
-*)
-
 
 
 (** +-based mass function with positive values *)
@@ -312,10 +295,6 @@ Section BpaTheory.
   Variable T : finType.
   Variable m : bpa R T.
 
-  (*
-  Notation Bel := [ffun A : {set T} => \sum_(B : {set T} | B \subset A) m B].
-  Notation Pl  := [ffun A : {set T} => \sum_(B : {set T} | ~~[disjoint B & A]) m B].
-   *)
   Notation Bel := (Pinf m).
   Notation Pl := (Psup m).
 

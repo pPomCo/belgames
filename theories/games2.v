@@ -1,84 +1,4 @@
 (******************************************************************************)
-(** This file provide a theory for simultaneous games
-
-   1. Profiles
-   A profile assign a strategy (ai : A i) to each player (i : I)
-   We distinguish:
-   - Profiles for complete games : forall i, A i
-   - Profiles for incomplete games : forall i, T i -> A i
-   - Local profiles for HG games: forall i, P i -> A i
-
-   cprofile A          == {dffun forall i : I, A i}
-   iprofile A T        == cprofile (fun i => {ffun T i -> A i})
-   local_cprofile P A  == {ffun forall (s : {i : I | P i}), A (val s)}
-
-   We then define:
-   change_strategy A p i ai       == the cprofile p where (p i) has changed to ai
-   change_istrategy T A p i ti ai == the iprofile p where (p i ti) has changed to ai,
-   And prove:
-   change_strategy_id A p i :       p = change_strategy p (p i).
-   change_istrategy_id T A p i ti : p = change_istrategy p ti (p i ti).
-
-   Finally, we cast/project profiles with:
-   iprofile_flatten T A p          == flatten (p : iprofile T A) to a cprofile
-                                      {dffun forall s : {i : I & T i}, A i}
-   proj_iprofile T A p t :         == project (p : iprofile T A) according to (t : cprofile T)
-                                      i.e. proj_iprofile T A p t i = p (t i) i
-   proj_flatprofile T A p :        == project the flat profile p according to (t : cprofile T)
-                                      i.e. proj_flatprofile T A p t i = p (existT T i (t i))
-   proj_flatlocalprofile T A P f p == project the flat local profile p according to f
-                                      i.e. proj_flatlocalprofile T A P f p i = p (f i)
-
-   And we prove:
-   proj_iprof_flatprof T Y p t :
-     proj_iprofile p t = proj_flatprofile (iprofile_flatten p) t.
-   change_strat_istrat T A p i_ti ai :
-     change_strategy (iprofile_flatten p) ai = iprofile_flatten (change_istrategy p (projT2 i_ti) ai).
-
-   2. Games
-   2.1. Complete games -- they are fully specified by their utility functions
-   cgame R A                       == cprofile A -> I -> R (the type of complete games)
-   Nash_equilibrium_bool G p       == true iff there is no (i : I) such as there is no (ai : A i)
-                                      such that (G p i) < (G p (change_strategy p i ai))
-   Nash_equilibrium G p            == True iff there is no (i : I) such as there is no (ai : A i)
-                                      such that (G p i) < (G p (change_strategy p i ai))
-   Nash_equilibriumP G p           == reflect (Nash_equilibrium G p) (Nash_equilibrium_bool G p)
-
-   2.2. Hypergraphical games -- Particular sort of complete game where utility functions are
-        decomposed into several local games. We index local games with (local_game : finType)
-        and check whether (i : I) plays in (lg : local_game) using (plays_in : lg -> pred I).
-        let localprof := (fun lg : localgame => local_cprofile action (plays_in lg))
-        and localagent := (fun lg => {i | plays_in lg i}) in
-
-   hg_game (u : forall lg, localprof lg -> localagent lg -> R)
-      == fun a i => \sum_(s : {lg : localgame | plays_in lg i})
-                      u (tag s) [ffun i => a (val i)] (exist _ i (tagged s)).
-      == the complete game where utility functions are defined locally according to u
-
-   Then we prove:
-   hg_gameE u a i == \sum_(lg | plays_in lg i)
-                         match boolP (plays_in lg i) with
-                         | AltTrue h => u lg [ffun j => a (val j)] (exist (plays_in lg) i h)
-                         | AltFalse _ => 0
-                         end.
-
-   3. BelGames -- Incomplete games where the knowledge is captured by a belief function.
-   belgame R T                == ((bpa R (cprofile T)) * (profile -> (cprofile T) -> i -> R))
-   proper_belgame G cond      == One can condition given (ti : T i) for all agent (i : I)
-                                 according to (cond : conditioning (cprofile T))
-   belgame_utility G cond xeu H p i == utility of p for i, according to the scoring function xeu,
-                                 given that (H : proper_belgame G cond)
-   BelG_Nash_equilibrium_bool G cond xeu H p
-                              == true iff p is a Nash equilibrium according to (belgame_utility G cond xeu H p)
-                                 i.e. there is no (i : I) such that there is no (ti : T i) such
-                                 that there is no (ai : A i) such that (belgame_utility G cond xeu H p i)
-                                 < (belgame_utility G cond xeu H (change_istrategy T A p i ti ai) i)
-  BelG_Nash_equilibrium G cond xeu H p
-  BelG_Nash_equilibriumP G cond xeu H p
-
-  4. Mixed strategy profiles
-  We show that they are descriptible by their mixed-extension
- *)
 (******************************************************************************)
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
@@ -230,54 +150,12 @@ Section Games.
     Definition best_response CGS (CG : cgame CGS V) (a : cprofile A) (i : I) : Prop
       := forall ai : A i, ~ (CG i (CGS a) < CG i (CGS (change_strategy a ai))).
 
-    (*
-  Lemma best_responseP fA (G : cgame fA) a i :
-    reflect (best_response G a i) (best_response_bool G a i).
-  Proof.
-  case (boolP (best_response_bool G a i)) => H ; constructor.
-  - move=> ai.
-    move/forallP in H.
-    exact: negP (H ai).
-  - move=> Hcontra ; move: H.
-    rewrite negb_forall => /existsP H.
-    destruct H as [h Hx].
-    move => /negPn in Hx.
-    contradiction (Hcontra h).
-  Qed.
-    
-  Definition Nash_equilibrium_bool fA (G : cgame fA) (a : cprofile fA) : bool :=
-    [forall i : I,
-      [forall ai : fA i,
-        ~~ (G a i < G (change_strategy a ai) i)]].
-     *)
-
     Definition Nash_equilibrium CGS (CG : cgame CGS V) (a : cprofile A) : Prop :=
       forall i : I, forall ai : A i, ~ (CG i (CGS a) < CG i (CGS (change_strategy a ai))).
-
-    (*
-  Lemma Nash_equilibriumP fA G (a : cprofile fA) :
-    reflect (Nash_equilibrium G a) (Nash_equilibrium_bool G a).
-  Proof.
-  case (boolP (Nash_equilibrium_bool G a)) => H ; constructor.
-  - move => i ai.
-    exact: negP (forallP (forallP H i) ai).
-  - rewrite /Nash_equilibrium => Hcontra.
-    destruct (forallPn H) as [i Hi].
-    destruct (forallPn Hi) as [ai Hai].
-    move /negPn in Hai.
-    have Hcontra' := Hcontra i ai ; contradiction.
-  Qed.
-     *)
     
     Lemma Nash_equilibrium_best_response CGS (CG : cgame CGS V) (a : cprofile A) :
       Nash_equilibrium CG a <-> forall i, best_response CG a i.
     Proof. by []. Qed.
-
-    (*
-  Lemma Nash_equilibrium_best_response_bool fA G (a : cprofile fA) :
-    Nash_equilibrium_bool G a = [forall i, best_response_bool G a i].
-  Proof. by []. Qed.
-     *)
 
   End CGameDefs.
 
@@ -400,10 +278,6 @@ End Classical.
 
 Section SeltenHowsonRosenthal.
 
-  
-
-  Check igame.
-
   Variable I FoD : finType.
   Variable A : I -> finType.
   Variable T : I -> finType.
@@ -418,13 +292,11 @@ Section SeltenHowsonRosenthal.
   Variable dispW : forall i, T i -> Datatypes.unit.
   Variable W : forall i, forall ti : T i, porderType (dispW ti).
 
-  Check igame IGS U V W.
 
   Notation HR_I := ({i : I & T i}).
   Notation HR_A := (fun i_ti : HR_I => A (tag i_ti)).
   Notation HR_V := (fun i_ti : HR_I => U (tagged i_ti)).
 
-  Check cgame_situation HR_A _.
 
   Variable IG : igame IGS U V W.
 
@@ -467,19 +339,16 @@ Section SeltenHowsonRosenthal.
   Section HRTransforms.
     Section HRGeneral.
 
-      Variable x0 : X.
+      Variable x0 : FoD * cprofile A.
       Variable zi : forall i (ti : T i), zinst (U ti) (V ti) (W ti).
       Variable m : forall i (ti : T i), {ffun {set FoD} -> W ti}.
-      (* Variable m_repr : forall i (ti : T i),
-          is_massfun (z_idw (zi ti)) (z_op_mfun (zi ti)) (IG ti).2 (m ti).
-       *)
-
+      
       Notation HR_E := {set FoD}.
 
       Notation HR_plays_in := (fun (e : HR_E) (i_ti : HR_I) =>
                                  [exists t, (t \in e) && (tagged i_ti == signal (tag i_ti) t)]).
 
-      Notation HR_X := (fun e : HR_E => {set X}).
+      Notation HR_X := (fun e : HR_E => {set FoD * cprofile A}). (*   {set FoD * cprofile a} *)
 
       (* For all t in lg, return the corresponding cprofile *)
       Definition proj_flatlocprofile (e : HR_E) (ae : local_cprofile HR_A (HR_plays_in e)) (t : FoD) (Ht : t \in e) : cprofile A.
@@ -489,12 +358,18 @@ Section SeltenHowsonRosenthal.
       exact:  ae (exist (HR_plays_in e) _ Hi).
       Defined.
 
+      (** ** **
+          ============================
+          z_f_agg (zi ti) (fun t : FoD => v (act_of_iprofile IGS s t)) B =
+          z_f_agg (zi ti) (IG ti).1.2 (hggame_csituation HRG_hggame_situation (iprofile_flatten s) B)
+          ** ** **)
+
       Definition HRG_local_conseq (e : HR_E) (ae : local_cprofile HR_A (HR_plays_in e)) : HR_X e :=
         (* let f t :=  match (boolP (t \in e)) with
                     | AltTrue H => Some (IGS (proj_flatlocprofile ae H) t)
                     | AltFalse _ => None end in *)
         let f t :=  match (boolP (t \in e)) with
-                    | AltTrue H => IGS (proj_flatlocprofile ae H) t
+                    | AltTrue H => (t, (proj_flatlocprofile ae H))
                     | AltFalse _ => x0 end in
         [set f t | t in e].
         (* [set:: pmap f (index_enum FoD)]. *)
@@ -507,7 +382,7 @@ Section SeltenHowsonRosenthal.
         let v := (IG (tagged i_ti)).1.2 in
         fun A => z_otimes (zi (tagged i_ti))
               (m (tagged i_ti) e)
-              (z_f_agg (zi (tagged i_ti)) v A).
+              (z_f_agg (zi (tagged i_ti)) (fun x => v (IGS x.2 x.1)) A).
 
       Definition HRG_hggame : hggame HRG_hggame_situation HR_V :=
         mkhggame
@@ -532,16 +407,19 @@ Section SeltenHowsonRosenthal.
       set w := (IG ti).2=>/=->.
       apply: eq_bigr=>/=B _.
       congr (z_otimes _ _ _)=>//=.
-      rewrite z_f_agg_ax/=.
-      rewrite /v.
-      congr (z_f_agg _ _ _).
-      rewrite ffunE /HRG_hggame_situation/HRG_local_conseq.
-      apply eq_in_imset=>t Ht.
-      case (boolP (t \in B))=>// Ht_dep ; last by rewrite Ht in Ht_dep.
-      rewrite ffunE.
-      congr (IGS _ _).
-      apply/ffunP=>j.
-      by rewrite !ffunE=>/=.
+      rewrite ffunE. (* /HRG_hggame_situation/HRG_local_conseq *)
+      apply: z_f_agg_ax.
+      - move=>t Ht.
+        congr (v _).
+        rewrite ffunE.
+        congr (IGS _ _).
+        + case (boolP (t \in B))=>//=H ; last by rewrite Ht in H.
+          by apply/ffunP=>j ; rewrite !ffunE.
+        + by case (boolP (t \in B))=>//=H ; last rewrite Ht in H.
+      - apply/imset_injP=>t1 t2 Ht1 Ht2.
+        case (boolP (t1 \in B))=>//=Ht1' ; last by rewrite Ht1 in Ht1'.
+        case (boolP (t2 \in B))=>//=Ht2' ; last by rewrite Ht2 in Ht2'.
+        by case.
       Qed.
     End HRGeneral.
 

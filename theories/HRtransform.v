@@ -21,55 +21,6 @@ From decision Require Import massfun decision games.
 Local Open Scope ring_scope.
 
 
-
-(******************************************************************************)
-(** This file contains Howson-Rosenthal-like transform for BelGames
-    i.e. cast of BelGames to complete (hypergraphical) games
-
-    We propose 3 transforms : "direct", "conditionned" and "TBM", which partly
-    rely on the same definitions.
-
-     Parameter R : realFieldType.     (* values *)
-     Parameter I : finType.           (* players *)
-     Parameter A : I -> finType.      (* actions *)
-     Parameter T : I -> finType.      (* types *)
-     Parameter G : belgame R A T.     (* the belgame to cast *)
-
-   COMMON DEFINITIONS:
-     HR_player      == [finType of {i : I & T i}]
-     HR_action i_ti == A (projT1 i_ti).
-
-   DIRECT TRANSFORM:
-     HRdirect
-     HRdirect_correct fXEU proper_G i ti p :
-       belgame_utility fXEU proper_G p ti
-       = HRdirect fXEU (iprofile_flatten p) (existT _ i ti).
-     HRdirect_eqNash p :
-       BelG_Nash_equilibrium fXEU proper_G p
-       <-> Nash_equilibrium (HRdirect G fXEU) (iprofile_flatten p).
-
-   CONDITIONED TRANSFORM:
-     HRcond
-     HRcond_correct cond fXEU (proper_G : proper_belgame G cond) i ti p :
-       belgame_utility fXEU proper_G p ti
-       = HRcond fXEU proper_G (iprofile_flatten p) (existT _ i ti).
-     HRcond_eqNash dbox p :
-       BelG_Nash_equilibrium fXEU proper_G p
-       <-> Nash_equilibrium (HRcond fXEU proper_G) (iprofile_flatten p).
-
-   TBM TRANSFORM:
-     HRTBM
-     HRTBM_correct proper_G i ti p :
-       belgame_utility fTBEU proper_G p ti
-       = HRTBM proper_G (iprofile_flatten p) (existT _ i ti).
-     HRTBM_eqNash proper_G p :
-       BelG_Nash_equilibrium fTBEU proper_G p
-       <-> Nash_equilibrium (HRTBM proper_G) (iprofile_flatten p).
- **)
-(******************************************************************************)
-
-
-
 Section HowsonRosenthal.
 
   Variable R : realFieldType.

@@ -48,8 +48,10 @@ Section DRule.
   Definition f_agg_type : Type := (forall (X : finType), (X -> V) -> {set X} -> V).
 
   Definition f_agg_axiom (f_agg : f_agg_type) : Prop :=
-    forall (X Y : finType) (f1 : X -> Y) (f2 : Y -> V) (A : {set X}),
-        f_agg X (fun x => f2 (f1 x)) A = f_agg Y f2 [set f1 x | x in A].
+    forall (X Y : finType) (f : X -> Y) (g1 : X -> V) (g2 : Y -> V) (A : {set X}),
+      (forall x, x \in A -> g1 x = g2 (f x)) ->
+      #|[set f x | x in A]| == #|A| ->
+      f_agg X g1 A = f_agg Y g2 [set f x | x in A].
 
   Structure zinst dW (W : porderType dW) := 
     { z_idw : W ;
@@ -60,16 +62,12 @@ Section DRule.
       z_f_agg : f_agg_type ;
       z_f_agg_ax : f_agg_axiom z_f_agg}.
 
-  (*
-  Definition is_repr dW (W : porderType dW) (T : finType) : {ffun {set T} -> W} -> {ffun {set T} -> W} -> forall idx : W, Monoid.com_law idx -> bool.
-  Admitted.
-   *)
-
   Definition XEU dW (W : porderType dW) (zi : zinst W) X T :
     (X -> V) -> {ffun {set T} -> W} -> (T -> X) -> U :=
     fun v m chi =>
       \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (fun t => v (chi t)) B).
 
+  (*
   Lemma XEU_eq dW (W : porderType dW) (zi : zinst W) (X : finType) T :
     forall v m chi,
       XEU zi v m (chi : T -> X)
@@ -80,7 +78,7 @@ Section DRule.
   congr (z_otimes _ _).
   by rewrite z_f_agg_ax.
   Qed.
-
+   *)
 
 End DRule.
 
@@ -208,12 +206,16 @@ Section NumDRules.
 
   Section ZInstances.
 
+
+
     Definition minf : f_agg_type R := fun T (u : T -> R) B => minSb 0 u B.
     Lemma minf_correct : f_agg_axiom minf.
     Proof.
-    move=>X Y f1 f2 A.
-    rewrite/minf/minSb.
-    Admitted.
+    move=>X Y f g1 g2 A Heq _.
+    rewrite/minf.
+    rewrite -minSb_imset.
+    exact: minSb_eq=>x _.
+    Qed.
 
     Definition minmaxf alpha : f_agg_type R :=
       fun T (u : T -> R) B => 
@@ -222,13 +224,25 @@ Section NumDRules.
         alpha vmin vmax * vmin + (1-alpha vmin vmax) * vmax.
 
     Lemma minmaxf_correct alpha : f_agg_axiom (minmaxf alpha).
-    Admitted.
+    Proof.
+    move=>X Y j g1 g2 A Heq _.
+    rewrite/minmaxf.
+    rewrite -minSb_imset -maxSb_imset.
+    rewrite (minSb_eq 0 (F2:=g1)) ?(maxSb_eq 0 (F2:=g1))=>//t Ht ; by rewrite Heq.
+    Qed.
 
     Definition moyf : f_agg_type R :=
       fun T (u : T -> R) B => \sum_(x in B) u x / #|B|%:R.
 
     Lemma moyf_correct : f_agg_axiom moyf.
-    Admitted.
+    Proof.
+    move=>X Y f g1 g2 A Heq Hcard.
+    rewrite/moyf.
+    rewrite big_imset=>/=[|x y Hx Hy Hxy].
+    - apply: eq_bigr=>x Hx.
+      by rewrite Heq// (eqP Hcard).
+    - exact: imset_injP Hcard x y Hx Hy Hxy.
+    Qed.
 
     Definition zJaffray (alpha : R -> R -> R) : zinst R R R :=
       {| z_idw := 0 ;
@@ -538,14 +552,13 @@ Section NumDRules.
     exact: zTBM_TBEU'.
     Qed.
 
-
+    (*
     Lemma zUopt_Uopt v (w : possibility R T) m chi :
       is_massfun (z_idw zUpes) (z_op_mfun zUopt) w m
       -> Uopt v w chi = XEU zUopt v m chi.
     Proof.
     move=>Hm.
     rewrite/Uopt/XEU/=.
-    Admitted.
 
     Lemma zUpes_Wald v (w : categorical_capacity R T) m chi :
       is_massfun (z_idw zUpes) (z_op_mfun zUpes) w m
@@ -553,7 +566,7 @@ Section NumDRules.
     Proof.
     move=>Hm.
     rewrite/Wald/XEU/=.
-    Admitted.
+     *)
     
   End ZInstance_Correct.
   

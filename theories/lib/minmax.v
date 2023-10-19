@@ -148,7 +148,19 @@ Section MinMax.
   Lemma minSb1 {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (i : I) :
     minSb t0 F [set i] = F i.
   Proof. by rewrite /minSb pick_set1E bigmin_set1 minxx. Qed.
-
+  
+  Lemma minSb_eq {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F1 F2 : I -> T) (A : {set I}) :
+    {in A, F1 =1 F2} ->
+    minSb t0 F1 A = minSb t0 F2 A.
+  Proof.
+  move=>HF.
+  rewrite/minSb.
+  case: pickP=>[x Hx|//].
+  rewrite (HF x Hx).
+  apply: eq_bigr=>y Hy.
+  exact: HF=>/=.
+  Qed.
+  
   Definition maxSb {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F : I -> T) (A : {set I}) :=
     match [pick t in A] with
     | Some x => \big[max/F x]_(i in A) F i
@@ -159,10 +171,71 @@ Section MinMax.
     maxSb t0 F [set i] = F i.
   Proof. by rewrite /maxSb pick_set1E bigmax_set1 maxxx. Qed.
 
+  Lemma maxSb_eq {disp : Datatypes.unit} {T : orderType disp} [I : finType] (t0 : T) (F1 F2 : I -> T) (A : {set I}) :
+    {in A, F1 =1 F2} ->
+    maxSb t0 F1 A = maxSb t0 F2 A.
+  Proof.
+  move=>HF.
+  rewrite/maxSb.
+  case: pickP=>[x Hx|//].
+  rewrite (HF x Hx).
+  apply: eq_bigr=>y Hy.
+  exact: HF=>/=.
+  Qed.
+
+
+  Lemma minSb_imset {disp : Datatypes.unit} {T : orderType disp} [X Y : finType] (t0 : T) (f1 : X -> Y) (f2 : Y -> T) A :
+    (minSb t0 (fun x : X => f2 (f1 x)) A) = (minSb t0 f2 [set f1 x | x in A]).
+  Proof.
+  rewrite/minSb.
+  case: pickP=>[x Hx|].
+  - case pickP=>[y Hy|].
+    + rewrite bigmin_imset.
+      apply/eqP ; rewrite eq_le ; apply/andP ; split=>/= ;
+        apply: le_bigmin=>[|x2 Hx2] ; first by case (imsetP Hy)=>x2 Hx2 -> ; exact: bigmin_le_cond.
+      exact: bigmin_le_cond.
+      exact: bigmin_le_cond.
+      exact: bigmin_le_cond.
+    + move=>H ; apply/eqP/negP=>Hcontra.
+      have :=  eq_card0 H.
+      have : exists y, y \in [set f1 x | x in A] by exists (f1 x) ; exact: imset_f.
+      move/card_gt0P.
+      rewrite lt0n=>Hcontra2/eqP.
+      by rewrite (negbTE Hcontra2).
+  - move=>H0.
+    have HA := eq_card0 H0.
+    case (pickP)=>[x Hx|//].
+    by rewrite (cards0_eq HA) imset0 in_set0 in Hx.
+  Qed.
+
+  Lemma maxSb_imset {disp : Datatypes.unit} {T : orderType disp} [X Y : finType] (t0 : T) (f1 : X -> Y) (f2 : Y -> T) A :
+    (maxSb t0 (fun x : X => f2 (f1 x)) A) = (maxSb t0 f2 [set f1 x | x in A]).
+  Proof.
+  rewrite/maxSb.
+  case: pickP=>[x Hx|].
+  - case pickP=>[y Hy|].
+    + rewrite bigmax_imset.
+      apply/eqP ; rewrite eq_le ; apply/andP ; split=>/= ;
+        apply: bigmax_le=>[|x2 Hx2] ; first by case (imsetP Hy)=>x2 Hx2 -> ; exact: le_bigmax_cond.
+      exact: le_bigmax_cond.
+      case (imsetP Hy)=>x2 Hx2 -> ; exact: le_bigmax_cond.
+      exact: le_bigmax_cond.
+    + move=>H ; apply/eqP/negP=>Hcontra.
+      have :=  eq_card0 H.
+      have : exists y, y \in [set f1 x | x in A] by exists (f1 x) ; exact: imset_f.
+      move/card_gt0P.
+      rewrite lt0n=>Hcontra2/eqP.
+      by rewrite (negbTE Hcontra2).
+  - move=>H0.
+    have HA := eq_card0 H0.
+    case (pickP)=>[x Hx|//].
+    by rewrite (cards0_eq HA) imset0 in_set0 in Hx.
+  Qed.
+  
 End MinMax.
 
 
-Section MinMax.
+Section OMinMax.
 
   Import Order Order.TotalTheory.
 
@@ -449,85 +522,4 @@ Section MinMax.
   by rewrite minS0E maxS0E.
   Qed.
 
-End MinMax.
-
-(*
-Module In01.
-
-  Import Order Order.TotalTheory Order.POrderTheory.
-  Open Scope order_scope.
-
-  HB.mixin
-  Record tbTotal_of_Total disp R of Total disp R :=
-    { tbTotal_bot : R ;
-      tbTotal_top : R ;
-      le0x : forall r, tbTotal_bot <= r ;
-      ge1x : forall r, tbTotal_top >= r }.
-  (*
-  HB.builders
-  Context disp R of tbTotal_of_Total disp R.
-
-  HB.instance
-  Definition _ := hasBottom.Build disp R le0x.
-
-  HB.instance
-  Definition _ := hasTop.Build disp R ge1x.
-
-  HB.end.
-   *)
-  #[short(type="tbOrderType")]
-  HB.structure
-  Definition tbTotal (disp : Datatypes.unit) :=
-    { R of tbTotal_of_Total disp R & Total disp R }.
-
-
-  Variable disp : Datatypes.unit.
-  (* Variable (R : tbOrderType disp). *)
-  Variable (R : tbTotal.type disp).
-  Check (_ : R) < _.
-
-  HB.instance
-  Definition _ := hasBottom.Build disp R le0x.
-  HB.instance
-  Definition _ := hasTop.Build disp R ge1x.
-
-
-  Lemma min1m : left_id (\top : R) min.
-  Proof. by move=>x ; rewrite minEge ge1x. Qed.
-
-  HB.instance Definition _ : Monoid.isComLaw R \top min
-    := Monoid.isComLaw.Build _ _ _ minA minC min1m.
-
-  Lemma max1m : left_id (\bot : R) max.
-  Proof. by move=>x ; rewrite maxEgt BLatticeTheory.ltx0. Qed.
-
-  HB.instance Definition _ : Monoid.isComLaw R \top min
-    := Monoid.isComLaw.Build _ _ _ minA minC min1m.
-
-  Lemma test (T : finType) (P : pred T) (F : T -> R) :
-    \big[min/ \top]_(t : T | P t) F t >= \bot.
-  Proof.
-  rewrite big_mkcond. (* Monoid.law *)
-  rewrite big_if.     (* Monoid.com_law *)
-  Abort.
-
-
-End In01.
-*)
-(* Pas très satisfaisant :-(
-
-Check In01.tbTotal.type _.
-
-Variable d : Datatypes.unit.
-Variable R : In01.tbTotal.type d.
-
-Check In01.min1m _.
-
-Check In01.tbTotal.Exports.In01_tbTotal__to__Order_POrder In01.R.
-
-Search Order.min in In01.
-
-Check In01.R.
-
-
- *)
+End OMinMax.
