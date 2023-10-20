@@ -1,5 +1,8 @@
 (******************************************************************************)
-
+(*
+Conditioning and decision rule for generalized bel-games
+             modules 'games' and 'HRtransform'
+ *)
 (******************************************************************************)
 From HB Require Import structures.
 From Coq Require Import Program.Wf.

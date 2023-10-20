@@ -1,3 +1,11 @@
+(* ************************************************************************************ *)
+(* Product of finfun
+
+   By EMD -- simplified after mathcomp2 
+   Utilitary module used for joint probability from a mixed stratgy profile
+ *)
+(* ************************************************************************************ *)
+
 From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrbool ssrfun eqtype ssrnat seq.
 From mathcomp Require Import div choice fintype tuple finfun bigop.

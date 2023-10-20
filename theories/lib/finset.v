@@ -1,3 +1,33 @@
+(* ************************************************************************************ *)
+(* finite sets
+   
+   Section Pick
+     pick from non empty sets
+     pick a subset of a given cardinality
+
+   Section SubsetPartition                                              (to be integrated)
+     Partition of the set of subsets
+
+   Section SetLemmas                                                    (to be integrated)
+     new set-related lemmas or generalization of existing lemmas
+
+   Section Set1_inverse
+     option-inverse of set1 function (set1_oinv [set x] == Some x)
+
+   Section Bigops                                                       (to be integrated)
+     Lemmas on bigops
+     sig_big_dep2 = sig_big_dep with sig (not sigT)
+
+   Section CardInduction                                                (to be integrated)
+     Induction principles on set cardinality
+
+   Section SubsetInduction                                              (to be integrated)
+     Induction principles on subset cardinality
+
+ *)
+(* ************************************************************************************ *)
+
+
 From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
@@ -546,36 +576,18 @@ Section Bigops.
   Qed.
 
 
-End Bigops.
-      
-Section Bigops.
 
+
+
+  
   Context {T : finType}.
   Implicit Type t : T.
   Implicit Type A B C : {set T}.
 
-  (*
-  (** Bigop on singletons **)
-  Lemma big_card1 {R} {idx : R} {op : Monoid.com_law idx} (f : {set T} -> R) :
-    \big[op/idx]_(A : {set T} | #|A| == 1%N) f A = \big[op/idx]_(t : T) f [set t].
-  Proof.
-  rewrite (reindex_omap set1 set1_oinv) => [|A H].
-  - apply: eq_bigl => x.
-    by rewrite set1_oinv_pcancel cards1 !eqxx.
-  - rewrite /omap /obind /oapp /set1_oinv.
-    case (boolP (0 < #|A|)%N) => [Hcard|] ; last by rewrite (eqP H).
-    rewrite H.
-    destruct (eq_bigmax_cond (fun=>0%N) Hcard) as [t Ht _].
-    move: H => /cards1P [t' Ht'].
-    rewrite Ht' in_set1 in Ht.
-    by rewrite Ht' (eqP Ht).
-  Qed.
-   *)
-
-
   
   (** Proof of a version of sig_big_dep about 'sig' (but not about 'sigT') **)
   Section SigBigDep2.
+
 
     (* Projection from 'T' into 'option {t : T | P T}' -- needed for sig_big_dep2 *)
     Definition osig (P : pred T) : T -> option {t : T | P t}
@@ -692,7 +704,6 @@ Section Bigops.
     rewrite -[LHS](partition_big f1 (P:=predT) predT) => //.
     rewrite -[RHS](partition_big f2 (P:=predT) predT) => //.  
   Qed.
-
   
 End Bigops.
 

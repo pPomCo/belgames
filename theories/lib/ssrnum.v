@@ -1,3 +1,14 @@
+(* ************************************************************************************ *)
+(* Numerical lemmas
+
+   Section NumLemmas:                                                   (to be integrated)
+     Lemmas on numDomainTypes (mostly about \sum)
+
+   Section NumFieldLemmas:                                              (to be integrated)
+     Lemmas on numFieldTypes
+
+ *)
+(* ************************************************************************************ *)
 From HB Require Import structures.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq choice.
 From mathcomp Require Import ssrAC div fintype path bigop order finset fingroup.

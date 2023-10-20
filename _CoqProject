@@ -16,6 +16,7 @@ theories/drule.v
 theories/decision.v
 
 # HR transforms
+theories/fprod.v
 theories/games.v
 theories/games2.v
 theories/HRtransform.v
@@ -23,11 +24,3 @@ theories/HRtransform.v
 # HB graphs
 hb_graphs/massfun.v
 hb_graphs/capacity.v
-
-
-
-#theories/general_lemmas.v
-theories/fprod.v
-#theories/capacity.v
-#theories/games.v
-#theories/HRtransform.v

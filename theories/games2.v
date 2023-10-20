@@ -1,5 +1,17 @@
-(******************************************************************************)
-(******************************************************************************)
+(* ************************************************************************************ *)
+(* Game theory (generalized algebraic games)
+
+   Similar to modules 'games' and 'HRtransform' but for the algebraic game model
+
+   profiles
+   cgame         == game of complete information
+   hggame        == hypergraphical game (of complete information)
+   igame         == game of incomplete information 
+
+   Selten transform
+   Algebraic Howson and Rosenthal transform
+ *)
+(* ************************************************************************************ *)
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
 From mathcomp Require Import all_algebra. (* .none *)

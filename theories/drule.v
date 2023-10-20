@@ -1,3 +1,22 @@
+(* ************************************************************************************ *)
+(* Decision rule
+
+   Rules
+     - Expected utility
+     - Choquet utility
+     - Jaffray utility
+     - TBM utility (Smets)
+     - Wald = min
+     - Laplace
+     - Hurwicz
+     - Upess
+     - Uopt
+
+   Rule instances for XEU
+
+ *)
+(* ************************************************************************************ *)
+
 From HB Require Import structures.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)

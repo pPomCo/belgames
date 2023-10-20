@@ -1,3 +1,13 @@
+(* ************************************************************************************ *)
+(* Set functions (i.e. {set T} -> R)
+
+
+   Properties of set functions
+   Mass functions with/without inversible operators 
+     - moebius (+-massfun) 
+     - qmoebius (max-massfun)
+ *)
+(* ************************************************************************************ *)
 From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)

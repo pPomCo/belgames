@@ -1,3 +1,14 @@
+(* ************************************************************************************ *)
+(* Conditionings (belief-function conditionals on bpa)
+
+   Dempster conditioning
+   FH conditioning
+   Strong conditioning
+   Weak conditioning
+
+ *)
+(* ************************************************************************************ *)
+
 From HB Require Import structures.
 From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.

@@ -1,3 +1,21 @@
+(* ************************************************************************************ *)
+(* Capacity theory
+
+   Type and subtypes for capacities {set T} -> R
+
+   - pointed_function == mu set0 = 0 /\ mu setT = 1
+   - capacity         == pointed_function /\ monotonic mu
+   - capa2mon         == capacity /\ is_2monotone mu
+   - capa2alt         == capacity /\ is_2alternating mu
+   - belief_function  == capa2mon /\ mpositive mu
+   - plausibility     == capa2alt /\ mpositive (dual mu)
+   - proba            == capacity /\ additiveUI mu == belief_function /\ plausibility
+   - possibility      == has_piDist mu
+   - necessity        == has_piDist (dual mu)
+   - cat_necessity    == has_catPiDist (dual mu)
+
+ *)
+(* ************************************************************************************ *)
 From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)

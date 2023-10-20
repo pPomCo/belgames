@@ -1,7 +1,6 @@
-
 (******************************************************************************)
 (**
-    Proof of Howson-Rosenthal-like transform for Bel-games
+    Proof of Howson-Rosenthal-like transform for generalized Bel-games
  *)
 (******************************************************************************)
 From Coq Require Import ssreflect.

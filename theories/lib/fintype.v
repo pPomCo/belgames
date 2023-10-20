@@ -1,3 +1,11 @@
+(* ************************************************************************************ *)
+(* finite types and quantifiers
+   
+   Section ExistsForall
+     Split exists and forall predicates (bool and Prop) 
+
+ *)
+(* ************************************************************************************ *)
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
 

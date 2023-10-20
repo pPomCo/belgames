@@ -1,3 +1,22 @@
+(* ************************************************************************************ *)
+(* Mass functions theory
+
+   Type and subtypes for mass functions {set T} -> R
+
+   - massfun T idx op: mass funtcion with arbitrary operator
+   - addMassfun == massfun R 0 +
+   - maxMassfun == massfun R 0 max
+   - bpa == addMassfun with positive values
+   - prBpa == 1-additive bpa
+
+   Type and subtypes for distributions T -> R
+   
+   - prDist: probability distribution (p t >= 0 /\ \sum_t p t = 1)
+   - piDist: possibility distribution (p t >= 0 /\ \max_t p t = 1)
+   - catPiDist: categorical piDist (p t = 0 \/ p t = 1)
+
+ *)
+(* ************************************************************************************ *)
 From Coq Require Import Program.Wf.
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)

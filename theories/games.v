@@ -1,5 +1,15 @@
-(******************************************************************************)
-(******************************************************************************)
+(* ************************************************************************************ *)
+(* Game theory (bel-game-like definitions)
+
+   profiles
+   cgame         == game of complete information
+   hggame        == hypergraphical game (of complete information)
+   igame         == game of incomplete information (commun prior = massfun)
+   bgame         == bayesian games (igame with proba dist) -- to merge
+
+ *)
+(* ************************************************************************************ *)
+
 From Coq Require Import ssreflect.
 From mathcomp Require Import all_ssreflect. (* .none *)
 From mathcomp Require Import all_algebra. (* .none *)
