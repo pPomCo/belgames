@@ -1,7 +1,26 @@
--R theories BelGames
+-R theories decision
 
-theories/general_lemmas.v
-theories/fprod.v
+# utils
+theories/lib/ssrnum.v
+theories/lib/order.v
+theories/lib/fintype.v
+theories/lib/finset.v
+theories/lib/minmax.v
+
+# decision
+theories/setfun.v
+theories/massfun.v
 theories/capacity.v
+theories/conditioning.v
+theories/drule.v
+theories/decision.v
+
+# HR transforms
+theories/fprod.v
 theories/games.v
+theories/games2.v
 theories/HRtransform.v
+
+# HB graphs
+hb_graphs/massfun.v
+hb_graphs/capacity.v
