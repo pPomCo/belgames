@@ -31,9 +31,9 @@ studied with the classical game theoretic tools.
   - Erik Martin-Dorel (initial)
   - Hélène Fargier (initial)
 - License: [MIT](LICENSE)
-- Compatible Coq versions: 8.17 or later
+- Compatible Coq versions: 8.16 or later
 - Additional dependencies:
-  - [MathComp](https://math-comp.github.io) 2.0 or later
+  - [MathComp](https://math-comp.github.io) 2.0.0 or later
 - Coq namespace: `Decision`
 - Related publication(s):
   - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://ut3-toulouseinp.hal.science/hal-03782650) 
