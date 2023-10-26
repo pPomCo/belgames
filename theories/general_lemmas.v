@@ -452,7 +452,7 @@ Section NumLemmas.
   Lemma prod_ge0 {X} (P : pred X) (f : X -> R) :
     (forall x, P x -> f x >= 0) -> \prod_(x | P x) f x >= 0.
   Proof.
-  move => H ; apply big_ind => //= ; first by rewrite ler01.
+  move => H ; apply big_ind ; rewrite ?ler01//.
   exact: mulr_ge0.
   Qed.
 
