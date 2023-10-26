@@ -33,10 +33,10 @@ studied with the classical game theoretic tools.
 - License: [MIT](LICENSE)
 - Compatible Coq versions: 8.16 or later
 - Additional dependencies:
-  - [MathComp](https://math-comp.github.io) 2.0.0 or later
-- Coq namespace: `Decision`
+  - [MathComp](https://math-comp.github.io) 2.0.0
+- Coq namespace: `BelGames`
 - Related publication(s):
-  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://doi.org/10.4230/LIPIcs.ITP.2023.25)
+  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2023)](https://doi.org/10.4230/LIPIcs.ITP.2023.25)
 
 
 To build and install manually, do:
