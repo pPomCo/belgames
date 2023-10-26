@@ -1,4 +1,4 @@
-# This file was generated from `meta.yml`, please do not edit manually.
+# This file was generated from `meta.yml`, then modified.
 # Follow the instructions on https://github.com/coq-community/templates to regenerate.
 name: Docker CI
 
@@ -17,11 +17,9 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'mathcomp/mathcomp:1.15.0-coq-8.16'
-          - 'mathcomp/mathcomp:1.15.0-coq-8.15'
-          - 'mathcomp/mathcomp:1.15.0-coq-8.14'
-          - 'mathcomp/mathcomp:1.14.0-coq-8.15'
-          - 'mathcomp/mathcomp:1.13.0-coq-8.15'
+          - 'mathcomp/mathcomp:2.0.0-coq-8.18'
+          - 'mathcomp/mathcomp:2.0.0-coq-8.17'
+          - 'mathcomp/mathcomp:2.0.0-coq-8.16'
       fail-fast: false
     steps:
       - uses: actions/checkout@v2

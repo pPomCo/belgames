@@ -8,8 +8,8 @@ Follow the instructions on https://github.com/coq-community/templates to regener
 
 [![Docker CI][docker-action-shield]][docker-action-link]
 
-[docker-action-shield]: https://github.com/pPomCo/belgames/workflows/Docker%20CI/badge.svg?branch=main
-[docker-action-link]: https://github.com/pPomCo/belgames/actions?query=workflow:"Docker%20CI"
+[docker-action-shield]: https://github.com/pPomCo/belgames/actions/workflows/docker-action.yml/badge.svg?branch=main
+[docker-action-link]: https://github.com/pPomCo/belgames/actions/workflows/docker-action.yml
 
 
 We formalize several results from uncertainty theories, decision theories and game theories.
@@ -31,12 +31,12 @@ studied with the classical game theoretic tools.
   - Erik Martin-Dorel (initial)
   - Hélène Fargier (initial)
 - License: [MIT](LICENSE)
-- Compatible Coq versions: 8.17 or later
+- Compatible Coq versions: 8.16 or later
 - Additional dependencies:
-  - [MathComp](https://math-comp.github.io) 2.0 or later
+  - [MathComp](https://math-comp.github.io) 2.0.0 or later
 - Coq namespace: `Decision`
 - Related publication(s):
-  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://ut3-toulouseinp.hal.science/hal-03782650) 
+  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://doi.org/10.4230/LIPIcs.ITP.2023.25)
 
 
 To build and install manually, do:
