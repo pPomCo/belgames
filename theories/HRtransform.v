@@ -534,8 +534,8 @@ Section HRTBMWeakConditioningLocalGames.
     * by rewrite ffunE (negbTE HX).
   + apply/forallP => X.
     rewrite ffunE.
-    case (boolP (X == setT)) => [->//|H].
-    exact: ler01. by rewrite (negbTE H) //.
+    case (boolP (X == setT)) => [->|H] ;
+      by rewrite ?ler01 // (negbTE H) //.
   Defined.
 
   Definition HRTBM_Weak_example_belgame : belgame R A T :=
@@ -545,7 +545,6 @@ Section HRTBMWeakConditioningLocalGames.
   Proof.
   apply/forallP => i ; apply/forallP => ti.
   rewrite/revisable/Weak_conditioning/Weak_revisable/Pl.
-  Search (_ > 0) (_ != 0).
   apply: lt0r_neq0.
   rewrite (bigD1 setT) /=.
   - rewrite ffunE eqxx big1 => [|X /andP [HX1 HX2]].

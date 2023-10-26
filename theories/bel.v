@@ -1289,7 +1289,7 @@ Section BelOnFFuns.
     exact: proba_set1.
   - apply/forallP => t.
     rewrite ffunE.
-    apply big_ind => // [||i _] ; first by rewrite ler01.
+    apply big_ind ; rewrite ?ler01=>// i Hi.
     apply mulr_ge0.
     have [_ _ Hm3] := and3P (bpa_ax (p i)).
     exact: (forallP Hm3).
