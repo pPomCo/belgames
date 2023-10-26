@@ -428,10 +428,11 @@ Section Capacity.
       := \sum_(B in focal m) m B * phi_u_a B.
 
     Definition fCEU : xeu_function T
-      := fun u => [ffun B => match minS u B with
+      := fun u => (*[ffun B => match minS u B with
                              | Some r => r
                              | None => 0
-                             end].
+                             end].*)
+           [ffun B => minSb 0 u B].
 
     Definition CEU m u_a := XEUm m (fCEU u_a).
     Notation "[ 'CEU' 'of' u 'wrt' m ]" := (CEU m u) (at level 80).
@@ -439,15 +440,19 @@ Section Capacity.
     Lemma eq_CEU : eq_xeu fCEU.
     Proof.
     move => u1 u2 B H.
-    by rewrite !ffunE (minSeq H).
+    by rewrite !ffunE (minSb_eq 0 H).
     Qed.
     
     Definition fJEU (alpha : R -> R -> R) : xeu_function T
-      := fun u_a => [ffun B => match minS u_a B, maxS u_a B with
+      := fun u => [ffun B =>(*match minS u_a B, maxS u_a B with
                            | Some rmin, Some rmax =>
                                let alp := alpha rmin rmax in alp * rmin + (1-alp) * rmax
                            | _, _ => 0
-                           end].
+                           end*)
+                    let rmin := minSb 0 u B in
+                    let rmax := maxSb 0 u B in
+                    alpha rmin rmax * rmin + (1-alpha rmin rmax) * rmax
+                     ].
 
     Definition JEU alpha m u_a := XEUm m (fJEU alpha u_a).
     Notation "[ 'JEU' alpha 'of' u 'wrt' m ]" := (JEU alpha m u) (at level 80).
@@ -455,7 +460,7 @@ Section Capacity.
     Lemma eq_JEU alpha : eq_xeu (fJEU alpha).
     Proof.
     move => u1 u2 B H.
-    by rewrite !ffunE (minSeq H) (maxSeq H).
+    by rewrite !ffunE (minSb_eq _ H) (maxSb_eq _ H).
     Qed.
 
     Definition fTBEU : xeu_function T
