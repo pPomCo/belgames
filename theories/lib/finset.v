@@ -725,9 +725,6 @@ Section CardInduction.
 
     Program Fixpoint card_rect_coq_nat (A : {set T}) {measure #|A|} : P A
       := HA card_rect_coq_nat.
-    Next Obligation.
-    by apply measure_wf ; exact: Wf_nat.lt_wf.
-    Qed.
     
   End CardRectDef.
 
@@ -744,12 +741,8 @@ Section CardInduction.
     Program Fixpoint card2_rect_coq_nat (A : {set T}) {measure (#|T|.+1 - #|A|)%N} : P A
       := HA (fun B _ => card2_rect_coq_nat B).
     Next Obligation.
-    move=>A IH B Hcard.
     apply/ltP ; apply: ltn_sub2l ; last by apply/ltP.
     by rewrite ltnS ; exact: max_card.
-    Qed.
-    Next Obligation.
-    by apply measure_wf ; exact: Wf_nat.lt_wf.
     Qed.
     
   End Card2RectDef.
@@ -774,10 +767,7 @@ Section SubsetInduction.
 
     Program Fixpoint subset_rect (A : {set T}) {measure #|A|} : P A
       := HA (fun B HB => subset_rect B (recproof:= ltP (proper_card HB))).
-    Next Obligation.
-    by apply measure_wf ; exact: Wf_nat.lt_wf.
-    Qed.
-    
+        
   End SubsetRectDef.
   Definition subset_ind {P : _ -> Prop} := @subset_rect P.
   Definition subset_rec {P : _ -> Set} := @subset_rect P.
@@ -789,12 +779,8 @@ Section SubsetInduction.
     Program Fixpoint subset2_rect (A : {set T}) {measure (#|T|.+1 - #|A|)} : P A
       := HA (fun B _ => subset2_rect B).
     Next Obligation.
-    move=>A IH B Hcard.
     apply/ltP ; apply: ltn_sub2l ; last exact: proper_card.
     by rewrite ltnS ; exact: max_card.
-    Qed.
-    Next Obligation.
-    by apply measure_wf ; exact: Wf_nat.lt_wf.
     Qed.
     
   End Subset2RectDef.

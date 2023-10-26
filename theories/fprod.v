@@ -57,8 +57,8 @@ Definition fprod : predArgType :=
 Program Definition fprod_type_of_fprod (f : fprod) : fprod_type :=
   fun i => ecast j (T_ j) _ (tagged (val f i)).
 Next Obligation.
-case => f p i /= ; apply/eqP.
-by move/forallP in p.
+apply/eqP=>/=.
+by case f=>/=p/forallP->.
 Defined.
 
 Lemma fprod_of_fprod_type_ax (f : fprod_type) :

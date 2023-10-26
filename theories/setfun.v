@@ -126,12 +126,7 @@ Section SetFunctions.
       Program Fixpoint mkmassfun_wf (mu : {set T} -> R) A {measure #|A|} : R :=
         op (mu A) (inv (\big[op/idx]_(B : {B0: {set T} | B0 \proper A}) mkmassfun_wf mu B)).
       Next Obligation.
-      move=>mu A H [B HB].
-      exact: ssrnat.ltP (proper_card HB).
-      Defined.
-      Next Obligation.
-      apply: measure_wf.
-      exact: Wf_nat.lt_wf.
+      exact: ssrnat.ltP (proper_card H).
       Defined.
 
       Definition mkmassfun mu := [ffun A : {set T} => mkmassfun_wf mu A].
