@@ -36,7 +36,7 @@ studied with the classical game theoretic tools.
   - [MathComp](https://math-comp.github.io) 2.0.0 or later
 - Coq namespace: `Decision`
 - Related publication(s):
-  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://ut3-toulouseinp.hal.science/hal-03782650) 
+  - [Bel-Games: A Formal Theory of Games of Incomplete Information Based on Belief Functions in the Coq Proof Assistant (2022)](https://doi.org/10.4230/LIPIcs.ITP.2023.25)
 
 
 To build and install manually, do:
