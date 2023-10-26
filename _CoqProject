@@ -1,4 +1,4 @@
--R theories decision
+-R theories BelGames
 
 # utils
 theories/lib/ssrnum.v

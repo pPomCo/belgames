@@ -19,8 +19,8 @@ Import Num.Theory.
 
 Open Scope ring_scope.
 
-From decision Require Import fintype finset setfun ssrnum order minmax.
-From decision Require Import massfun.
+From BelGames Require Import fintype finset setfun ssrnum order minmax.
+From BelGames Require Import massfun.
 
 Section Capacity.
 

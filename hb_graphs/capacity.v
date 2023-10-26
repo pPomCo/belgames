@@ -1,5 +1,5 @@
 From HB Require Import structures.
 
-From decision Require Import capacity.
+From BelGames Require Import capacity.
 
 HB.graph "capacity.dot".

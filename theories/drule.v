@@ -27,8 +27,8 @@ Import GRing GRing.Theory.
 Import Order Order.TotalTheory Order.POrderTheory.
 
 (* Local libraries *)
-From decision Require Import minmax fintype finset ssrnum setfun.
-From decision Require Import massfun capacity.
+From BelGames Require Import minmax fintype finset ssrnum setfun.
+From BelGames Require Import massfun capacity.
 
 
 

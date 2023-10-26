@@ -40,10 +40,6 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-From decision Require Import fintype.
-
-(* Local Open Scope ring_scope. *)
-
 
 
 (** Pick lemmas **)

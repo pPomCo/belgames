@@ -22,8 +22,8 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-From decision Require Import fintype finset setfun ssrnum order minmax.
-From decision Require Import massfun capacity.
+From BelGames Require Import fintype finset setfun ssrnum order minmax.
+From BelGames Require Import massfun capacity.
 
 
 

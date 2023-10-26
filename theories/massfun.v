@@ -29,7 +29,7 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-From decision Require Import fintype finset order minmax setfun.
+From BelGames Require Import fintype finset order minmax setfun.
 
 Import Order Order.POrderTheory Order.TotalTheory.
 

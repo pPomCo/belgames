@@ -55,7 +55,7 @@ Section NumLemmas.
   move=>H ; apply big_ind=>// ; exact: addr_ge0.
   Qed.
 
-  #[deprecated(since="decision.2.0", note="Use Num.Theory.sumr_ge0")]
+  #[deprecated(since="belgames.2.0", note="Use Num.Theory.sumr_ge0")]
   Notation sum_ge0 := deprecated_sum_ge0.
 
   Lemma sumr_le [I : Type] (r : seq I) (P : pred I) (F G : I -> R) :
@@ -83,7 +83,9 @@ Section NumLemmas.
     rewrite (bigD1 t) //= in Hsum.
     have Hge0' t' : P t' && (t' != t) -> 0 <= f t' by move=>/andP [Ht' _] ; exact: Hge0.
     have Hgt0 : f t > 0 by rewrite lt0r Hge0 // Hcontra.
-    have := addr_gte0 Hgt0 (sum_ge0 _ _ Hge0').
+    have Hsum_ge0 : 0 <= \sum_(t0 | P t0 && (t0 != t)) f t0
+      by apply:sumr_ge0.
+    have := addr_gte0 Hgt0 Hsum_ge0.
     by rewrite Hsum lt0r eqxx andFb.
   - by rewrite (eq_bigr (fun=>0)) // big1.
   Qed.
@@ -93,7 +95,7 @@ Section NumLemmas.
     (forall t, P t -> f t >= 0) -> \sum_(t | P t) f t != 0 -> exists t : T, P t && (f t > 0).
   Proof.
   move=>Hge0 Hsum.
-  have Hsum2 : \sum_(t | P t) f t > 0. by rewrite lt0r Hsum sum_ge0 //.
+  have Hsum2 : \sum_(t | P t) f t > 0. by rewrite lt0r Hsum sumr_ge0 //.
   have Hex : exists t : T, ~~ ~~ (P t && (f t != 0)).
   apply/forallPn/negP=>/forallP Hcontra.
   have Hcontra2 : \sum_(t | P t) f t = 0. apply sum_ge0_eq0E=>// t Ht.

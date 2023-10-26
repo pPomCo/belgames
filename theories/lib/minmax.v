@@ -21,8 +21,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 
-From decision Require Import finset order.
-
+From BelGames Require Import finset order.
 
 
 

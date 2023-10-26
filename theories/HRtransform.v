@@ -14,8 +14,8 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
-From decision Require Import fintype finset ssrnum.
-From decision Require Import massfun decision games.
+From BelGames Require Import fintype finset ssrnum.
+From BelGames Require Import massfun decision games.
 
 Local Open Scope ring_scope.
 
@@ -481,6 +481,7 @@ Section HowsonRosenthal.
   
 End HowsonRosenthal.
 
+From HB Require Import structures.
 
 Section HRTBMWeakConditioningLocalGames.
 
@@ -490,8 +491,6 @@ Section HRTBMWeakConditioningLocalGames.
   Notation T := (fun _ : I => 'I_2).
 
   Notation Tn := {ffun forall i, T i}.
-
-  From HB Require Import structures.
 
   Notation m_example := [ffun X : {set Tn} => if X == setT then 1 else 0:R].
 

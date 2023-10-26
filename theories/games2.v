@@ -24,8 +24,8 @@ Import GRing GRing.Theory.
 Import Num.Theory.
 
 
-From decision Require Import fintype finset ssrnum.
-From decision Require Import setfun massfun capacity conditioning drule.
+From BelGames Require Import fintype finset ssrnum.
+From BelGames Require Import setfun massfun capacity drule.
 
 Local Open Scope order_scope.
 

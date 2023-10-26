@@ -12,7 +12,7 @@ From mathcomp Require Import finset order.
 Open Scope order_scope.
 Import Order Order.POrderTheory Order.TotalTheory.
 
-From decision Require Import fintype finset.
+From BelGames Require Import finset.
 
 
 

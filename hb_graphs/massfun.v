@@ -1,5 +1,5 @@
 From HB Require Import structures.
 
-From decision Require Import massfun.
+From BelGames Require Import massfun.
 
 HB.graph "massfun.dot".

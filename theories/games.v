@@ -22,8 +22,8 @@ Import GRing GRing.Theory.
 Import Num.Theory.
 
 
-From decision Require Import fintype finset ssrnum.
-From decision Require Import massfun drule decision.
+From BelGames Require Import fintype finset ssrnum.
+From BelGames Require Import massfun drule decision.
 
 Local Open Scope ring_scope.
 
