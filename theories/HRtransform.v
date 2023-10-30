@@ -513,16 +513,17 @@ Section HRTBMWeakConditioningLocalGames.
   HB.instance Definition _ :=
     AddMassFun_of_MassFun.Build R Tn m_example HRTBM_Weak_example_massfun0 HRTBM_Weak_example_massfun1.
   
-  Lemma HRTBM_Weak_example_ge0 A :
-    m_example A >= 0.
+  Lemma HRTBM_Weak_example_ge0b :
+    [forall A : {set Tn}, m_example A >= 0].
   Proof.
+  apply/forallP=>/=A.
   rewrite ffunE/=.
   case (boolP (A == setT))=>[->//|H].
   by rewrite (negbTE H).
   Qed.
 
   HB.instance Definition _ :=
-    Bpa_of_AddMassFun.Build R Tn m_example HRTBM_Weak_example_ge0.
+    Bpa_of_AddMassFun.Build R Tn m_example HRTBM_Weak_example_ge0b.
 
   Notation m := (m_example : rmassfun R Tn).
 

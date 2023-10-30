@@ -133,10 +133,12 @@ Definition AddMassFun R T := {m of AddMassFun_of_MassFun R T m & MassFun_of_Ffun
 Notation rmassfun := addMassfun.
 
 
-HB.howto eqType.
-HB.about hasDecEq.Build.
+
+(** Decidable equality *)
+
 Definition eq_addMassfun R T : rel (addMassfun R T) :=
   fun m1 m2 => (AddMassFun.sort m1 == AddMassFun.sort m2).
+
 Lemma addMassfun_eqP R T : Equality.axiom (@eq_addMassfun R T).
 Proof.
 case=>x ; do 3 case ; move=>Hx0 Hx1.
@@ -148,6 +150,7 @@ Qed.
 
 HB.instance
 Definition _ R T := hasDecEq.Build (@addMassfun R T) (@addMassfun_eqP R T).
+
 
 
 Section AddMassFunTheory.
@@ -316,13 +319,31 @@ HB.mixin
 Record Bpa_of_AddMassFun R T (m : {ffun {set T} -> R})
 of AddMassFun_of_MassFun R T m
 & MassFun_of_Ffun R T 0 +%R m :=
-  { bpa_ge0 : forall A, m A >= 0 }.
+  { bpa_ge0b : [forall A, m A >= 0] }.
 
 #[short(type="bpa")]
 HB.structure
 Definition Bpa R T := {m of Bpa_of_AddMassFun R T m
                        & AddMassFun_of_MassFun R T m
                        & MassFun_of_Ffun R T 0 +%R m}.
+
+(** Decidable equality *)
+
+Definition eq_bpa R T : rel (bpa R T) :=
+  fun m1 m2 => m1 == m2 :> addMassfun R T.
+
+Lemma bpa_eqP R T : Equality.axiom (@eq_bpa R T).
+Proof.
+case=>x ; do 3 case ; move=>Hx0 Hx1 ; case=>Hx2.
+case=>y ; do 3 case ; move=>Hy0 Hy1 ; case=>Hy2.
+apply: (iffP eqP)=>[/=|->]//=/addMassfun_eqP.
+rewrite/eq_addMassfun=>/eqP/= Hxy.
+rewrite Hxy in Hx0 Hx1 Hx2 *.
+by rewrite (eq_irrelevance Hx0 Hy0) (eq_irrelevance Hx1 Hy1) (eq_irrelevance Hx2 Hy2).
+Qed.
+
+HB.instance
+Definition _ R T := hasDecEq.Build (@bpa R T) (@bpa_eqP R T).
 
 
 Section BpaTheory.
@@ -333,6 +354,8 @@ Section BpaTheory.
 
   Notation Bel := (Pinf m).
   Notation Pl := (Psup m).
+
+  Definition bpa_ge0 : forall A : {set T}, m A >= 0 := forallP (bpa_ge0b (s:=m)).
 
   Lemma massfun_mpositive : mpositive Bel.
   Proof. by move=>A ; rewrite -(moebius_unique (massfunE m)) ; exact: bpa_ge0. Qed.
@@ -369,7 +392,7 @@ Record PrBpa_of_Bpa R T (m : {ffun {set T} -> R})
 of Bpa_of_AddMassFun R T m
 & AddMassFun_of_MassFun R T m
 & MassFun_of_Ffun R T 0 +%R m :=
-  { prbpa_card1 : forall A : {set T}, m A != 0 -> #|A| == 1%N }.
+  { prbpa_card1b : [forall A : {set T}, (m A != 0) ==> (#|A| == 1%N)] }.
 
 #[short(type="prBpa")]
 HB.structure
@@ -377,6 +400,27 @@ Definition PrBpa R T := {m of PrBpa_of_Bpa R T m
                          & Bpa_of_AddMassFun R T m
                          & AddMassFun_of_MassFun R T m
                          & MassFun_of_Ffun R T 0 +%R m}.
+
+
+
+(** Decidable equality *)
+
+Definition eq_prBpa R T : rel (prBpa R T) :=
+  fun m1 m2 => m1 == m2 :> addMassfun R T.
+
+Lemma prBpa_eqP R T : Equality.axiom (@eq_prBpa R T).
+Proof.
+case=>x ; do 3 case ; move=>Hx0 Hx1 ; case=>Hx2 ; case=>Hx3.
+case=>y ; do 3 case ; move=>Hy0 Hy1 ; case=>Hy2 ; case=>Hy3.
+apply: (iffP eqP)=>[/=|->]//=/addMassfun_eqP.
+rewrite/eq_addMassfun=>/eqP/= Hxy.
+rewrite Hxy in Hx0 Hx1 Hx2 Hx3 *.
+by rewrite (eq_irrelevance Hx0 Hy0) (eq_irrelevance Hx1 Hy1) (eq_irrelevance Hx2 Hy2) (eq_irrelevance Hx3 Hy3).
+Qed.
+
+HB.instance
+Definition _ R T := hasDecEq.Build (@prBpa R T) (@prBpa_eqP R T).
+
 
 Section PrBpaTheory.
 
@@ -386,6 +430,18 @@ Section PrBpaTheory.
 
   Notation Pr := [ffun A : {set T} => \sum_(t in A) dist p t].
 
+  Definition prbpa_card1 : forall A : {set T}, p A != 0 -> #|A| = 1%N :=
+    fun A HA => eqP (implyP (forallP prbpa_card1b A) HA).
+
+  Lemma prbpa_card1F : forall A : {set T}, #|A| != 1%N -> p A = 0.
+  move=>A H.
+  apply/eqP ; move: H.
+  apply/implyP.
+  rewrite -[E in _==>E]Bool.negb_involutive implybNN.
+  apply/implyP=>H ; apply/eqP ; exact: prbpa_card1.
+  Qed.
+  
+
   Lemma PrPinf : Pr = (Pinf p).
   Proof.
   apply/ffunP=>/=A.
@@ -394,8 +450,7 @@ Section PrBpaTheory.
   - apply: eq_big=>[t|B HB] ; first by rewrite sub1set.
     by rewrite ffunE.
   - move=>B /andP [_ HB].
-    apply/eqP/negP=>/negP Hcontra.
-    by rewrite (prbpa_card1 _ Hcontra) in HB.
+    exact: prbpa_card1F.
   Qed.
 
   Lemma PrPsup : Pr = (Psup p).
@@ -406,8 +461,7 @@ Section PrBpaTheory.
   - apply: eq_big=>[t|B HB] ; first by rewrite disjoints1 Bool.negb_involutive.
     by rewrite ffunE.
   - move=>B /andP [_ HB].
-    apply/eqP/negP=>/negP Hcontra.
-    by rewrite (prbpa_card1 _ Hcontra) in HB.
+    exact: prbpa_card1F.
   Qed.
 
   Lemma PinfPsup_eq : Pinf p = Psup p.
@@ -502,7 +556,60 @@ Section PrDistTheory.
   + by rewrite in_setU ; case (t \in A) ; rewrite // andbF.
   Qed.
 
+
+  (** PrDist --> PrBpa *)
+  Definition mk_prbpa : {ffun {set T} -> R} :=
+    [ffun A : {set T} => match #|A|, [pick t in A] with
+                        | 1%N, Some t => p t
+                        | _, _ => (0:R)
+                        end].
+
+  Lemma mk_prbpaE t : mk_prbpa [set t] = p t.
+  Proof. by rewrite ffunE cards1 pick_set1E. Qed.
+  
+  Lemma mk_prbpa_card1F (A : {set T}) :
+    #|A| != 1%N -> mk_prbpa A = 0.
+  Proof.
+  rewrite ffunE.
+  case #|A|=>//i ; by case i.
+  Qed.
+  
+  HB.instance Definition _ := MassFun_of_Ffun.Build R T 0 +%R mk_prbpa.
+
+  Lemma mk_prbpa0 : mk_prbpa set0 == 0.
+  Proof. by rewrite ffunE cards0. Qed.
+  Lemma mk_prbpa1 : \sum_(A : {set T}) mk_prbpa A == 1.
+  Proof.
+  rewrite (bigID (fun A : {set T} => #|A| == 1%N)) big_card1/= [E in _+E]big1=>[|A HA].
+  - by under eq_bigr do rewrite mk_prbpaE ; rewrite addr0 prdist_sum1.
+  - exact: mk_prbpa_card1F.
+  Qed.
+
+  HB.instance Definition _ := AddMassFun_of_MassFun.Build R T mk_prbpa mk_prbpa0 mk_prbpa1.
+
+  Lemma mk_prbpa_ge0b : [forall A : {set T}, 0 <= mk_prbpa A].
+  Proof.
+  apply/forallP=>/=A.
+  rewrite ffunE.
+  case #|A|=>// ; case=>// ; case [pick t in A]=>// t.
+  exact: prdist_ge0.
+  Qed.
+
+  HB.instance Definition _ := Bpa_of_AddMassFun.Build R T mk_prbpa mk_prbpa_ge0b.
+
+
+  Lemma mk_prbpa_card1b : [forall A, (mk_prbpa A != 0) ==> (#|A| == 1%N)].
+  Proof.
+  apply/forallP=>/=A.
+  apply/implyP=>H0F.
+  case (boolP (#|A|==1%N))=>//Hcontra.
+  by rewrite (mk_prbpa_card1F Hcontra) eqxx in H0F.
+  Qed.
+  
+  HB.instance Definition _ := PrBpa_of_Bpa.Build R T mk_prbpa mk_prbpa_card1b.
+  
 End PrDistTheory.
+
 
 
 

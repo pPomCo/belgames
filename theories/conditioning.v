@@ -120,16 +120,16 @@ Section Conditioning.
     by rewrite /Dempster_precond/Dempster_mprecond -PinfD Pinf_moebiusE.
     Qed.
     
-    Definition Dempster_cond_fun mu C (HC : Dempster_precond mu C) :=
+    Definition Dempster_cond mu C (HC : Dempster_precond mu C) :=
       dual [ffun A : {set T} => (dual mu (A :&: C)) / (dual mu C)].
 
     
     Lemma Dempster_cond0 mu C (HC : Dempster_precond mu C) :
-      Dempster_cond_fun HC set0 = 0.
+      Dempster_cond HC set0 = 0.
     Proof. exact: dual0. Qed.
 
     Lemma Dempster_cond1 mu C (HC : Dempster_precond mu C) :
-      Dempster_cond_fun HC setT = 1.
+      Dempster_cond HC setT = 1.
     Proof.
     rewrite dualT ffunE.
     - by rewrite setTI divff.
@@ -137,17 +137,14 @@ Section Conditioning.
     Qed.
 
     Lemma Dempster_cond01 mu C (HC : Dempster_precond mu C) :
-      pointed (Dempster_cond_fun HC).
+      pointed (Dempster_cond HC).
     Proof. by apply/andP ; rewrite Dempster_cond0 Dempster_cond1. Qed.
 
     HB.instance Definition _ mu C (HC : Dempster_precond mu C) :=
-      PointedFun_of_Ffun.Build R T (Dempster_cond_fun HC) (Dempster_cond01 HC).
-
-    Definition Dempster_cond mu C (HC : Dempster_precond mu C) : pointed_function R T :=
-      Dempster_cond_fun HC.
+      PointedFun_of_Ffun.Build R T (Dempster_cond HC) (Dempster_cond01 HC).
 
     Lemma Dempster_condM  (mu : capacity R T) C (HC : Dempster_precond mu C) :
-      monotonic (Dempster_cond_fun HC).
+      monotonic (Dempster_cond HC).
     Proof.
     apply: dual_monotonic=>A B ; rewrite ffunE [E in _<=E]ffunE.
     apply: ler_pM=>//=.
@@ -160,7 +157,7 @@ Section Conditioning.
     Qed.
 
     HB.instance Definition _ (mu : capacity R T) C (HC : Dempster_precond mu C) :=
-      Capacity_of_PointedFun.Build R T (Dempster_cond_fun HC) (Dempster_condM HC).
+      Capacity_of_PointedFun.Build R T (Dempster_cond HC) (Dempster_condM HC).
 
 
 
@@ -199,9 +196,10 @@ Section Conditioning.
     Definition Dempster_mcond m C (HC : Dempster_mprecond m C) : rmassfun R T :=
       Dempster_mcond_fun HC.
 
-    Lemma Dempster_mcond_ge0 (m : bpa R T) C (HC : Dempster_mprecond m C) A :
-      Dempster_mcond HC A >= 0.
+    Lemma Dempster_mcond_ge0b (m : bpa R T) C (HC : Dempster_mprecond m C) :
+      [forall A : {set T}, Dempster_mcond HC A >= 0].
     Proof.
+    apply/forallP=>/=A.
     rewrite ffunE/=.
     case: ifP => _//.
     apply: sumr_ge0 => B HB.
@@ -211,7 +209,7 @@ Section Conditioning.
 
     HB.instance
     Definition _ (m : bpa R T) C (HC : Dempster_mprecond m C) :=
-      Bpa_of_AddMassFun.Build R T (Dempster_mcond HC) (Dempster_mcond_ge0 HC).
+      Bpa_of_AddMassFun.Build R T (Dempster_mcond HC) (Dempster_mcond_ge0b HC).
     
     Lemma Dempster_mcond_sumE m C (HC : Dempster_mprecond m C) f :
       \sum_(B in focal (Dempster_mcond HC))

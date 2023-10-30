@@ -112,9 +112,10 @@ Section Capacity.
       Definition _ m C (HC : Dempster_cond_revisable m C) :=
         AddMassFun_of_MassFun.Build R T (Dempster_cond HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
 
-      Lemma Dempster_cond_ge0 (m : bpa R T) C (HC : Dempster_cond_revisable m C) A :
-        Dempster_cond HC A >= 0.
-      Proof.
+      Lemma Dempster_cond_ge0b (m : bpa R T) C (HC : Dempster_cond_revisable m C) :
+        [forall A : {set T}, Dempster_cond HC A >= 0].
+        Proof.
+      apply/forallP=>/=A.
       rewrite ffunE/=.
       case: ifP => _//.
       apply: sumr_ge0 => B HB.
@@ -124,13 +125,12 @@ Section Capacity.
 
       HB.instance
       Definition _ (m : bpa R T) C (HC : Dempster_cond_revisable m C) :=
-        Bpa_of_AddMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0 HC).
+        Bpa_of_AddMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0b HC).
 
       Lemma Dempster_cond_card1 (m : prBpa R T) C (HC : Dempster_cond_revisable m C) A :
         Dempster_cond HC A != 0 -> #|A| == 1%N.
       Proof.
       rewrite ffunE.
-      Search (~~_ ==> ~~_).
       apply/implyP.
       rewrite -implybNN.
       apply/implyP=>Hcard.
@@ -145,16 +145,20 @@ Section Capacity.
           apply: subset_leq_card ; rewrite -HB ; exact: subsetIl.
         have HmB : m B == 0
           by apply/negP=>/negP Hcontra ; move: HcardB_gt1 ;
-          rewrite ltn_neqAle eq_sym (prbpa_card1 B Hcontra) andFb.
+          rewrite ltn_neqAle eq_sym (prbpa_card1 Hcontra) andFb.
         by rewrite (eqP HmB) mul0r.
       - apply: mulr_ge0 ; first exact: bpa_ge0.
         rewrite invr_ge0.
         exact: Psup_ge0.
-      Qed.      
+      Qed.
+
+      Lemma Dempster_cond_card1b (m : prBpa R T) C (HC : Dempster_cond_revisable m C) :
+        [forall A : {set T}, (Dempster_cond HC A != 0) ==> (#|A| == 1%N)].
+      Proof. apply/forallP=>/=A ; apply/implyP ; exact: Dempster_cond_card1. Qed.
 
       HB.instance
       Definition _ (m : prBpa R T) C (HC : Dempster_cond_revisable m C) :=
-        PrBpa_of_Bpa.Build R T (Dempster_cond HC) (Dempster_cond_card1 (HC:=HC)).
+        PrBpa_of_Bpa.Build R T (Dempster_cond HC) (Dempster_cond_card1b HC).
 
       
       
@@ -427,8 +431,6 @@ Section Capacity.
        *)
       
 
-      HB.howto prBpa.
-      HB.about PrBpa_of_Bpa.Build.
       (*
       Definition Pr_conditioning_bpa_fun (p : prBpa R T) C (HC : Pr_revisable p C) :=
         fun A => match #|A|, [pick t in A] with
@@ -630,13 +632,17 @@ Section Capacity.
   End TBM.
 End Capacity.
 
+
+
+From BelGames Require Import fprod.
+
 Section BelOnFFuns.
 
   Variable R : realFieldType.
   Variable X : finType.
   Variable T : X -> finType.
 
-  Notation Tn := [finType of {dffun forall i : X, T i}].
+  Notation Tn := {dffun forall i : X, T i}.
 
   (* NOTE :: conditioning event "given t i == ti" *)
   Definition event_ti i (ti : T i) := [set t : Tn | t i == ti].
@@ -654,19 +660,22 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
-  (*
-  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
+
+  
+  Definition ffun_of_proba (p : forall i : X, prBpa R (T i)) :
     (forall i : X, {ffun {set T i} -> R}).
   Proof. move=> i; apply p. Defined.
 
-   Lemma proba_set1 (p : forall i : X, proba R (T i)) :
+   Lemma proba_set1 (p : forall i : X, prBpa R (T i)) :
     forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
   Proof.
     move=> i.
     have x0 : T i.
     { have P_i := p i.
       have [b _] := P_i.
-      apply: massfun_nonemptyW b. }
+      have := massfun_nonempty (p i).
+      rewrite -cardsT card_gt0=>HT0F.
+      exact: (pick_nonemptyset HT0F). }
     set h' : {set (T i)} -> T i :=
       fun s =>
         match [pick x | x \in s] with
@@ -674,9 +683,9 @@ Section BelOnFFuns.
         | None => x0
         end.
     rewrite
-      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N));
-      last by move=> s Hs; exact: proba_set1_eq0.
-    rewrite (reindex_onto (I := {set (T i)}) (J := T i)
+      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N)) ;
+         last by move=> s Hs; exact: prbpa_card1F.
+      rewrite (reindex_onto (I := {set (T i)}) (J := T i)
                           (fun j => [set j]) h'
                           (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
     { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
@@ -684,9 +693,49 @@ Section BelOnFFuns.
     exact: eq_bigr.
   Qed.
 
-  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tn -> R}
+  Definition mk_prod_prdist (p : forall i : X, prBpa R (T i)) : {ffun Tn -> R}
     := [ffun t : Tn => \prod_i dist (p i) (t i)].
 
+
+  Lemma mk_prod_prdist_ge0 (p : forall i : X, prBpa R (T i)) tn : 
+    mk_prod_prdist p tn >= 0.
+  Proof.
+  rewrite ffunE.
+  apply: prodr_ge0=>i _.
+  rewrite ffunE.
+  exact: bpa_ge0.
+  Qed.
+
+  Lemma mk_prod_prdist_sum1 (p : forall i : X, prBpa R (T i)) : 
+    \sum_tn mk_prod_prdist p tn = 1.
+  Proof.
+  Check big_fprod.
+  under eq_bigr do rewrite ffunE.
+  set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
+  have L := (@big_fprod R X (fun i => T i) pp).
+  do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
+  do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
+  erewrite (reindex).
+  2: exists (@fprod_of_dffun X _).
+  2: move=> *; apply: dffun_of_fprodK.
+  2: move => *; apply: fprod_of_dffunK.
+  under (* Improve PG indentation *)
+    eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
+  rewrite L.
+  rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
+  rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
+  apply eq_bigr => i _ /=.
+  rewrite (big_tag pp)/=.
+  under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
+  rewrite proba_set1.
+  apply/eqP.
+  exact: massfun1.
+  Qed.
+  
+  HB.instance Definition _ p :=
+    PrDist_of_Ffun.Build R Tn (mk_prod_prdist p) (mk_prod_prdist_ge0 p) (mk_prod_prdist_sum1 p).
+
+  (*
   Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
   Proof.
   apply/andP ; split.
@@ -722,9 +771,11 @@ Section BelOnFFuns.
     exact: (forallP (bpa_ax (p x))) [set t x].
   Qed.
   
-  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tn
-    := proba_of_dist (mk_prod_proba_dist p witnessX).
    *)
+  Definition prod_proba (p : forall i : X, prBpa R (T i)) : prBpa R Tn
+    := (* proba_of_dist (mk_prod_proba_dist p witnessX). *)
+    mk_prbpa (mk_prod_prdist p).
+
 End BelOnFFuns.
 
 Close Scope ring_scope.

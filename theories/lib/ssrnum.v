@@ -68,12 +68,15 @@ Section NumLemmas.
   - rewrite mulrN1 subr_ge0 ; exact: H.
   Qed.
   
-  Lemma prod_ge0 {T} (P : pred T) (f : T -> R) :
+  Lemma deprecated_prod_ge0 {T} (P : pred T) (f : T -> R) :
     (forall t, P t -> f t >= 0) -> \prod_(t | P t) f t >= 0.
   Proof.
   move=>H ; apply big_ind=>//=.
   exact: mulr_ge0.
   Qed.
+
+  #[deprecated(since="belgames.2.0", note="Use Num.Theory.prodr_ge0")]
+  Notation prod_ge0 := deprecated_prod_ge0.
 
   Lemma sum_ge0_eq0E {T} (P : pred T) (f : T -> R) :
     (forall t, P t -> f t >= 0) -> \sum_(t | P t) f t = 0 <-> forall t, P t -> f t = 0.

@@ -349,26 +349,24 @@ Section Games.
    *)
 End Games.
 
-(*
+
 Section MixedStrategies.
 
   Variable R : realFieldType.
   Variable I : finType.
   Variable A : I -> finType.
 
-  Variable witnessI : I.
-
-  Definition mixed_cprofile := cprofile (fun i => [eqType of proba R (A i)]).
+  Definition mixed_cprofile := cprofile (fun i => prBpa R (A i)).
 
   Definition ms_util (G : cgame R A) (mp : mixed_cprofile) (i : I) : R :=
-    let pr := prod_proba mp witnessI in
-    [EU of [ffun p => G p i] wrt pr].
+    let pr := prod_proba mp in
+    EU pr [ffun p => G p i].
 
   Definition ms_Nash_equilibrium (G : cgame R A) (mp : mixed_cprofile) : Prop :=
-    forall i (si : proba R (A i)),
+    forall i (si : prBpa R (A i)),
       ~ ms_util G mp i < ms_util G (change_strategy mp si) i.
 
-  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => [eqType of proba R (A i)])
+  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => prBpa R (A i))
     := fun mp i => ms_util G mp i.
 
   Lemma mixed_cgameE G mp i : ms_util G mp i = (mixed_cgame G) mp i.
@@ -383,4 +381,3 @@ Section MixedStrategies.
   Qed.
 
 End MixedStrategies.
-*)
