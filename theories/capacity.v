@@ -65,10 +65,11 @@ Section PointedFunTheory.
   Implicit Type A B C : {set T}.
   
   (** Moebius from pointed capacity *)
-  Lemma capa_massfun0 : moebius mu set0 = 0.
-  Proof. by rewrite moebius0 pointed0//capa01. Qed.
-  Lemma capa_massfun1 : \sum_(A : {set T}) moebius mu A = 1.
+  Lemma capa_massfun0 : moebius mu set0 == 0.
+  Proof. apply/eqP ; by rewrite moebius0 pointed0//capa01. Qed.
+  Lemma capa_massfun1 : \sum_(A : {set T}) moebius mu A == 1.
   Proof.
+  apply/eqP.
   rewrite -(pointedT (capa01 (s:=mu))) moebiusE.
   apply: eq_bigl=>/=A ; by rewrite subsetT.
   Qed.

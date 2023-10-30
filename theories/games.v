@@ -281,7 +281,7 @@ Section Games.
 
   End FiniteIGame.
 
-  (*
+(*  
   Section BGame.
 
     Notation Tconfig := (fun T => {ffun forall i : I, T i}).
@@ -292,8 +292,8 @@ Section Games.
     Notation Tn := {dffun forall i : I, T i}.
 
     Definition bgame :=
-      (proba R Tn * (cprofile A -> Tn -> I -> R))%type.
-
+      (prBpa R Tn * (cprofile A -> Tn -> I -> R))%type.
+    (* HERE *)
     Definition proper_bgame (G : bgame) : bool :=
       [forall i : I, [forall ti : T i, Pr_revisable G.1 (event_ti ti)]].
 

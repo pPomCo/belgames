@@ -495,12 +495,13 @@ Section HRTBMWeakConditioningLocalGames.
   Notation m_example := [ffun X : {set Tn} => if X == setT then 1 else 0:R].
 
   Lemma HRTBM_Weak_example_massfun0 :
-    m_example set0 = 0.
-  Proof. by rewrite ffunE/= eq_sym (negbTE (setT0F [ffun t => ord0])). Qed.
+    m_example set0 == 0.
+  Proof. apply/eqP ; by rewrite ffunE/= eq_sym (negbTE (setT0F [ffun t => ord0])). Qed.
 
   Lemma HRTBM_Weak_example_massfun1 :
-    \sum_(A : {set Tn}) m_example A = 1.
+    \sum_(A : {set Tn}) m_example A == 1.
   Proof.
+  apply/eqP.
   rewrite (bigD1 setT)//= big1=>[|A HA].
   - by rewrite addr0 ffunE eqxx.
   - by rewrite ffunE (negbTE HA).

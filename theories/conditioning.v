@@ -123,20 +123,6 @@ Section Conditioning.
     Definition Dempster_cond_fun mu C (HC : Dempster_precond mu C) :=
       dual [ffun A : {set T} => (dual mu (A :&: C)) / (dual mu C)].
 
-    (*
-    Lemma Dempster_condM  mu C (HC : Dempster_precond mu C) :
-      monotonic (Dempster_cond_fun HC).
-    Proof.
-    apply: dual_monotonic=>A B ; rewrite ffunE [E in _<=E]ffunE.
-    apply: ler_pM=>//=.
-    - rewrite -(dual0 mu).
-      apply: monotonic0 ; apply: dual_monotonic ; exact: capaM.
-    - rewrite invr_ge0 -(dual0 mu).
-      apply: monotonic0 ; apply: dual_monotonic ; exact: capaM.
-    - rewrite setIUl.
-      apply: dual_monotonic ; exact: capaM.
-    Qed.
-     *)
     
     Lemma Dempster_cond0 mu C (HC : Dempster_precond mu C) :
       Dempster_cond_fun HC set0 = 0.
@@ -160,6 +146,22 @@ Section Conditioning.
     Definition Dempster_cond mu C (HC : Dempster_precond mu C) : pointed_function R T :=
       Dempster_cond_fun HC.
 
+    Lemma Dempster_condM  (mu : capacity R T) C (HC : Dempster_precond mu C) :
+      monotonic (Dempster_cond_fun HC).
+    Proof.
+    apply: dual_monotonic=>A B ; rewrite ffunE [E in _<=E]ffunE.
+    apply: ler_pM=>//=.
+    - rewrite -(dual0 mu).
+      apply: monotonic0 ; apply: dual_monotonic ; exact: capaM.
+    - rewrite invr_ge0 -(dual0 mu).
+      apply: monotonic0 ; apply: dual_monotonic ; exact: capaM.
+    - rewrite setIUl.
+      apply: dual_monotonic ; exact: capaM.
+    Qed.
+
+    HB.instance Definition _ (mu : capacity R T) C (HC : Dempster_precond mu C) :=
+      Capacity_of_PointedFun.Build R T (Dempster_cond_fun HC) (Dempster_condM HC).
+
 
 
     
@@ -169,13 +171,12 @@ Section Conditioning.
 
 
     Lemma Dempster_mcond_massfun0 m C (HC : Dempster_mprecond m C) :
-      Dempster_mcond_fun HC set0 = 0.
-    Proof. by rewrite ffunE eqxx. Qed.
+      Dempster_mcond_fun HC set0 == 0.
+    Proof. apply/eqP ; by rewrite ffunE eqxx. Qed.
 
     Lemma Dempster_mcond_massfun1 m C (HC : Dempster_mprecond m C) :
-      \sum_(A : {set T}) Dempster_mcond_fun HC A = 1.
+      \sum_(A : {set T}) Dempster_mcond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE -if_neg.
     rewrite -big_mkcond /=.
     under eq_bigr do rewrite sum_div.
@@ -205,7 +206,6 @@ Section Conditioning.
     case: ifP => _//.
     apply: sumr_ge0 => B HB.
     apply divr_ge0 ; first by rewrite bpa_ge0.
-    Check Pinf_ge0.
     exact: Psup_ge0.
     Qed.
 
@@ -225,7 +225,7 @@ Section Conditioning.
     rewrite -[in RHS]big_mkcondr sum_fun_focal_cond.
     Opaque Dempster_mcond.
     rewrite (big_setI_distrl (fun b => b != set0)) sum_fun_focal (bigD1 set0) //=.
-    rewrite massfun0 mul0r add0r.
+    rewrite (eqP massfun0) mul0r add0r.
     under [in RHS]eq_bigr do rewrite mulrC.
     rewrite big_distrl /=.
     under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
@@ -275,16 +275,17 @@ Section Conditioning.
 
 
     Lemma FH_cond_massfun0 (m : rmassfun R T) (C : {set T}) (HC : FH_precondisable m C) :
-      FH_cond_fun HC set0 = 0.
+      FH_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE moebius0 ffunE set0I (pointed0 (Pinf01 m)) mul0r. Qed.
     
     Lemma FH_cond_massfun1 (m : rmassfun R T) (C : {set T}) (HC : FH_precondisable m C) :
-      \sum_(A : {set T}) FH_cond_fun HC A = 1.
+      \sum_(A : {set T}) FH_cond_fun HC A == 1.
     Proof.
-    - under eq_bigr do rewrite ffunE.
-                       have :=  moebiusE (FH_Pinf m C) setT.
-                       rewrite FH_PinfT=>//->.
-                       by apply: eq_big=>/=[B|//] ; rewrite subsetT.
+    apply/eqP.
+    under eq_bigr do rewrite ffunE.
+    have :=  moebiusE (FH_Pinf m C) setT.
+    rewrite FH_PinfT=>//->.
+    by apply: eq_big=>/=[B|//] ; rewrite subsetT.
     Qed.
 
     HB.instance
@@ -335,19 +336,18 @@ Section Conditioning.
                            then m A / Pinf m C else 0].
 
     Lemma Strong_cond_massfun0 m C (HC : Strong_precondisable m C) :
-      Strong_cond_fun HC set0 = 0.
+      Strong_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE eqxx. Qed.
 
     Lemma Strong_cond_massfun1 m C (HC : Strong_precondisable m C) :
-      \sum_(A : {set T}) Strong_cond_fun HC A = 1.
+      \sum_(A : {set T}) Strong_cond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE.
-                     rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
-                     rewrite ffunE/=.
-                     apply/eqP.
-                     rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
-                     by rewrite massfun0 add0r ; under eq_bigl do rewrite andbC.
+    rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
+    rewrite ffunE/=.
+    apply/eqP.
+    rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
+    by rewrite (eqP massfun0) add0r ; under eq_bigl do rewrite andbC.
     Qed.
 
     HB.instance
@@ -387,18 +387,17 @@ Section Conditioning.
       [ffun A : {set T} => if A :&: C != set0 then m A / Psup m C else 0].
 
     Lemma Weak_cond_massfun0 m C (HC : Weak_precondisable m C) :
-      Weak_cond_fun HC set0 = 0.
+      Weak_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE set0I eqxx. Qed.
 
     Lemma Weak_cond_massfun1 m C (HC : Weak_precondisable m C) :
-      \sum_(A : {set T}) Weak_cond_fun HC A = 1.
+      \sum_(A : {set T}) Weak_cond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE.
-                     rewrite -big_mkcond sum_div_eq1 //.
-                     rewrite ffunE.
-                     apply/eqP; apply: eq_bigl=>A.
-                     by rewrite setI_eq0.
+    rewrite -big_mkcond sum_div_eq1 //.
+    rewrite ffunE.
+    apply/eqP; apply: eq_bigl=>A.
+    by rewrite setI_eq0.
     Qed.
 
     HB.instance

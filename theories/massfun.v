@@ -122,15 +122,32 @@ Local Open Scope ring_scope.
 Check "+-based mass function".
 HB.mixin
 Record AddMassFun_of_MassFun R T (m : {ffun {set T} -> R}) of MassFun_of_Ffun R T 0 +%R m :=
-  { massfun0 : m set0 = 0 ;
-    massfun1 : \sum_(A : {set T}) m A = 1 }.
+  { massfun0 : m set0 == 0 ;
+    massfun1 : \sum_(A : {set T}) m A == 1 }.
 
 #[short(type="addMassfun")]
 HB.structure
 Definition AddMassFun R T := {m of AddMassFun_of_MassFun R T m & MassFun_of_Ffun R T 0 +%R m}.
 
-(* TODO: For compatibility *)
+(* For compatibility *)
 Notation rmassfun := addMassfun.
+
+
+HB.howto eqType.
+HB.about hasDecEq.Build.
+Definition eq_addMassfun R T : rel (addMassfun R T) :=
+  fun m1 m2 => (AddMassFun.sort m1 == AddMassFun.sort m2).
+Lemma addMassfun_eqP R T : Equality.axiom (@eq_addMassfun R T).
+Proof.
+case=>x ; do 3 case ; move=>Hx0 Hx1.
+case=>y ; do 3 case ; move=>Hy0 Hy1.
+apply: (iffP eqP)=>[|->]//= Hxy.
+rewrite Hxy in Hx0 Hx1 *.
+by rewrite (eq_irrelevance Hx0 Hy0) (eq_irrelevance Hx1 Hy1).
+Qed.
+
+HB.instance
+Definition _ R T := hasDecEq.Build (@addMassfun R T) (@addMassfun_eqP R T).
 
 
 Section AddMassFunTheory.
@@ -158,8 +175,8 @@ Section AddMassFunTheory.
   apply/andP ; split ; rewrite ffunE /=.
   - rewrite big1=>//A ; by rewrite disjoint0.
   - under eq_bigl do rewrite disjointT.
-    rewrite -(massfun1 (s:=m)) [E in _==E](bigD1 set0)//=.
-    by rewrite massfun0 add0r.
+    rewrite -(eqP (massfun1 (s:=m))) [E in _==E](bigD1 set0)//=.
+    by rewrite (eqP massfun0) add0r.
   Qed.
 
   Lemma Psup0 : Psup m set0 = 0.
@@ -186,7 +203,7 @@ Section AddMassFunTheory.
     focal m A -> A != set0.
   Proof.
   case (boolP (A == set0)) => [/eqP ->| //].
-  by rewrite /focal massfun0 eqxx.
+  by rewrite /focal (eqP massfun0) eqxx.
   Qed.
 
   Lemma notin_focal B :
@@ -201,9 +218,9 @@ Section AddMassFunTheory.
     (#|focal m| > 0)%N.
   Proof.
   apply /card_gt0P=>/=.
-  have Hm1' : \sum_A m A != 0 by rewrite massfun1 ; exact: oner_neq0.
+  have Hm1' : \sum_A m A != 0 by rewrite (eqP massfun1) ; exact: oner_neq0.
   destruct (big_eq1F Hm1') as [A HA] ; move: HA=>/and3P[_ _ HA0].
-  have HA0F : A != set0 by apply/eqP=>Hcontra ; rewrite Hcontra massfun0 eqxx in HA0.
+  have HA0F : A != set0 by apply/eqP=>Hcontra ; rewrite Hcontra (eqP massfun0) eqxx in HA0.
   by exists A.
   Qed.
 
