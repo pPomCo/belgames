@@ -37,63 +37,6 @@ Section HowsonRosenthal.
 
   Definition HR_action (i_ti : HR_player) : eqType := A (projT1 i_ti).
 
-  (*
-  Section HRclassical.
-
-    Variable G : bgame R A T.
-
-    Variable properG : proper_bgame G.
-
-    Definition HRclassical_localgame : finType := Tn.
-    Definition HRclassical_plays_in : HRclassical_localgame -> pred HR_player
-      := fun lg i_ti => lg (projT1 i_ti) == projT2 i_ti.
-
-
-    Notation HRclassical_localagent := (fun lg => {i_ti | HRclassical_plays_in lg i_ti}).
-    Notation HRclassical_localprof := (fun lg => local_cprofile HR_action (HRclassical_plays_in lg)).
-
-
-    Definition HRclassical_plays_in_given_lg (lg : HRclassical_localgame) j : HRclassical_plays_in lg (existT _ j (lg j))
-      := eqxx (projT2 (existT (fun i : I => T i) j (lg j))).
-
-    Definition HRclassical_mkprofile (lg : HRclassical_localgame) (p : HRclassical_localprof lg) : cprofile A
-      := proj_flatlocalprofile (fun i => exist _ (lg i) (HRclassical_plays_in_given_lg lg i)) p.
-
-    Lemma HRclassical_mkprofileE (lg : HRclassical_localgame) (p : iprofile _ _) :
-      HRclassical_mkprofile (lg:=lg) [ffun x : {x : HR_player | HRclassical_plays_in lg x} =>
-                       (iprofile_flatten p )(val x)]
-      = (proj_iprofile p lg).
-    Proof.
-    apply eq_dffun => i /= ; by rewrite !ffunE /=.
-    Qed.
-
-    Definition HRclassical_localutility : forall lg : HRclassical_localgame, HRclassical_localprof lg -> HRclassical_localagent lg -> R
-      := fun lg p x =>
-         let (i_ti, _) := x in
-         let (i, ti) := i_ti in
-         dist (Pr_conditioning (is_Pr_revisable properG ti)) lg * G.2 (HRclassical_mkprofile p) lg i.
-
-    Definition HRclassical_transform : cgame R HR_action := hg_game HRclassical_localutility.
-
-    Theorem HRclassical_transform_correct (Hproper : proper_bgame G) :
-      forall i (ti : T i) p,
-      bgame_utility Hproper p ti = HRclassical_transform [ffun j_tj => p (projT1 j_tj) (projT2 j_tj)] (existT _ i ti).
-    Proof.
-    move => i ti p.
-    set i_ti := existT _ i ti.
-    rewrite /bgame_utility /HRclassical_transform/= hg_gameE [RHS]big_mkcond /=.
-    apply eq_bigr => lg _.
-    case (boolP (HRclassical_plays_in lg i_ti)) => H.
-    - by rewrite ffunE HRclassical_mkprofileE.
-    - rewrite /HRclassical_plays_in in H.
-      rewrite /Pr_conditioning proba_of_distE /Pr_conditioning_dist.
-      have H2 : lg \notin event_ti ti. by rewrite inE.
-      by rewrite (negbTE H2) !mul0r.
-    Qed.
-
-  End HRclassical.
-
-   *)
 
   Theorem HR_eqNash_prop (G : igame R A T) (G' : cgame R HR_action) (cond : conditioning R Tn) fXEU (proper_G : proper_igame G cond) :
     (forall p i ti, igame_utility fXEU proper_G p ti = G' (iprofile_flatten p) (existT _ i ti))
@@ -495,12 +438,13 @@ Section HRTBMWeakConditioningLocalGames.
   Notation m_example := [ffun X : {set Tn} => if X == setT then 1 else 0:R].
 
   Lemma HRTBM_Weak_example_massfun0 :
-    m_example set0 = 0.
-  Proof. by rewrite ffunE/= eq_sym (negbTE (setT0F [ffun t => ord0])). Qed.
+    m_example set0 == 0.
+  Proof. apply/eqP ; by rewrite ffunE/= eq_sym (negbTE (setT0F [ffun t => ord0])). Qed.
 
   Lemma HRTBM_Weak_example_massfun1 :
-    \sum_(A : {set Tn}) m_example A = 1.
+    \sum_(A : {set Tn}) m_example A == 1.
   Proof.
+  apply/eqP.
   rewrite (bigD1 setT)//= big1=>[|A HA].
   - by rewrite addr0 ffunE eqxx.
   - by rewrite ffunE (negbTE HA).
@@ -512,16 +456,17 @@ Section HRTBMWeakConditioningLocalGames.
   HB.instance Definition _ :=
     AddMassFun_of_MassFun.Build R Tn m_example HRTBM_Weak_example_massfun0 HRTBM_Weak_example_massfun1.
   
-  Lemma HRTBM_Weak_example_ge0 A :
-    m_example A >= 0.
+  Lemma HRTBM_Weak_example_ge0b :
+    [forall A : {set Tn}, m_example A >= 0].
   Proof.
+  apply/forallP=>/=A.
   rewrite ffunE/=.
   case (boolP (A == setT))=>[->//|H].
   by rewrite (negbTE H).
   Qed.
 
   HB.instance Definition _ :=
-    Bpa_of_AddMassFun.Build R Tn m_example HRTBM_Weak_example_ge0.
+    Bpa_of_AddMassFun.Build R Tn m_example HRTBM_Weak_example_ge0b.
 
   Notation m := (m_example : rmassfun R Tn).
 

@@ -53,6 +53,7 @@ Section Pick.
   (** Pick an element in a non-empty set **)
   Section PickNonEmptySet.
     
+    (* Proposed in contrib-finset as pick_set1 *)
     Lemma pick_set1E t :
       [pick x in [set t]] = Some t.
     Proof.
@@ -210,6 +211,7 @@ Section SetLemmas.
   Proof. by apply/eqP/setP=>Hcontra ; have := Hcontra t ; rewrite in_set1 in_set0 eqxx. Qed.
 
   (** Empty domain T **)
+  (* Proposed in contrib-finset *)
   Lemma setT0 :
     [forall A : {set T}, A == set0] = ([set: T] == set0).
   Proof.
@@ -222,6 +224,7 @@ Section SetLemmas.
   - by apply/negP/negP/forallPn ;  exists setT.
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma setT0F : T -> [set: T] != set0.
   Proof.
   move=>t.
@@ -234,24 +237,15 @@ Section SetLemmas.
   
   
   (** Set of subsets is never empty **)
+  (* Proposed in contrib-finset *)
   Lemma subsets_card_gt0 :
     #|{set T}| > 0.
   Proof.
   apply/card_gt0P.
   by exists set0.
   Qed.
-  
-  (** Equality of complements **)
-  Lemma eq_setC  A B :
-    (~: A == ~: B) = (A == B).
-  Proof.
-  have H C D : C = D -> ~:C = ~:D by move=>->.
-  case (boolP (A == B)) => [/eqP ->|] /= ; first by rewrite eqxx.
-  case (boolP (~: A == ~: B)) => // /eqP Hcontra.
-  have := H _ _ Hcontra.
-  by rewrite !setCK => -> ; rewrite eqxx.
-  Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma setU1_eq A t :
     t \in A -> t |: A = A.
   Proof.
@@ -259,12 +253,14 @@ Section SetLemmas.
   Qed.
 
   (** set0 has no proper subsets **)
+  (* Proposed in contrib-finset *)
   Lemma proper0E A :
     A \proper set0 = false.
   Proof. by rewrite properE sub0set andbF. Qed.
 
   (** Alterative definition of "proper" **)
-  Lemma properEbis A B :
+  (* TODO: it is a copy of properEneq! *)
+  Lemma deprecated_properEbis A B :
     A \proper B = (A \subset B) && (A != B).
   Proof.
   rewrite properE.
@@ -272,19 +268,19 @@ Section SetLemmas.
   Qed.
 
   (** The only proper subset of [set t] is set0 **)
+  (* Proposed in contrib-finset as proper1 *)
   Lemma proper1E t A :
     (A \proper [set t]) = (A == set0).
   Proof.
-  rewrite properEbis.
-  rewrite subset1.
+  rewrite properEneq subset1.
   case (boolP (A == set0)) => H ; last by case (A == [set t]).
-  rewrite orbT andTb (eqP H) eq_sym.
+  rewrite orbT andbT (eqP H) eq_sym.
   apply/eqP/eqP/set0Pn.
-  exists t.
-  by rewrite in_set1.
+  by exists t; rewrite in_set1.
   Qed.
   
   (** The only subset of A and ~:A is set0 **)
+  (* Proposed in contrib-finset *)
   Lemma subset_set0 A B :
     (A \subset B) && (A \subset ~:B) = (A == set0).
   Proof.
@@ -300,6 +296,7 @@ Section SetLemmas.
   Qed.
 
   (** If A is a subset of B and ~:B, then any t\in A implies False (corrolary of subset_set0) **)
+  (* Proposed in contrib-finset *)
   Lemma subsetF A B :
     A \subset B -> A \subset ~:B -> forall t, t \in A -> Logic.False.
   Proof.
@@ -309,6 +306,7 @@ Section SetLemmas.
   Qed.
 
   (** For any disjoint sets A and B, no set except set0 is a subset of both A and B **)
+  (* Proposed in contrib-finset *)
   Lemma subset0F_disjoint A B :
     [disjoint A & B] ->
     forall C, C != set0 -> C \subset A -> ~~ (C \subset B).
@@ -320,6 +318,7 @@ Section SetLemmas.
   by rewrite (disjointFr HAB (H x Hx)).
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma subset_neq A B C :
     B \subset A -> ~~ (C \subset A) -> B != C.
   Proof.
@@ -332,13 +331,17 @@ Section SetLemmas.
   Qed.
 
   (** A and B :\: A are disjoint **)
+  (* Proposed in contrib-finset *)
   Lemma disjointDl A B :
     [disjoint A & B :\: A].
   Proof. by rewrite -setI_eq0 setIDA setD_eq0 subsetIl. Qed.
+
+  (* Proposed in contrib-finset *)
   Lemma disjointDr A B :
     [disjoint B :\: A & A].
   Proof. by rewrite -setI_eq0 setIDAC setD_eq0 subsetIr. Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma setUD A B :
     A :|: B :\: A = A :|: B.
   Proof.
@@ -346,6 +349,7 @@ Section SetLemmas.
   by case (t \in A) ; case (t \in B).
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma setDU A B :
     (A :|: B) :\: A = B :\: A.
   Proof.
@@ -353,6 +357,7 @@ Section SetLemmas.
   by case (t \in A) ; case (t \in B).
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma setUDD A B :
     (A :|: B) :\: (B :\: A) = A.
   Proof.
@@ -362,6 +367,7 @@ Section SetLemmas.
   Qed.
 
   (** A \cap B \subseteq A \cup B **)
+  (* Proposed in contrib-finset *)
   Lemma subsetIU A B : A :&: B \subset A :|: B.
   Proof.
   apply/subsetP=>t.
@@ -369,6 +375,7 @@ Section SetLemmas.
   Qed.
 
   (** set0 has no elements **)
+  (* Proposed in contrib-finset *)
   Lemma set0_exists A :
     (A == set0) = (~~ [exists t, t \in A]).
   Proof.
@@ -377,6 +384,7 @@ Section SetLemmas.
   Qed.
 
   (** set0 has no elements **)
+  (* Proposed in contrib-finset *)
   Lemma set0_forall A :
     (A == set0) = [forall t, t \notin A].
   Proof.
@@ -385,14 +393,17 @@ Section SetLemmas.
   Qed.
 
   (** set0 and X are always disjoint **)
+  (* Proposed in contrib-finset as disjoints0 *)
   Lemma disjoint0 A :
     [disjoint A & set0].
   Proof. by rewrite -setI_eq0 setI0 eqxx. Qed.
+
   Lemma dis0joint A :
     [disjoint set0 & A].
   Proof. by rewrite disjoint_sym ; exact: disjoint0. Qed.
 
   (** setT is only disjoint of set0 **)
+  (* Proposed in contrib-finset as disjointsT *)
   Lemma disjointT A :
     [disjoint A & setT] = (A == set0).
   Proof.
@@ -405,6 +416,8 @@ Section SetLemmas.
   Proof. by rewrite disjoint_sym ; exact: disjointT. Qed.
 
 End SetLemmas.
+#[deprecated(since="belgames2", note="Use mathcomp's properEneq instead.")]
+Notation properEbis := deprecated_properEbis.
 
 
 
@@ -468,11 +481,13 @@ End Set1_inverse.
 (** Bigop lemmas *)
 Section Bigops.
 
+  (* Proposed in contrib-bigop *)
   Lemma big_condT R (idx : R) (op : R -> R -> R) (I : finType) (C : {set I}) (F : I -> R) :
     \big[op/idx]_(i in C | true) F i = \big[op/idx]_(i in C) F i.
   Proof. by apply: eq_bigl=>i ; by rewrite andbT. Qed.
 
   (* generalized (op is not a monoid) *)
+  (* Proposed in contrib-bigop *)
   Lemma big_set0 R (idx : R) (op : R -> R -> R) (I : finType) (F : I -> R) :
     \big[op/idx]_(i in set0) F i = idx.
   Proof.
@@ -481,10 +496,12 @@ Section Bigops.
   by rewrite in_set0.
   Qed.
   
+  (* Proposed in contrib-bigop *)
   Lemma big_setT R (idx : R) (op : R -> R -> R) (I : finType) (F : I -> R) :
     \big[op/idx]_(i in [set: I]) F i = \big[op/idx]_i F i.
   Proof. by under eq_bigl do rewrite in_setT. Qed.
 
+  (* Proposed in contrib-bigop *)
   Lemma bigUI R (idx : R) (op : Monoid.com_law idx) (I : finType) (A B : pred I) (F : I -> R) : 
     op (\big[op/idx]_(i in [predU A & B]) F i)
        (\big[op/idx]_(i in [predI A & B]) F i)
@@ -500,6 +517,7 @@ Section Bigops.
   congr (op _ _) ; congr (op _ _) ; apply: eq_bigl=>i ; rewrite !inE ; by case (i \in A); case (i \in B).
   Qed.
 
+  (* Proposed in contrib-bigop *)
   Lemma big_setUI R (idx : R) (op : Monoid.com_law idx) (I : finType) (A B : {set I}) (F : I -> R) : 
     op (\big[op/idx]_(i in A :|: B) F i)
        (\big[op/idx]_(i in A :&: B) F i)
@@ -515,11 +533,11 @@ Section Bigops.
   congr (op _ _) ; congr (op _ _) ; apply: eq_bigl=>i ; rewrite !inE ; by case (i \in A); case (i \in B).
   Qed.
 
-  Lemma big_card1_dep  R (idx : R) (op : Monoid.com_law idx) (I : finType) (P : pred {set I}) (F : {set I} -> R) :
-    \big[op/idx]_(A : {set I} | (P A) && (#|A| == 1)%N) F A = \big[op/idx]_(i : I | P [set i]) F [set i].
+  Lemma big_card1_dep R (op : SemiGroup.com_law R) (x : R) (I : finType) (P : pred {set I}) (F : {set I} -> R) :
+    \big[op/x]_(A : {set I} | (P A) && (#|A| == 1)%N) F A = \big[op/x]_(i : I | P [set i]) F [set i].
   Proof.
   rewrite (reindex_omap set1 set1_oinv) => [|A /andP [HP H1]].
-  - apply: eq_bigl => x.
+  - apply: eq_bigl => a.
     by rewrite set1_oinv_pcancel cards1 !eqxx !andbT.
   - rewrite /omap /obind /oapp /set1_oinv.
     case (boolP (0 < #|A|)%N) => [Hcard|] ; last by rewrite (eqP H1).
@@ -530,22 +548,23 @@ Section Bigops.
     by rewrite Ht' (eqP Ht).
   Qed.
 
-  Lemma big_card1  R (idx : R) (op : Monoid.com_law idx) (I : finType) (F : {set I} -> R) :
-    \big[op/idx]_(A : {set I} | #|A| == 1%N) F A = \big[op/idx]_(i : I) F [set i].
+  Lemma big_card1 R (op : SemiGroup.com_law R) (x : R) (I : finType) (F : {set I} -> R) :
+    \big[op/x]_(A : {set I} | #|A| == 1%N) F A = \big[op/x]_(i : I) F [set i].
   Proof.
-  rewrite -(big_card1_dep _ predT) ; by apply: eq_bigl.
+  rewrite -(big_card1_dep _ _ predT) ; by apply: eq_bigl.
   Qed.
 
-  Lemma big_subset R (idx : R) (op : Monoid.com_law idx) (I : finType) (F : {set I} -> R) (A : {set I}) :
-    \big[op/idx]_(B : {set I} | B \subset A) F B = op (F A) (\big[op/idx]_(B : {set I} | B \proper A) F B).
+  (* Proposed in contrib-bigop *)
+  Lemma big_subset R (op : SemiGroup.com_law R) (x : R) (I : finType) (F : {set I} -> R) (A : {set I}) :
+    \big[op/x]_(B : {set I} | B \subset A) F B = op (F A) (\big[op/x]_(B : {set I} | B \proper A) F B).
   Proof.
   rewrite (bigD1 A)//.
   congr (op _ _).
   apply: eq_bigl=>B.
-  symmetry.
-  exact: properEbis.
+  by rewrite andbC properEneq.
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma big_subsetI R (idx : R) (op : Monoid.com_law idx) (I : finType) (F : {set I} -> R) (A B : {set I}) :
     op (\big[op/idx]_(C : {set I} | (C \subset A) && ~~(C \subset B)) F C)
     (\big[op/idx]_(C : {set I} | C \subset A :&: B) F C)
@@ -557,6 +576,7 @@ Section Bigops.
   exact: subsetI.
   Qed.
 
+  (* Proposed in contrib-finset *)
   Lemma big_eq1F (R0 : eqType) (idx : R0) (op : Monoid.law idx) (I : finType) (r : seq I) (P : pred I) (F : I -> R0) :
     \big[op/idx]_(i <- r | P i) F i != idx -> exists i, [&& i \in r, P i & F i != idx].
   Proof.
@@ -620,6 +640,7 @@ Section Bigops.
   
 
   (** Similar to partition_big + big_distrl **)
+  (* Proposed in contrib-finset as partition_big_distrl *)
   Lemma big_setI_distrl {R} {zero : R} {times : Monoid.mul_law zero} {plus : Monoid.add_law zero times} (P : pred {set T}) (h : {set T} -> {set T}) (f g : {set T} -> R) :
     \big[plus/zero]_(A : {set T} | P (h A)) times (g A) (f (h A))
     = \big[plus/zero]_(B : {set T} | P B) times (\big[plus/zero]_(A : {set T} | h A == B) g A) (f B).

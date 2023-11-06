@@ -27,7 +27,7 @@ Import GRing GRing.Theory.
 Import Order Order.TotalTheory Order.POrderTheory.
 
 (* Local libraries *)
-From BelGames Require Import minmax fintype finset ssrnum setfun.
+From BelGames Require Import order minmax fintype finset ssrnum setfun.
 From BelGames Require Import massfun capacity.
 
 
@@ -86,19 +86,6 @@ Section DRule.
     fun v m chi =>
       \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (fun t => v (chi t)) B).
 
-  (*
-  Lemma XEU_eq dW (W : porderType dW) (zi : zinst W) (X : finType) T :
-    forall v m chi,
-      XEU zi v m (chi : T -> X)
-      = \big[z_oplus zi/z_idu zi]_(B : {set T}) z_otimes zi (m B) (z_f_agg zi (v) [set chi t | t in B]).
-  Proof.
-  move=>v m chi.
-  apply: eq_bigr=>/=A _.
-  congr (z_otimes _ _).
-  by rewrite z_f_agg_ax.
-  Qed.
-   *)
-
 End DRule.
 
   
@@ -132,15 +119,7 @@ Section NumDRules.
     Definition Choquet : drule R R (capacity R) :=
       fun X T v w chi =>
         \sum_(A : {set T}) moebius w A * minSb 0 (fun t => v (chi t)) A.
-    Definition Choquet2 : drule2 R R R :=
-      fun X T v w chi =>
-        \sum_(A : {set T}) moebius w A * minSb 0 (fun t => v (chi t)) A.
-    (*
-        \sum_(A : {set T}) moebius w A * match minSb (fun t => v (chi t)) A with
-                                         | Some x => x | None => 0
-                                         end.
-     *)
-
+  
     (** Jaffray *)
     Definition Jaffray (alpha : R -> R -> R)  : drule R R (capacity R) :=
       fun X T v w chi =>
@@ -488,13 +467,13 @@ Section NumDRules.
     Proof.
     rewrite/TBEU/ExpectedUtility/EU/BetPr/=.
     under eq_bigr do rewrite !ffunE big_set1 ffunE.
-                     have Hl B : moebius w B * (\sum_(t in B) v (chi t) / #|B|%:R) = (\sum_(t in B) moebius w B * v (chi t) / #|B|%:R)
-                       by rewrite big_distrr /= ; under eq_bigr do rewrite mulrA.
-                                                                   have Hr t : (\sum_(B : {set T} | t \in B) moebius w B / #|B|%:R) * v (chi t) = (\sum_(B : {set T} | t \in B) moebius w B * v (chi t) / #|B|%:R)
-                                                                     by rewrite big_distrl /= ; under eq_bigr do rewrite mulrC mulrA (mulrC (v _)).
-                                                                                                                 under [RHS]eq_bigr do rewrite Hl.
-                                                                                                                                       under [LHS]eq_bigr do rewrite mulrC Hr.
-                                                                                                                                                             by symmetry ; exact: big_partitionS.
+    have Hl B : moebius w B * (\sum_(t in B) v (chi t) / #|B|%:R) = (\sum_(t in B) moebius w B * v (chi t) / #|B|%:R)
+      by rewrite big_distrr /= ; under eq_bigr do rewrite mulrA.
+    have Hr t : (\sum_(B : {set T} | t \in B) moebius w B / #|B|%:R) * v (chi t) = (\sum_(B : {set T} | t \in B) moebius w B * v (chi t) / #|B|%:R)
+      by rewrite big_distrl /= ; under eq_bigr do rewrite mulrC mulrA (mulrC (v _)).
+    under [RHS]eq_bigr do rewrite Hl.
+    under [LHS]eq_bigr do rewrite mulrC Hr.
+    by symmetry ; exact: big_partitionS.
     Qed.
 
     
@@ -570,22 +549,6 @@ Section NumDRules.
     rewrite -TBEU_Laplace.
     exact: zTBM_TBEU'.
     Qed.
-
-    (*
-    Lemma zUopt_Uopt v (w : possibility R T) m chi :
-      is_massfun (z_idw zUpes) (z_op_mfun zUopt) w m
-      -> Uopt v w chi = XEU zUopt v m chi.
-    Proof.
-    move=>Hm.
-    rewrite/Uopt/XEU/=.
-
-    Lemma zUpes_Wald v (w : categorical_capacity R T) m chi :
-      is_massfun (z_idw zUpes) (z_op_mfun zUpes) w m
-      -> Wald v w chi = XEU zUpes v m chi.
-    Proof.
-    move=>Hm.
-    rewrite/Wald/XEU/=.
-     *)
     
   End ZInstance_Correct.
   

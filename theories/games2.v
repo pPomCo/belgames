@@ -23,9 +23,9 @@ Unset Printing Implicit Defensive.
 Import GRing GRing.Theory.
 Import Num.Theory.
 
+From BelGames Require Import drule.
 
-From BelGames Require Import fintype finset ssrnum.
-From BelGames Require Import setfun massfun capacity drule.
+
 
 Local Open Scope order_scope.
 

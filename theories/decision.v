@@ -41,11 +41,9 @@ Section Capacity.
           - C should verify some predicate 'revisable'
           - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0 for belief function)
        **)
-      (*
-      Definition conditioning_axiom (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
-        := forall m C (HC : revisable m C), Pinf (cond m C HC) (~:C) = 0.
-       *)
-      Definition conditioning_axiom (revisable : rmassfun R T -> pred {set T}) (cond : forall m C, revisable m C -> rmassfun R T)
+      
+      Definition conditioning_axiom (revisable : rmassfun R T -> pred {set T})
+      (cond : forall m C, revisable m C -> rmassfun R T)
         := forall m C (HC : revisable m C) (A : {set T}), A \subset ~:C -> cond m C HC A = 0.
 
       Structure conditioning
@@ -84,19 +82,18 @@ Section Capacity.
 
       Definition Dempster_cond_revisable m C := Psup m C != 0.
 
-      Definition Dempster_cond_fun (m : rmassfun R T) (C : {set T}) (HC : Dempster_cond_revisable m C) :=
+      Definition Dempster_cond (m : rmassfun R T) (C : {set T}) (HC : Dempster_cond_revisable m C) :=
        [ffun A : {set T} => if A == set0 then 0
                            else \sum_(B : {set T} | (B :&: C == A)) m B / Psup m C].
 
 
       Lemma Dempster_cond_massfun0 m C (HC : Dempster_cond_revisable m C) :
-        Dempster_cond_fun HC set0 = 0.
+        Dempster_cond HC set0 == 0.
       Proof. by rewrite ffunE eqxx. Qed.
 
       Lemma Dempster_cond_massfun1 m C (HC : Dempster_cond_revisable m C) :
-        \sum_(A : {set T}) Dempster_cond_fun HC A = 1.
+        \sum_(A : {set T}) Dempster_cond HC A == 1.
       Proof.
-      apply/eqP.
       under eq_bigr do rewrite ffunE -if_neg.
       rewrite -big_mkcond /=.
       under eq_bigr do rewrite sum_div.
@@ -109,18 +106,16 @@ Section Capacity.
 
       HB.instance
       Definition _ m C (HC : Dempster_cond_revisable m C) :=
-        MassFun_of_Ffun.Build R T 0 +%R (Dempster_cond_fun HC).
+        MassFun_of_Ffun.Build R T 0 +%R (Dempster_cond HC).
 
       HB.instance
       Definition _ m C (HC : Dempster_cond_revisable m C) :=
-        AddMassFun_of_MassFun.Build R T (Dempster_cond_fun HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
+        AddMassFun_of_MassFun.Build R T (Dempster_cond HC) (Dempster_cond_massfun0 HC) (Dempster_cond_massfun1 HC).
 
-      Definition Dempster_cond m C (HC : Dempster_cond_revisable m C) : rmassfun R T :=
-        Dempster_cond_fun HC.
-
-      Lemma Dempster_cond_ge0 (m : bpa R T) C (HC : Dempster_cond_revisable m C) A :
-        Dempster_cond HC A >= 0.
-      Proof.
+      Lemma Dempster_cond_ge0b (m : bpa R T) C (HC : Dempster_cond_revisable m C) :
+        [forall A : {set T}, Dempster_cond HC A >= 0].
+        Proof.
+      apply/forallP=>/=A.
       rewrite ffunE/=.
       case: ifP => _//.
       apply: sumr_ge0 => B HB.
@@ -130,12 +125,42 @@ Section Capacity.
 
       HB.instance
       Definition _ (m : bpa R T) C (HC : Dempster_cond_revisable m C) :=
-        Bpa_of_AddMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0 HC).
+        Bpa_of_AddMassFun.Build R T (Dempster_cond HC) (Dempster_cond_ge0b HC).
 
-      (*
-      Definition Dempster_cond_bpa (m : bpa) (C : {set W}) (HC : Dempster_cond_revisable m C) : bpa
-        := {| bpa_ax := Dempster_cond_bpa_ax HC |}.
-       *)
+      Lemma Dempster_cond_card1 (m : prBpa R T) C (HC : Dempster_cond_revisable m C) A :
+        Dempster_cond HC A != 0 -> #|A| == 1%N.
+      Proof.
+      rewrite ffunE.
+      apply/implyP.
+      rewrite -implybNN.
+      apply/implyP=>Hcard.
+      apply/negPn.
+      case (boolP (A == set0)) ; rewrite ?eqxx=>// HA0.
+      have HcardA_gt1 : (#|A| > 1)%N
+        by rewrite ltn_neqAle eq_sym Hcard andTb card_gt0 HA0.
+      apply/eqP.
+      rewrite sum_ge0_eq0E=>/=B /eqP HB.
+      - have HcardB_gt1 : (#|B| > 1)%N
+          by apply: (@Order.POrderTheory.lt_le_trans _ nat _ _ _ HcardA_gt1) ;
+          apply: subset_leq_card ; rewrite -HB ; exact: subsetIl.
+        have HmB : m B == 0
+          by apply/negP=>/negP Hcontra ; move: HcardB_gt1 ;
+          rewrite ltn_neqAle eq_sym (prbpa_card1 Hcontra) andFb.
+        by rewrite (eqP HmB) mul0r.
+      - apply: mulr_ge0 ; first exact: bpa_ge0.
+        rewrite invr_ge0.
+        exact: Psup_ge0.
+      Qed.
+
+      Lemma Dempster_cond_card1b (m : prBpa R T) C (HC : Dempster_cond_revisable m C) :
+        [forall A : {set T}, (Dempster_cond HC A != 0) ==> (#|A| == 1%N)].
+      Proof. apply/forallP=>/=A ; apply/implyP ; exact: Dempster_cond_card1. Qed.
+
+      HB.instance
+      Definition _ (m : prBpa R T) C (HC : Dempster_cond_revisable m C) :=
+        PrBpa_of_Bpa.Build R T (Dempster_cond HC) (Dempster_cond_card1b HC).
+
+      
       
       Lemma Dempster_cond_sumE m C (HC : Dempster_cond_revisable m C) f :
         \sum_(B in focal (Dempster_cond HC))
@@ -149,7 +174,7 @@ Section Capacity.
       rewrite -[in RHS]big_mkcondr sum_fun_focal_cond.
       Opaque Dempster_cond.
       rewrite (big_setI_distrl (fun b => b != set0)) sum_fun_focal (bigD1 set0) //=.
-      rewrite massfun0 mul0r add0r.
+      rewrite (eqP massfun0) mul0r add0r.
       under [in RHS]eq_bigr do rewrite mulrC.
       rewrite big_distrl /=.
       under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
@@ -196,16 +221,17 @@ Section Capacity.
 
 
       Lemma FH_cond_massfun0 (m : rmassfun R T) (C : {set T}) (HC : FH_cond_revisable m C) :
-        FH_cond_fun HC set0 = 0.
+        FH_cond_fun HC set0 == 0.
       Proof. by rewrite ffunE moebius0 ffunE set0I (pointed0 (Pinf01 m)) mul0r. Qed.
       
       Lemma FH_cond_massfun1 (m : rmassfun R T) (C : {set T}) (HC : FH_cond_revisable m C) :
-        \sum_(A : {set T}) FH_cond_fun HC A = 1.
+        \sum_(A : {set T}) FH_cond_fun HC A == 1.
       Proof.
-      - under eq_bigr do rewrite ffunE.
-        have :=  moebiusE (FH_Pinf m C) setT.
-        rewrite FH_PinfT=>//->.
-        by apply: eq_big=>/=[B|//] ; rewrite subsetT.
+      apply/eqP.
+      under eq_bigr do rewrite ffunE.
+      have :=  moebiusE (FH_Pinf m C) setT.
+      rewrite FH_PinfT=>//->.
+      by apply: eq_big=>/=[B|//] ; rewrite subsetT.
       Qed.
 
       HB.instance
@@ -255,19 +281,18 @@ Section Capacity.
                             then m A / Pinf m C else 0].
 
       Lemma Strong_cond_massfun0 m C (HC : Strong_cond_revisable m C) :
-        Strong_cond_fun HC set0 = 0.
+        Strong_cond_fun HC set0 == 0.
       Proof. by rewrite ffunE eqxx. Qed.
 
       Lemma Strong_cond_massfun1 m C (HC : Strong_cond_revisable m C) :
-        \sum_(A : {set T}) Strong_cond_fun HC A = 1.
+        \sum_(A : {set T}) Strong_cond_fun HC A == 1.
       Proof.
-      apply/eqP.
       under eq_bigr do rewrite ffunE.
       rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
       rewrite ffunE/=.
       apply/eqP.
       rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
-      by rewrite massfun0 add0r ; under eq_bigl do rewrite andbC.
+      by rewrite (eqP massfun0) add0r ; under eq_bigl do rewrite andbC.
       Qed.
 
       HB.instance
@@ -305,13 +330,12 @@ Section Capacity.
         [ffun A : {set T} => if A :&: C != set0 then m A / Psup m C else 0].
 
       Lemma Weak_cond_massfun0 m C (HC : Weak_cond_revisable m C) :
-        Weak_cond_fun HC set0 = 0.
+        Weak_cond_fun HC set0 == 0.
       Proof. by rewrite ffunE set0I eqxx. Qed.
 
       Lemma Weak_cond_massfun1 m C (HC : Weak_cond_revisable m C) :
-        \sum_(A : {set T}) Weak_cond_fun HC A = 1.
+        \sum_(A : {set T}) Weak_cond_fun HC A == 1.
       Proof.
-      apply/eqP.
       under eq_bigr do rewrite ffunE.
       rewrite -big_mkcond sum_div_eq1 //.
       rewrite ffunE.
@@ -351,43 +375,20 @@ Section Capacity.
 
 
 
-    (*
     Section ProbaConditioning.
 
       Notation Pr := Pinf.
 
-      Definition Pr_revisable (p : prBpa R T) (C : {set T})
-        := Pr p C != 0.
+      Definition Pr_conditioning := Dempster_conditioning.
 
-      Definition Pr_conditioning_dist (p : prBpa R T) C (HC : Pr_revisable p C) :=
-        fun w => (if w \in C then dist p w else 0) / Pr p C.
-
-      HB.about PrBpa_of_Bpa.Build.
-
-      Lemma Pr_conditinoing_dist_is_dist p C (HC : Pr_revisable p C) :
-        is_dist (Pr_conditioning_dist HC).
+      Lemma Pr_revisableE (p : prBpa R T) (C : {set T}) :
+        revisable Pr_conditioning p C == (Pr p C != 0).
       Proof.
-      apply/andP ; split.
-      - by rewrite sum_div_eq1 // -big_mkcond.
-      - apply/forallP => w.
-        rewrite /Pr_conditioning_dist/Pr/dist.
-        destruct p as [m Hm] => /=.
-        have /forallP Hm3 := bpa_ax m.
-        case (w \in C).
-        + apply: divr_ge0 => //=.
-          by apply: sumr_ge0 => w' _.
-        + by rewrite mul0r le0r eqxx orTb.
+      rewrite /Pr_conditioning/Dempster_conditioning/=/Dempster_cond_revisable.
+      by rewrite -PrPinf -PrPsup.
       Qed.
 
-      Definition Pr_conditioning (p : proba) C (HC : Pr_revisable p C) : proba
-        := proba_of_dist (Pr_conditinoing_dist_is_dist HC).
-
-      Lemma Pr_revisable_of_Dempster_revisable (p : proba) C (HC : Dempster_cond_revisable p C) :
-        Pr_revisable p C.
-      Proof. by rewrite /Pr_revisable Pr_PsupE. Qed.
-
     End ProbaConditioning.
-     *)
   End Conditioning.
 
 
@@ -488,31 +489,6 @@ Section Capacity.
     Definition BetP_fun (m : rmassfun R T) : T -> R
       := (fun t => \sum_(A in focal m | t \in A) m A / #|A|%:R).
 
-    (*
-    Lemma is_dist_BetP (m : bpa) :
-      is_dist (BetP_fun m).
-    Proof.
-    have [Hm1 Hm2] := andP (rmassfun R T_ax m).
-    have Hm3 := bpa_ax m.
-    rewrite /BetP_fun ; apply/andP ; split.
-    - rewrite sum_of_sumE.
-      under eq_bigr do rewrite -big_distrr /=.
-      rewrite (eq_bigr m) => [|A HA] ; first by rewrite sum_mass_focalset.
-      rewrite sum_cardiv ; first by rewrite mulr1.
-      rewrite in_focalset_focalelement in HA.
-      have := focal_neq_set0 HA.
-      by rewrite -card_gt0.
-    - apply/forallP => w.
-      apply: sum_ge0 => A _.
-      apply divr_ge0.
-      + exact: (forallP Hm3).
-      + exact: ler0n.
-    Qed.
-
-    Definition BetP (m : bpa) : proba
-      := proba_of_dist (is_dist_BetP m).
-     *)
-
 
     Lemma TBEU_EUBetP (m : rmassfun R T) u :
       [TBEU of u wrt m] = \sum_t BetP_fun m t * u t.
@@ -530,17 +506,12 @@ Section Capacity.
     exact: big_partitionS.
     Qed.
 
-  (*
-    Lemma TBEU_EUBetP_bpa (m : bpa R T) u :
-      [TBEU of u wrt m] = [EU of u wrt BetP m].
-    Proof.
-    under [RHS]eq_bigr do rewrite proba_of_distE.
-    exact: TBEU_EUBetP.
-    Qed.
-
-     *)
   End TBM.
 End Capacity.
+
+
+
+From BelGames Require Import fprod.
 
 Section BelOnFFuns.
 
@@ -548,7 +519,7 @@ Section BelOnFFuns.
   Variable X : finType.
   Variable T : X -> finType.
 
-  Notation Tn := [finType of {dffun forall i : X, T i}].
+  Notation Tn := {dffun forall i : X, T i}.
 
   (* NOTE :: conditioning event "given t i == ti" *)
   Definition event_ti i (ti : T i) := [set t : Tn | t i == ti].
@@ -566,19 +537,22 @@ Section BelOnFFuns.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
 
-  (*
-  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
+
+  
+  Definition ffun_of_proba (p : forall i : X, prBpa R (T i)) :
     (forall i : X, {ffun {set T i} -> R}).
   Proof. move=> i; apply p. Defined.
 
-   Lemma proba_set1 (p : forall i : X, proba R (T i)) :
+   Lemma proba_set1 (p : forall i : X, prBpa R (T i)) :
     forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
   Proof.
     move=> i.
     have x0 : T i.
     { have P_i := p i.
       have [b _] := P_i.
-      apply: massfun_nonemptyW b. }
+      have := massfun_nonempty (p i).
+      rewrite -cardsT card_gt0=>HT0F.
+      exact: (pick_nonemptyset HT0F). }
     set h' : {set (T i)} -> T i :=
       fun s =>
         match [pick x | x \in s] with
@@ -586,9 +560,9 @@ Section BelOnFFuns.
         | None => x0
         end.
     rewrite
-      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N));
-      last by move=> s Hs; exact: proba_set1_eq0.
-    rewrite (reindex_onto (I := {set (T i)}) (J := T i)
+      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N)) ;
+         last by move=> s Hs; exact: prbpa_card1F.
+      rewrite (reindex_onto (I := {set (T i)}) (J := T i)
                           (fun j => [set j]) h'
                           (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
     { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
@@ -596,47 +570,51 @@ Section BelOnFFuns.
     exact: eq_bigr.
   Qed.
 
-  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tn -> R}
+  Definition mk_prod_prdist (p : forall i : X, prBpa R (T i)) : {ffun Tn -> R}
     := [ffun t : Tn => \prod_i dist (p i) (t i)].
 
-  Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
+
+  Lemma mk_prod_prdist_ge0 (p : forall i : X, prBpa R (T i)) tn : 
+    mk_prod_prdist p tn >= 0.
   Proof.
-  apply/andP ; split.
-  - under eq_bigr do rewrite /mk_prod_proba ffunE.
-    set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
-    have L := (@big_fprod R X (fun i => T i) pp).
-    do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
-    do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
-    erewrite (reindex).
-    2: exists (@fprod_of_dffun X _).
-    2: move=> *; apply: dffun_of_fprodK.
-    2: move => *; apply: fprod_of_dffunK.
-    under (* Improve PG indentation *)
-      eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
-    rewrite L.
-    under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
-    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
-    rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
-    apply eq_bigr => i _ /=.
-    rewrite (big_tag pp).
-    have := fun i => @massfun_ax R (T i)  => H.
-    have Hi := H i (p i).
-    have/andP [Hm0 Hm1] := Hi.
-    move/eqP in Hm1.
-    apply/eqP; rewrite -Hm1.
-    under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
-    apply/eqP.
-    exact: proba_set1.
-  - apply/forallP => t.
-    rewrite ffunE.
-    apply: prodr_ge0=>x _.
-    rewrite /dist.
-    exact: (forallP (bpa_ax (p x))) [set t x].
+  rewrite ffunE.
+  apply: prodr_ge0=>i _.
+  rewrite ffunE.
+  exact: bpa_ge0.
+  Qed.
+
+  Lemma mk_prod_prdist_sum1 (p : forall i : X, prBpa R (T i)) : 
+    \sum_tn mk_prod_prdist p tn = 1.
+  Proof.
+  under eq_bigr do rewrite ffunE.
+  set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
+  have L := (@big_fprod R X (fun i => T i) pp).
+  do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
+  do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
+  erewrite (reindex).
+  2: exists (@fprod_of_dffun X _).
+  2: move=> *; apply: dffun_of_fprodK.
+  2: move => *; apply: fprod_of_dffunK.
+  under (* Improve PG indentation *)
+    eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
+  rewrite L.
+  rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
+  rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
+  apply eq_bigr => i _ /=.
+  rewrite (big_tag pp)/=.
+  under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
+  rewrite proba_set1.
+  apply/eqP.
+  exact: massfun1.
   Qed.
   
-  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tn
-    := proba_of_dist (mk_prod_proba_dist p witnessX).
-   *)
+  HB.instance Definition _ p :=
+    PrDist_of_Ffun.Build R Tn (mk_prod_prdist p) (mk_prod_prdist_ge0 p) (mk_prod_prdist_sum1 p).
+
+  Definition prod_proba (p : forall i : X, prBpa R (T i)) : prBpa R Tn
+    := (* proba_of_dist (mk_prod_proba_dist p witnessX). *)
+    mk_prbpa (mk_prod_prdist p).
+
 End BelOnFFuns.
 
 Close Scope ring_scope.

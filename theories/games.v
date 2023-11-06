@@ -280,95 +280,26 @@ Section Games.
     Qed.
 
   End FiniteIGame.
-
-  (*
-  Section BGame.
-
-    Notation Tconfig := (fun T => {ffun forall i : I, T i}).
-
-    Variable A : forall i : I, eqType.
-    Variable T : forall i : I, finType.
-
-    Notation Tn := {dffun forall i : I, T i}.
-
-    Definition bgame :=
-      (proba R Tn * (cprofile A -> Tn -> I -> R))%type.
-
-    Definition proper_bgame (G : bgame) : bool :=
-      [forall i : I, [forall ti : T i, Pr_revisable G.1 (event_ti ti)]].
-
-    Definition is_Pr_revisable (G : bgame) (HG : proper_bgame G) i (ti : T i) :
-      Pr_revisable G.1 (event_ti ti)
-      := (forallP ((forallP HG) i)) ti.
-
-    Definition igame_of_bgame_ax (G : bgame)
-      : [forall B : {set Tn}, (G.1 : massfun R Tn) B >= 0] && (1%N.-additive (G.1 : massfun R Tn)).
-    exact: (introTF (c:=true) andP (conj (bpa_ax G.1) (proba_ax G.1))).
-    Defined.
-    
-    Definition igame_of_bgame (G : bgame)
-      : {G' : igame A T | [forall B : {set Tn}, G'.1 B >= 0] && (1%N.-additive G'.1)} :=
-      exist _ (G.1 : massfun R Tn, G.2) (igame_of_bgame_ax G).
-
-    Definition bgame_of_igame_bpa_ax (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : bpa_axiom ((tag sG).1 : massfun R Tn).
-    exact: match elimTF andP (tagged sG) with conj Hge0 H1add => Hge0 end.
-    Defined.
-
-    Definition bgame_of_igame_proba_ax (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : proba_axiom ((tag sG).1 : massfun R Tn).
-    exact: match elimTF andP (tagged sG) with conj Hge0 H1add => H1add end.
-    Defined.
-
-    Definition bgame_of_igame (sG : {G : igame A T | [forall B : {set Tn}, G.1 B >= 0] && (1%N.-additive G.1)}) : bgame :=
-      ({| proba_val := {| bpa_ax := bgame_of_igame_bpa_ax sG |} ; proba_ax := bgame_of_igame_proba_ax sG |}, (tag sG).2).
-
-    Lemma bgame_of_igame_cancel :
-      cancel bgame_of_igame igame_of_bgame.
-    Proof.
-    case ; case=> p u HG.
-    rewrite /igame_of_bgame/=.
-    rewrite (eq_irrelevance (igame_of_bgame_ax
-                             (bgame_of_igame (exist (fun G0 : igame A T => [forall B, 0 <= G0.1 B] && ( 1%N.-additive G0.1 )) _ HG))) HG).
-    exact: eq_exist_curried=>//=.
-    Qed.
-    
-    Lemma igame_of_bgame_cancel :
-      cancel igame_of_bgame bgame_of_igame.
-    Proof.
-    case=>p u.
-    congr (_,u).
-    apply: proba_eqE=>/=.
-    by apply: bpa_eqE=>/=.
-    Qed.
-    
-    Definition bgame_utility (G : bgame) (HG : proper_bgame G) (p : iprofile A T) (i : I) (ti : T i) : R
-      :=
-      let kn := Pr_conditioning (is_Pr_revisable HG ti) in
-      [EU of [ffun t => G.2 (proj_iprofile p t) t i] wrt kn].
-
-  End BGame.
-   *)
 End Games.
 
-(*
+
 Section MixedStrategies.
 
   Variable R : realFieldType.
   Variable I : finType.
   Variable A : I -> finType.
 
-  Variable witnessI : I.
-
-  Definition mixed_cprofile := cprofile (fun i => [eqType of proba R (A i)]).
+  Definition mixed_cprofile := cprofile (fun i => prBpa R (A i)).
 
   Definition ms_util (G : cgame R A) (mp : mixed_cprofile) (i : I) : R :=
-    let pr := prod_proba mp witnessI in
-    [EU of [ffun p => G p i] wrt pr].
+    let pr := prod_proba mp in
+    EU pr [ffun p => G p i].
 
   Definition ms_Nash_equilibrium (G : cgame R A) (mp : mixed_cprofile) : Prop :=
-    forall i (si : proba R (A i)),
+    forall i (si : prBpa R (A i)),
       ~ ms_util G mp i < ms_util G (change_strategy mp si) i.
 
-  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => [eqType of proba R (A i)])
+  Definition mixed_cgame (G : cgame R A) : cgame R (fun i => prBpa R (A i))
     := fun mp i => ms_util G mp i.
 
   Lemma mixed_cgameE G mp i : ms_util G mp i = (mixed_cgame G) mp i.
@@ -383,4 +314,3 @@ Section MixedStrategies.
   Qed.
 
 End MixedStrategies.
-*)

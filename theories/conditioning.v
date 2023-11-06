@@ -46,10 +46,6 @@ Section Conditioning.
           - C should verify some predicate 'revisable'
           - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0 for belief function)
      **)
-    (*
-      Definition conditioning_axiom (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
-        := forall m C (HC : revisable m C), Pinf (cond m C HC) (~:C) = 0.
-     *)
 
     Definition cond_axiom (revisable : pointed_function R T -> pred {set T})
                           (cond : forall mu C, revisable mu C -> pointed_function R T) :=
@@ -120,12 +116,31 @@ Section Conditioning.
     by rewrite /Dempster_precond/Dempster_mprecond -PinfD Pinf_moebiusE.
     Qed.
     
-    Definition Dempster_cond_fun mu C (HC : Dempster_precond mu C) :=
+    Definition Dempster_cond mu C (HC : Dempster_precond mu C) :=
       dual [ffun A : {set T} => (dual mu (A :&: C)) / (dual mu C)].
 
-    (*
-    Lemma Dempster_condM  mu C (HC : Dempster_precond mu C) :
-      monotonic (Dempster_cond_fun HC).
+    
+    Lemma Dempster_cond0 mu C (HC : Dempster_precond mu C) :
+      Dempster_cond HC set0 = 0.
+    Proof. exact: dual0. Qed.
+
+    Lemma Dempster_cond1 mu C (HC : Dempster_precond mu C) :
+      Dempster_cond HC setT = 1.
+    Proof.
+    rewrite dualT ffunE.
+    - by rewrite setTI divff.
+    - by rewrite set0I dual0 mul0r.
+    Qed.
+
+    Lemma Dempster_cond01 mu C (HC : Dempster_precond mu C) :
+      pointed (Dempster_cond HC).
+    Proof. by apply/andP ; rewrite Dempster_cond0 Dempster_cond1. Qed.
+
+    HB.instance Definition _ mu C (HC : Dempster_precond mu C) :=
+      PointedFun_of_Ffun.Build R T (Dempster_cond HC) (Dempster_cond01 HC).
+
+    Lemma Dempster_condM  (mu : capacity R T) C (HC : Dempster_precond mu C) :
+      monotonic (Dempster_cond HC).
     Proof.
     apply: dual_monotonic=>A B ; rewrite ffunE [E in _<=E]ffunE.
     apply: ler_pM=>//=.
@@ -136,29 +151,9 @@ Section Conditioning.
     - rewrite setIUl.
       apply: dual_monotonic ; exact: capaM.
     Qed.
-     *)
-    
-    Lemma Dempster_cond0 mu C (HC : Dempster_precond mu C) :
-      Dempster_cond_fun HC set0 = 0.
-    Proof. exact: dual0. Qed.
 
-    Lemma Dempster_cond1 mu C (HC : Dempster_precond mu C) :
-      Dempster_cond_fun HC setT = 1.
-    Proof.
-    rewrite dualT ffunE.
-    - by rewrite setTI divff.
-    - by rewrite set0I dual0 mul0r.
-    Qed.
-
-    Lemma Dempster_cond01 mu C (HC : Dempster_precond mu C) :
-      pointed (Dempster_cond_fun HC).
-    Proof. by apply/andP ; rewrite Dempster_cond0 Dempster_cond1. Qed.
-
-    HB.instance Definition _ mu C (HC : Dempster_precond mu C) :=
-      PointedFun_of_Ffun.Build R T (Dempster_cond_fun HC) (Dempster_cond01 HC).
-
-    Definition Dempster_cond mu C (HC : Dempster_precond mu C) : pointed_function R T :=
-      Dempster_cond_fun HC.
+    HB.instance Definition _ (mu : capacity R T) C (HC : Dempster_precond mu C) :=
+      Capacity_of_PointedFun.Build R T (Dempster_cond HC) (Dempster_condM HC).
 
 
 
@@ -169,13 +164,12 @@ Section Conditioning.
 
 
     Lemma Dempster_mcond_massfun0 m C (HC : Dempster_mprecond m C) :
-      Dempster_mcond_fun HC set0 = 0.
-    Proof. by rewrite ffunE eqxx. Qed.
+      Dempster_mcond_fun HC set0 == 0.
+    Proof. apply/eqP ; by rewrite ffunE eqxx. Qed.
 
     Lemma Dempster_mcond_massfun1 m C (HC : Dempster_mprecond m C) :
-      \sum_(A : {set T}) Dempster_mcond_fun HC A = 1.
+      \sum_(A : {set T}) Dempster_mcond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE -if_neg.
     rewrite -big_mkcond /=.
     under eq_bigr do rewrite sum_div.
@@ -198,20 +192,20 @@ Section Conditioning.
     Definition Dempster_mcond m C (HC : Dempster_mprecond m C) : rmassfun R T :=
       Dempster_mcond_fun HC.
 
-    Lemma Dempster_mcond_ge0 (m : bpa R T) C (HC : Dempster_mprecond m C) A :
-      Dempster_mcond HC A >= 0.
+    Lemma Dempster_mcond_ge0b (m : bpa R T) C (HC : Dempster_mprecond m C) :
+      [forall A : {set T}, Dempster_mcond HC A >= 0].
     Proof.
+    apply/forallP=>/=A.
     rewrite ffunE/=.
     case: ifP => _//.
     apply: sumr_ge0 => B HB.
     apply divr_ge0 ; first by rewrite bpa_ge0.
-    Check Pinf_ge0.
     exact: Psup_ge0.
     Qed.
 
     HB.instance
     Definition _ (m : bpa R T) C (HC : Dempster_mprecond m C) :=
-      Bpa_of_AddMassFun.Build R T (Dempster_mcond HC) (Dempster_mcond_ge0 HC).
+      Bpa_of_AddMassFun.Build R T (Dempster_mcond HC) (Dempster_mcond_ge0b HC).
     
     Lemma Dempster_mcond_sumE m C (HC : Dempster_mprecond m C) f :
       \sum_(B in focal (Dempster_mcond HC))
@@ -225,7 +219,7 @@ Section Conditioning.
     rewrite -[in RHS]big_mkcondr sum_fun_focal_cond.
     Opaque Dempster_mcond.
     rewrite (big_setI_distrl (fun b => b != set0)) sum_fun_focal (bigD1 set0) //=.
-    rewrite massfun0 mul0r add0r.
+    rewrite (eqP massfun0) mul0r add0r.
     under [in RHS]eq_bigr do rewrite mulrC.
     rewrite big_distrl /=.
     under [in RHS]eq_bigr do rewrite -mulrA big_distrl mulrC /=.
@@ -275,16 +269,17 @@ Section Conditioning.
 
 
     Lemma FH_cond_massfun0 (m : rmassfun R T) (C : {set T}) (HC : FH_precondisable m C) :
-      FH_cond_fun HC set0 = 0.
+      FH_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE moebius0 ffunE set0I (pointed0 (Pinf01 m)) mul0r. Qed.
     
     Lemma FH_cond_massfun1 (m : rmassfun R T) (C : {set T}) (HC : FH_precondisable m C) :
-      \sum_(A : {set T}) FH_cond_fun HC A = 1.
+      \sum_(A : {set T}) FH_cond_fun HC A == 1.
     Proof.
-    - under eq_bigr do rewrite ffunE.
-                       have :=  moebiusE (FH_Pinf m C) setT.
-                       rewrite FH_PinfT=>//->.
-                       by apply: eq_big=>/=[B|//] ; rewrite subsetT.
+    apply/eqP.
+    under eq_bigr do rewrite ffunE.
+    have :=  moebiusE (FH_Pinf m C) setT.
+    rewrite FH_PinfT=>//->.
+    by apply: eq_big=>/=[B|//] ; rewrite subsetT.
     Qed.
 
     HB.instance
@@ -335,19 +330,18 @@ Section Conditioning.
                            then m A / Pinf m C else 0].
 
     Lemma Strong_cond_massfun0 m C (HC : Strong_precondisable m C) :
-      Strong_cond_fun HC set0 = 0.
+      Strong_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE eqxx. Qed.
 
     Lemma Strong_cond_massfun1 m C (HC : Strong_precondisable m C) :
-      \sum_(A : {set T}) Strong_cond_fun HC A = 1.
+      \sum_(A : {set T}) Strong_cond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE.
-                     rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
-                     rewrite ffunE/=.
-                     apply/eqP.
-                     rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
-                     by rewrite massfun0 add0r ; under eq_bigl do rewrite andbC.
+    rewrite -big_mkcond sum_div_eq1 /Pinf ; last exact: HC.
+    rewrite ffunE/=.
+    apply/eqP.
+    rewrite [in RHS](bigD1 set0) /= ; last exact: sub0set.
+    by rewrite (eqP massfun0) add0r ; under eq_bigl do rewrite andbC.
     Qed.
 
     HB.instance
@@ -387,18 +381,17 @@ Section Conditioning.
       [ffun A : {set T} => if A :&: C != set0 then m A / Psup m C else 0].
 
     Lemma Weak_cond_massfun0 m C (HC : Weak_precondisable m C) :
-      Weak_cond_fun HC set0 = 0.
+      Weak_cond_fun HC set0 == 0.
     Proof. by rewrite ffunE set0I eqxx. Qed.
 
     Lemma Weak_cond_massfun1 m C (HC : Weak_precondisable m C) :
-      \sum_(A : {set T}) Weak_cond_fun HC A = 1.
+      \sum_(A : {set T}) Weak_cond_fun HC A == 1.
     Proof.
-    apply/eqP.
     under eq_bigr do rewrite ffunE.
-                     rewrite -big_mkcond sum_div_eq1 //.
-                     rewrite ffunE.
-                     apply/eqP; apply: eq_bigl=>A.
-                     by rewrite setI_eq0.
+    rewrite -big_mkcond sum_div_eq1 //.
+    rewrite ffunE.
+    apply/eqP; apply: eq_bigl=>A.
+    by rewrite setI_eq0.
     Qed.
 
     HB.instance
@@ -458,78 +451,6 @@ Section BelOnFFuns.
   case (boolP (t \in A)) => Ht ; last by rewrite (negbTE Ht) andbF.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
-
-  (*
-  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
-    (forall i : X, {ffun {set T i} -> R}).
-  Proof. move=> i; apply p. Defined.
-
-   Lemma proba_set1 (p : forall i : X, proba R (T i)) :
-    forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
-  Proof.
-    move=> i.
-    have x0 : T i.
-    { have P_i := p i.
-      have [b _] := P_i.
-      apply: massfun_nonemptyW b. }
-    set h' : {set (T i)} -> T i :=
-      fun s =>
-        match [pick x | x \in s] with
-        | Some x => x
-        | None => x0
-        end.
-    rewrite
-      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N));
-      last by move=> s Hs; exact: proba_set1_eq0.
-    rewrite (reindex_onto (I := {set (T i)}) (J := T i)
-                          (fun j => [set j]) h'
-                          (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
-    { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
-    under [in RHS]eq_bigl => j do rewrite /h' pick_set1E cards1 !eqxx andbT.
-    exact: eq_bigr.
-  Qed.
-
-  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tn -> R}
-    := [ffun t : Tn => \prod_i dist (p i) (t i)].
-
-  Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
-  Proof.
-  apply/andP ; split.
-  - under eq_bigr do rewrite /mk_prod_proba ffunE.
-    set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
-    have L := (@big_fprod R X (fun i => T i) pp).
-    do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
-    do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
-    erewrite (reindex).
-    2: exists (@fprod_of_dffun X _).
-    2: move=> *; apply: dffun_of_fprodK.
-    2: move => *; apply: fprod_of_dffunK.
-    under (* Improve PG indentation *)
-      eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
-    rewrite L.
-    under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
-    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
-    rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
-    apply eq_bigr => i _ /=.
-    rewrite (big_tag pp).
-    have := fun i => @massfun_ax R (T i)  => H.
-    have Hi := H i (p i).
-    have/andP [Hm0 Hm1] := Hi.
-    move/eqP in Hm1.
-    apply/eqP; rewrite -Hm1.
-    under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
-    apply/eqP.
-    exact: proba_set1.
-  - apply/forallP => t.
-    rewrite ffunE.
-    apply: prodr_ge0=>x _.
-    rewrite /dist.
-    exact: (forallP (bpa_ax (p x))) [set t x].
-  Qed.
-  
-  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tn
-    := proba_of_dist (mk_prod_proba_dist p witnessX).
-   *)
 End BelOnFFuns.
 
 Close Scope ring_scope.

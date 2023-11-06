@@ -2,7 +2,7 @@
 This file was generated from `meta.yml`, please do not edit manually.
 Follow the instructions on https://github.com/coq-community/templates to regenerate.
 --->
-# Decision theoretic Coq project
+#  formally verified decision theory library for the Coq proof assistant using the MathComp library
 
 **Update:** The ITP2023 formalization is available [on the ITP2023 branch](https://github.com/pPomCo/belgames/tree/ITP2023).
 

@@ -65,10 +65,11 @@ Section PointedFunTheory.
   Implicit Type A B C : {set T}.
   
   (** Moebius from pointed capacity *)
-  Lemma capa_massfun0 : moebius mu set0 = 0.
-  Proof. by rewrite moebius0 pointed0//capa01. Qed.
-  Lemma capa_massfun1 : \sum_(A : {set T}) moebius mu A = 1.
+  Lemma capa_massfun0 : moebius mu set0 == 0.
+  Proof. apply/eqP ; by rewrite moebius0 pointed0//capa01. Qed.
+  Lemma capa_massfun1 : \sum_(A : {set T}) moebius mu A == 1.
   Proof.
+  apply/eqP.
   rewrite -(pointedT (capa01 (s:=mu))) moebiusE.
   apply: eq_bigl=>/=A ; by rewrite subsetT.
   Qed.
@@ -298,8 +299,11 @@ Section BeliefFunctionTheory.
 
 
   (** Belief function -> bpa **)
+  Lemma bel_moebius_ge0b : [forall A : {set T}, moebius Bel A >= 0].
+  Proof. apply/forallP ; exact: massfun_ge0. Qed.
+
   HB.instance Definition _ :=
-    Bpa_of_AddMassFun.Build R T (moebius Bel) massfun_ge0.
+    Bpa_of_AddMassFun.Build R T (moebius Bel) bel_moebius_ge0b.
 
 End BeliefFunctionTheory.
 
@@ -392,11 +396,14 @@ Section ProbabilityTheory.
       Proba_of_Capacity.Build R T (setfun.dual Pr) dual_capaAdd.
 
     (** Probability measure <-> probability bpa *)
-    Lemma proba_moebius_card1 :
-      forall A, moebius Pr A != 0 -> #|A|==1%N.
-    Proof. by move=>/=A H ; apply/eqP ; exact: (massfun_card1 (s:=Pr)). Qed.
+    Lemma proba_moebius_card1b :
+      [forall A, (moebius Pr A != 0) ==> (#|A|==1%N)].
+    Proof.
+    apply/forallP=>/=A ; apply/implyP=>H ; apply/eqP.
+    exact: (massfun_card1 (s:=Pr)).
+    Qed.
 
-    HB.instance Definition _ := PrBpa_of_Bpa.Build R T (moebius Pr) proba_moebius_card1.
+    HB.instance Definition _ := PrBpa_of_Bpa.Build R T (moebius Pr) proba_moebius_card1b.
     
 
     (** Probability measure <-> probability distribution *)
@@ -428,7 +435,8 @@ Section ProbabilityTheory.
 
   Lemma prBpa_moebius_card1 (m : prBpa R T) A :
     moebius (Pinf m) A != 0 -> #|A| = 1%N.
-  Proof. by rewrite -massfun_moebius=>HA ; apply/eqP ; exact: (prbpa_card1 (s:=m)). Qed.  
+  Proof. by rewrite -massfun_moebius=>HA ; exact: (prbpa_card1 (p:=m)). Qed.  
+
   HB.instance Definition _ (p : prBpa R T) :=
     Proba_of_BeliefFunction.Build R T (Pinf p) (@prBpa_moebius_card1 p).
   

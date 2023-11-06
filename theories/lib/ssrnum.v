@@ -68,12 +68,15 @@ Section NumLemmas.
   - rewrite mulrN1 subr_ge0 ; exact: H.
   Qed.
   
-  Lemma prod_ge0 {T} (P : pred T) (f : T -> R) :
+  Lemma deprecated_prod_ge0 {T} (P : pred T) (f : T -> R) :
     (forall t, P t -> f t >= 0) -> \prod_(t | P t) f t >= 0.
   Proof.
   move=>H ; apply big_ind=>//=.
   exact: mulr_ge0.
   Qed.
+
+  #[deprecated(since="belgames.2.0", note="Use Num.Theory.prodr_ge0")]
+  Notation prod_ge0 := deprecated_prod_ge0.
 
   Lemma sum_ge0_eq0E {T} (P : pred T) (f : T -> R) :
     (forall t, P t -> f t >= 0) -> \sum_(t | P t) f t = 0 <-> forall t, P t -> f t = 0.
@@ -112,16 +115,6 @@ Section NumLemmas.
   Proof. by rewrite big_distrl.
   Qed.
 
-  (*
-  Lemma sum_div_eq1 {T} (P : pred T) (cst : R) (Hcst : cst != 0) (f : T -> R) :
-    (\sum_(t : T | P t) f t / cst == 1) = (\sum_(t : T | P t) f t == cst).
-  Proof.
-  rewrite -(divr1 1) sum_div eqr_div //.
-  - by rewrite mulr1 mul1r.
-  - by rewrite eq_sym neq01.
-  Qed.
-   *)
-
 
   Lemma sum_of_sumE_cond {T : finType} (f : {set T} -> R) (P : pred {set T}):
     \sum_(t : T) \sum_(A : {set T} | P A && (t \in A)) f A = \sum_(A | P A) \sum_(w in A) f A.
@@ -138,16 +131,6 @@ Section NumLemmas.
   rewrite (reindex (fun p=>(p.2,p.1))) //=.
   exists (fun p=>(p.2,p.1)) ; by case.
   Qed.
-
-  (*
-  Lemma sum_carddiv {T : finType} (A : {set T}) (H : (#|A| > 0)%N):
-    \sum_(t in A) #|A|%:R^-1 = (1 : R).
-  Proof.
-  rewrite big_const iter_addr addr0 /=.
-  rewrite -(mulr_natl #|A|%:R^-1 #|A|) divff //=.
-  by rewrite pnatr_eq0 -lt0n.
-  Qed.
-   *)
 
 
 End NumLemmas.

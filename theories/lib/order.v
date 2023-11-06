@@ -165,29 +165,6 @@ case (boolP (x <= F j))=>H.
   by rewrite leNgt lt_leAnge (negbTE H) andFb.
 Qed.
 
-Lemma bigmax_imset {disp : unit} {T : orderType disp} [I J : finType] (x : T) [h : I -> J] [A : {set I}] (F : J -> T) :
-  \big[max/x]_(j in [set h x | x in A]) F j = \big[max/x]_(i in A) F (h i).
-Proof.
-case (boolP (A == set0))=>[/eqP->|HA0] ;
-                         first by rewrite imset0 !big_set0.
-have [t Ht] := pick_nonemptyset_sig HA0.
-symmetry.
-apply/eqP ; rewrite eq_le ; apply/andP ; split.
-- rewrite bigmax_mkcond.
-  apply: bigmax_le=>[|j _].
-  + by rewrite bigmax_idl le_maxr lexx orTb.
-  + case (boolP (j \in A))=>H ;
-                           last by rewrite bigmax_idl le_maxr lexx orTb.
-    by apply: le_bigmax_cond ; first exact: imset_f.
-- rewrite bigmax_mkcond.
-  apply: bigmax_le=>[|j _].
-  + by rewrite bigmax_idl le_maxr lexx orTb.
-  + case (boolP (j \in [set h x0 | x0 in A]))=>H ;
-                                              last by rewrite bigmax_idl le_maxr lexx orTb.
-    have [i Hi ->] := imsetP H.
-    exact: le_bigmax_cond.
-Qed.
-
 Lemma bigmin_imset {disp : unit} {T : orderType disp} [I J : finType] (x : T) [h : I -> J] [A : {set I}] (F : J -> T) :
   \big[min/x]_(j in [set h x | x in A]) F j = \big[min/x]_(i in A) F (h i).
 Proof.
@@ -208,5 +185,91 @@ apply/eqP ; rewrite eq_le ; apply/andP ; split.
   + case (boolP (j \in A))=>H ;
       last by rewrite bigmin_idl le_minl lexx orTb.
     by apply: bigmin_le_cond ; first exact: imset_f.
+Qed.
+
+Lemma bigmax_imset {disp : unit} {T : orderType disp} [I J : finType] (x : T) [h : I -> J] [A : {set I}] (F : J -> T) :
+  \big[max/x]_(j in [set h x | x in A]) F j = \big[max/x]_(i in A) F (h i).
+Proof.
+case (boolP (A == set0))=>[/eqP->|HA0] ;
+  first by rewrite imset0 !big_set0.
+have [t Ht] := pick_nonemptyset_sig HA0.
+symmetry.
+apply/eqP ; rewrite eq_le ; apply/andP ; split.
+- rewrite bigmax_mkcond.
+  apply: bigmax_le=>[|j _].
+  + by rewrite bigmax_idl le_maxr lexx orTb.
+  + case (boolP (j \in A))=>H ;
+      last by rewrite bigmax_idl le_maxr lexx orTb.
+    by apply: le_bigmax_cond ; first exact: imset_f.
+- rewrite bigmax_mkcond.
+  apply: bigmax_le=>[|j _].
+  + by rewrite bigmax_idl le_maxr lexx orTb.
+  + case (boolP (j \in [set h x0 | x0 in A]))=>H ;
+      last by rewrite bigmax_idl le_maxr lexx orTb.
+    have [i Hi ->] := imsetP H.
+    exact: le_bigmax_cond.
+Qed.
+
+Lemma bigmin_mkcondl {disp : unit} {T : orderType disp} [I : finType] (x : T) (P Q : pred I) (F : I -> T) :
+  \big[min/x]_(i | P i && Q i) F i = \big[min/x]_(i : I | Q i) if P i then F i else x.
+Proof.
+rewrite bigmin_mkcond [in RHS]bigmin_mkcond.
+apply: eq_bigr=>i _.
+by case (P i) ; case (Q i).
+Qed.
+
+Lemma bigmin_mkcondr {disp : unit} {T : orderType disp} [I : finType] (x : T) (P Q : pred I) (F : I -> T) :
+  \big[min/x]_(i | P i && Q i) F i = \big[min/x]_(i : I | P i) if Q i then F i else x.
+Proof.
+rewrite bigmin_mkcond [in RHS]bigmin_mkcond.
+apply: eq_bigr=>i _.
+by case (P i) ; case (Q i).
+Qed.
+
+Lemma bigmax_mkcondl {disp : unit} {T : orderType disp} [I : finType] (x : T) (P Q : pred I) (F : I -> T) :
+  \big[max/x]_(i | P i && Q i) F i = \big[max/x]_(i : I | Q i) if P i then F i else x.
+Proof.
+rewrite bigmax_mkcond [in RHS]bigmax_mkcond.
+apply: eq_bigr=>i _.
+by case (P i) ; case (Q i).
+Qed.
+
+Lemma bigmax_mkcondr {disp : unit} {T : orderType disp} [I : finType] (x : T) (P Q : pred I) (F : I -> T) :
+  \big[max/x]_(i | P i && Q i) F i = \big[max/x]_(i : I | P i) if Q i then F i else x.
+Proof.
+rewrite bigmax_mkcond [in RHS]bigmax_mkcond.
+apply: eq_bigr=>i _.
+by case (P i) ; case (Q i).
+Qed.
+
+
+Lemma bigminS {disp : unit} {T : orderType disp} [I : finType] (x : T) (P : pred I) (F : I -> T) :
+  \big[min/x]_(A : {set I}) \big[min/x]_(i in A | P i) F i = \big[min/x]_(i : I | P i) F i.
+Proof.
+apply/eqP ; rewrite eq_le ; apply/andP ; split ;
+  apply/bigmin_geP ; split.
+- exact: bigmin_idx.
+- move=>i Hi.
+  rewrite (bigminD1 [set i])//.
+  rewrite bigmin_mkcondr bigmin_set1 Hi.
+  by rewrite !le_minl lexx orbT.
+- exact: bigmin_idx.
+- move=>/=A _.
+  by apply: sub_bigmin=>i/andP[_->].
+Qed.
+
+Lemma bigmaxS {disp : unit} {T : orderType disp} [I : finType] (x : T) (P : pred I) (F : I -> T) :
+  \big[max/x]_(A : {set I}) \big[max/x]_(i in A | P i) F i = \big[max/x]_(i : I | P i) F i.
+Proof.
+apply/eqP ; rewrite eq_le ; apply/andP ; split ;
+  apply/bigmax_leP ; split.
+- exact: bigmax_idx.
+- move=>/=A _.
+  by apply: sub_bigmax=>i/andP[_->].
+- exact: bigmax_idx.
+- move=>i Hi.
+  rewrite (bigmaxD1 [set i])//.
+  rewrite bigmax_mkcondr bigmax_set1 Hi.
+  by rewrite !le_maxr lexx orbT.
 Qed.
 
