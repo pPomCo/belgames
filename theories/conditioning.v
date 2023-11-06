@@ -46,10 +46,6 @@ Section Conditioning.
           - C should verify some predicate 'revisable'
           - Bel(.|C) should be such as no focal element is included in C^c (i.e. Bel(C^c)=0 for belief function)
      **)
-    (*
-      Definition conditioning_axiom (revisable : massfun -> pred {set W}) (cond : forall m C, revisable m C -> massfun)
-        := forall m C (HC : revisable m C), Pinf (cond m C HC) (~:C) = 0.
-     *)
 
     Definition cond_axiom (revisable : pointed_function R T -> pred {set T})
                           (cond : forall mu C, revisable mu C -> pointed_function R T) :=
@@ -455,78 +451,6 @@ Section BelOnFFuns.
   case (boolP (t \in A)) => Ht ; last by rewrite (negbTE Ht) andbF.
   by rewrite eq_sym (HA t Ht) andFb.
   Qed.
-
-  (*
-  Definition ffun_of_proba (p : forall i : X, proba R (T i)) :
-    (forall i : X, {ffun {set T i} -> R}).
-  Proof. move=> i; apply p. Defined.
-
-   Lemma proba_set1 (p : forall i : X, proba R (T i)) :
-    forall i : X, \sum_(k in T i) p i [set k] = \sum_A p i A.
-  Proof.
-    move=> i.
-    have x0 : T i.
-    { have P_i := p i.
-      have [b _] := P_i.
-      apply: massfun_nonemptyW b. }
-    set h' : {set (T i)} -> T i :=
-      fun s =>
-        match [pick x | x \in s] with
-        | Some x => x
-        | None => x0
-        end.
-    rewrite
-      -(big_rmcond _ (I := {set (T i)}) _ (P := fun s => #|s| == 1%N));
-      last by move=> s Hs; exact: proba_set1_eq0.
-    rewrite (reindex_onto (I := {set (T i)}) (J := T i)
-                          (fun j => [set j]) h'
-                          (P := fun s => #|s| == 1%N) (F := fun s => p i s)) /=; last first.
-    { by move=> j Hj; rewrite /h'; case/cards1P: Hj => xj ->; rewrite pick_set1E. }
-    under [in RHS]eq_bigl => j do rewrite /h' pick_set1E cards1 !eqxx andbT.
-    exact: eq_bigr.
-  Qed.
-
-  Definition mk_prod_proba (p : forall i : X, proba R (T i)) : {ffun Tn -> R}
-    := [ffun t : Tn => \prod_i dist (p i) (t i)].
-
-  Lemma mk_prod_proba_dist p (witnessX : X) : is_dist (mk_prod_proba p).
-  Proof.
-  apply/andP ; split.
-  - under eq_bigr do rewrite /mk_prod_proba ffunE.
-    set pp := (fun i => [ffun a => (ffun_of_proba p i [set a])]).
-    have L := (@big_fprod R X (fun i => T i) pp).
-    do [under [LHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp ffunE /ffun_of_proba] in L.
-    do [under [RHS]eq_bigr => i Hi do under eq_bigr => j Hj do rewrite /pp /ffun_of_proba] in L.
-    erewrite (reindex).
-    2: exists (@fprod_of_dffun X _).
-    2: move=> *; apply: dffun_of_fprodK.
-    2: move => *; apply: fprod_of_dffunK.
-    under (* Improve PG indentation *)
-      eq_bigr do under eq_bigr do rewrite /dffun_of_fprod !ffunE.
-    rewrite L.
-    under eq_bigr do under eq_bigr do rewrite /ffun_of_proba.
-    apply/eqP; rewrite [X in _ = X](_ : 1 = \big[*%R/1%R]_(i in X) 1)%R; last by rewrite big1.
-    rewrite -(bigA_distr_big_dep _ (fun i j => otagged [ffun a => p i [set a]] 0%R j)).
-    apply eq_bigr => i _ /=.
-    rewrite (big_tag pp).
-    have := fun i => @massfun_ax R (T i)  => H.
-    have Hi := H i (p i).
-    have/andP [Hm0 Hm1] := Hi.
-    move/eqP in Hm1.
-    apply/eqP; rewrite -Hm1.
-    under eq_bigr => k Hk do rewrite ffunE /ffun_of_proba.
-    apply/eqP.
-    exact: proba_set1.
-  - apply/forallP => t.
-    rewrite ffunE.
-    apply: prodr_ge0=>x _.
-    rewrite /dist.
-    exact: (forallP (bpa_ax (p x))) [set t x].
-  Qed.
-  
-  Definition prod_proba (p : forall i : X, proba R (T i)) (witnessX : X)  : proba R Tn
-    := proba_of_dist (mk_prod_proba_dist p witnessX).
-   *)
 End BelOnFFuns.
 
 Close Scope ring_scope.
